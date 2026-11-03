@@ -1,0 +1,907 @@
+{
+  "source": "NASA/JPL Horizons API (DE441), Sun (10), APPARENT=AIRLESS, geodetic site, elevation 0 m",
+  "note": "일출·일몰은 기하 고도 -0.833° 교차(1분 간격 선형 보간)로 정의 — NOAA 관례와 동일",
+  "fetchedAt": "2026-11-03",
+  "cases": [
+    {
+      "site": "seoul",
+      "lat": 37.5665,
+      "lng": 126.978,
+      "date": "2026-03-20",
+      "samples": [
+        {
+          "kstMinute": 360,
+          "azimuthDeg": 84.14253,
+          "altitudeDeg": -8.036169
+        },
+        {
+          "kstMinute": 420,
+          "azimuthDeg": 93.319085,
+          "altitudeDeg": 3.850443
+        },
+        {
+          "kstMinute": 480,
+          "azimuthDeg": 102.772369,
+          "altitudeDeg": 15.62414
+        },
+        {
+          "kstMinute": 540,
+          "azimuthDeg": 113.379915,
+          "altitudeDeg": 26.933082
+        },
+        {
+          "kstMinute": 600,
+          "azimuthDeg": 126.266818,
+          "altitudeDeg": 37.265994
+        },
+        {
+          "kstMinute": 660,
+          "azimuthDeg": 142.846164,
+          "altitudeDeg": 45.777317
+        },
+        {
+          "kstMinute": 720,
+          "azimuthDeg": 164.079779,
+          "altitudeDeg": 51.145319
+        },
+        {
+          "kstMinute": 780,
+          "azimuthDeg": 188.286175,
+          "altitudeDeg": 51.962558
+        },
+        {
+          "kstMinute": 840,
+          "azimuthDeg": 210.872108,
+          "altitudeDeg": 47.957438
+        },
+        {
+          "kstMinute": 900,
+          "azimuthDeg": 228.946058,
+          "altitudeDeg": 40.310922
+        },
+        {
+          "kstMinute": 960,
+          "azimuthDeg": 242.887041,
+          "altitudeDeg": 30.464827
+        },
+        {
+          "kstMinute": 1020,
+          "azimuthDeg": 254.112821,
+          "altitudeDeg": 19.415908
+        },
+        {
+          "kstMinute": 1080,
+          "azimuthDeg": 263.856854,
+          "altitudeDeg": 7.763939
+        }
+      ],
+      "sunriseKstMinute": 396.3666666666667,
+      "sunsetKstMinute": 1123.4833333333333
+    },
+    {
+      "site": "seoul",
+      "lat": 37.5665,
+      "lng": 126.978,
+      "date": "2026-06-21",
+      "samples": [
+        {
+          "kstMinute": 360,
+          "azimuthDeg": 66.352781,
+          "altitudeDeg": 7.798379
+        },
+        {
+          "kstMinute": 420,
+          "azimuthDeg": 74.580129,
+          "altitudeDeg": 18.995156
+        },
+        {
+          "kstMinute": 480,
+          "azimuthDeg": 82.669635,
+          "altitudeDeg": 30.639504
+        },
+        {
+          "kstMinute": 540,
+          "azimuthDeg": 91.38794,
+          "altitudeDeg": 42.499308
+        },
+        {
+          "kstMinute": 600,
+          "azimuthDeg": 102.146228,
+          "altitudeDeg": 54.293909
+        },
+        {
+          "kstMinute": 660,
+          "azimuthDeg": 118.453713,
+          "altitudeDeg": 65.458264
+        },
+        {
+          "kstMinute": 720,
+          "azimuthDeg": 150.454484,
+          "altitudeDeg": 74.120857
+        },
+        {
+          "kstMinute": 780,
+          "azimuthDeg": 203.494916,
+          "altitudeDeg": 74.79901
+        },
+        {
+          "kstMinute": 840,
+          "azimuthDeg": 238.671958,
+          "altitudeDeg": 66.773914
+        },
+        {
+          "kstMinute": 900,
+          "azimuthDeg": 256.200192,
+          "altitudeDeg": 55.77253
+        },
+        {
+          "kstMinute": 960,
+          "azimuthDeg": 267.39588,
+          "altitudeDeg": 44.015734
+        },
+        {
+          "kstMinute": 1020,
+          "azimuthDeg": 276.273636,
+          "altitudeDeg": 32.146201
+        },
+        {
+          "kstMinute": 1080,
+          "azimuthDeg": 284.393517,
+          "altitudeDeg": 20.461523
+        }
+      ],
+      "sunriseKstMinute": 310.98333333333335,
+      "sunsetKstMinute": 1196.6666666666667
+    },
+    {
+      "site": "seoul",
+      "lat": 37.5665,
+      "lng": 126.978,
+      "date": "2026-09-23",
+      "samples": [
+        {
+          "kstMinute": 360,
+          "azimuthDeg": 86.18929,
+          "altitudeDeg": -4.859028
+        },
+        {
+          "kstMinute": 420,
+          "azimuthDeg": 95.385648,
+          "altitudeDeg": 7.009842
+        },
+        {
+          "kstMinute": 480,
+          "azimuthDeg": 105.061909,
+          "altitudeDeg": 18.692463
+        },
+        {
+          "kstMinute": 540,
+          "azimuthDeg": 116.145829,
+          "altitudeDeg": 29.808203
+        },
+        {
+          "kstMinute": 600,
+          "azimuthDeg": 129.852759,
+          "altitudeDeg": 39.778007
+        },
+        {
+          "kstMinute": 660,
+          "azimuthDeg": 147.620063,
+          "altitudeDeg": 47.637306
+        },
+        {
+          "kstMinute": 720,
+          "azimuthDeg": 169.99083,
+          "altitudeDeg": 51.958842
+        },
+        {
+          "kstMinute": 780,
+          "azimuthDeg": 194.314764,
+          "altitudeDeg": 51.490585
+        },
+        {
+          "kstMinute": 840,
+          "azimuthDeg": 215.904823,
+          "altitudeDeg": 46.389075
+        },
+        {
+          "kstMinute": 900,
+          "azimuthDeg": 232.812266,
+          "altitudeDeg": 38.035316
+        },
+        {
+          "kstMinute": 960,
+          "azimuthDeg": 245.91282,
+          "altitudeDeg": 27.786089
+        },
+        {
+          "kstMinute": 1020,
+          "azimuthDeg": 256.638507,
+          "altitudeDeg": 16.5188
+        },
+        {
+          "kstMinute": 1080,
+          "azimuthDeg": 266.14138,
+          "altitudeDeg": 4.761549
+        }
+      ],
+      "sunriseKstMinute": 380.3333333333333,
+      "sunsetKstMinute": 1108.2166666666667
+    },
+    {
+      "site": "seoul",
+      "lat": 37.5665,
+      "lng": 126.978,
+      "date": "2026-12-22",
+      "samples": [
+        {
+          "kstMinute": 360,
+          "azimuthDeg": 104.867342,
+          "altitudeDeg": -19.787478
+        },
+        {
+          "kstMinute": 420,
+          "azimuthDeg": 113.064599,
+          "altitudeDeg": -8.55458
+        },
+        {
+          "kstMinute": 480,
+          "azimuthDeg": 121.924074,
+          "altitudeDeg": 1.985432
+        },
+        {
+          "kstMinute": 540,
+          "azimuthDeg": 131.945117,
+          "altitudeDeg": 11.48832
+        },
+        {
+          "kstMinute": 600,
+          "azimuthDeg": 143.564912,
+          "altitudeDeg": 19.488136
+        },
+        {
+          "kstMinute": 660,
+          "azimuthDeg": 157.015513,
+          "altitudeDeg": 25.392626
+        },
+        {
+          "kstMinute": 720,
+          "azimuthDeg": 172.04073,
+          "altitudeDeg": 28.574759
+        },
+        {
+          "kstMinute": 780,
+          "azimuthDeg": 187.713013,
+          "altitudeDeg": 28.600491
+        },
+        {
+          "kstMinute": 840,
+          "azimuthDeg": 202.757467,
+          "altitudeDeg": 25.465977
+        },
+        {
+          "kstMinute": 900,
+          "azimuthDeg": 216.236838,
+          "altitudeDeg": 19.599952
+        },
+        {
+          "kstMinute": 960,
+          "azimuthDeg": 227.884847,
+          "altitudeDeg": 11.62848
+        },
+        {
+          "kstMinute": 1020,
+          "azimuthDeg": 237.928245,
+          "altitudeDeg": 2.145435
+        },
+        {
+          "kstMinute": 1080,
+          "azimuthDeg": 246.802531,
+          "altitudeDeg": -8.3811
+        }
+      ],
+      "sunriseKstMinute": 463.45,
+      "sunsetKstMinute": 1037.4833333333333
+    },
+    {
+      "site": "busan",
+      "lat": 35.1796,
+      "lng": 129.0756,
+      "date": "2026-03-20",
+      "samples": [
+        {
+          "kstMinute": 360,
+          "azimuthDeg": 85.710493,
+          "altitudeDeg": -6.564587
+        },
+        {
+          "kstMinute": 420,
+          "azimuthDeg": 94.373892,
+          "altitudeDeg": 5.696006
+        },
+        {
+          "kstMinute": 480,
+          "azimuthDeg": 103.43334,
+          "altitudeDeg": 17.810486
+        },
+        {
+          "kstMinute": 540,
+          "azimuthDeg": 113.814354,
+          "altitudeDeg": 29.436484
+        },
+        {
+          "kstMinute": 600,
+          "azimuthDeg": 126.78093,
+          "altitudeDeg": 40.043888
+        },
+        {
+          "kstMinute": 660,
+          "azimuthDeg": 144.019866,
+          "altitudeDeg": 48.700475
+        },
+        {
+          "kstMinute": 720,
+          "azimuthDeg": 166.669663,
+          "altitudeDeg": 53.881401
+        },
+        {
+          "kstMinute": 780,
+          "azimuthDeg": 192.301399,
+          "altitudeDeg": 54.009806
+        },
+        {
+          "kstMinute": 840,
+          "azimuthDeg": 215.188337,
+          "altitudeDeg": 49.038284
+        },
+        {
+          "kstMinute": 900,
+          "azimuthDeg": 232.674771,
+          "altitudeDeg": 40.509983
+        },
+        {
+          "kstMinute": 960,
+          "azimuthDeg": 245.810957,
+          "altitudeDeg": 29.975223
+        },
+        {
+          "kstMinute": 1020,
+          "azimuthDeg": 256.295392,
+          "altitudeDeg": 18.392126
+        },
+        {
+          "kstMinute": 1080,
+          "azimuthDeg": 265.414048,
+          "altitudeDeg": 6.305192
+        }
+      ],
+      "sunriseKstMinute": 388.03333333333336,
+      "sunsetKstMinute": 1114.9833333333333
+    },
+    {
+      "site": "busan",
+      "lat": 35.1796,
+      "lng": 129.0756,
+      "date": "2026-06-21",
+      "samples": [
+        {
+          "kstMinute": 360,
+          "azimuthDeg": 67.189758,
+          "altitudeDeg": 8.409338
+        },
+        {
+          "kstMinute": 420,
+          "azimuthDeg": 74.851446,
+          "altitudeDeg": 19.995552
+        },
+        {
+          "kstMinute": 480,
+          "azimuthDeg": 82.339487,
+          "altitudeDeg": 32.003153
+        },
+        {
+          "kstMinute": 540,
+          "azimuthDeg": 90.402761,
+          "altitudeDeg": 44.22603
+        },
+        {
+          "kstMinute": 600,
+          "azimuthDeg": 100.48219,
+          "altitudeDeg": 56.419298
+        },
+        {
+          "kstMinute": 660,
+          "azimuthDeg": 116.585514,
+          "altitudeDeg": 68.060078
+        },
+        {
+          "kstMinute": 720,
+          "azimuthDeg": 153.096558,
+          "altitudeDeg": 77.022808
+        },
+        {
+          "kstMinute": 780,
+          "azimuthDeg": 214.908173,
+          "altitudeDeg": 76.06349
+        },
+        {
+          "kstMinute": 840,
+          "azimuthDeg": 246.604797,
+          "altitudeDeg": 66.369957
+        },
+        {
+          "kstMinute": 900,
+          "azimuthDeg": 261.285129,
+          "altitudeDeg": 54.580983
+        },
+        {
+          "kstMinute": 960,
+          "azimuthDeg": 270.904516,
+          "altitudeDeg": 42.361683
+        },
+        {
+          "kstMinute": 1020,
+          "azimuthDeg": 278.814487,
+          "altitudeDeg": 30.158068
+        },
+        {
+          "kstMinute": 1080,
+          "azimuthDeg": 286.288707,
+          "altitudeDeg": 18.201014
+        }
+      ],
+      "sunriseKstMinute": 309.51666666666665,
+      "sunsetKstMinute": 1181.3333333333333
+    },
+    {
+      "site": "busan",
+      "lat": 35.1796,
+      "lng": 129.0756,
+      "date": "2026-09-23",
+      "samples": [
+        {
+          "kstMinute": 360,
+          "azimuthDeg": 87.610052,
+          "altitudeDeg": -3.301322
+        },
+        {
+          "kstMinute": 420,
+          "azimuthDeg": 96.321456,
+          "altitudeDeg": 8.933704
+        },
+        {
+          "kstMinute": 480,
+          "azimuthDeg": 105.637551,
+          "altitudeDeg": 20.95325
+        },
+        {
+          "kstMinute": 540,
+          "azimuthDeg": 116.552172,
+          "altitudeDeg": 32.38125
+        },
+        {
+          "kstMinute": 600,
+          "azimuthDeg": 130.453616,
+          "altitudeDeg": 42.608074
+        },
+        {
+          "kstMinute": 660,
+          "azimuthDeg": 149.078514,
+          "altitudeDeg": 50.555313
+        },
+        {
+          "kstMinute": 720,
+          "azimuthDeg": 173.000975,
+          "altitudeDeg": 54.569474
+        },
+        {
+          "kstMinute": 780,
+          "azimuthDeg": 198.539994,
+          "altitudeDeg": 53.303011
+        },
+        {
+          "kstMinute": 840,
+          "azimuthDeg": 220.133574,
+          "altitudeDeg": 47.229408
+        },
+        {
+          "kstMinute": 900,
+          "azimuthDeg": 236.34489,
+          "altitudeDeg": 38.042151
+        },
+        {
+          "kstMinute": 960,
+          "azimuthDeg": 248.641194,
+          "altitudeDeg": 27.149851
+        },
+        {
+          "kstMinute": 1020,
+          "azimuthDeg": 258.652647,
+          "altitudeDeg": 15.379275
+        },
+        {
+          "kstMinute": 1080,
+          "azimuthDeg": 267.558264,
+          "altitudeDeg": 3.205983
+        }
+      ],
+      "sunriseKstMinute": 372.0833333333333,
+      "sunsetKstMinute": 1099.75
+    },
+    {
+      "site": "busan",
+      "lat": 35.1796,
+      "lng": 129.0756,
+      "date": "2026-12-22",
+      "samples": [
+        {
+          "kstMinute": 360,
+          "azimuthDeg": 106.731562,
+          "altitudeDeg": -17.512276
+        },
+        {
+          "kstMinute": 420,
+          "azimuthDeg": 114.501417,
+          "altitudeDeg": -6.046414
+        },
+        {
+          "kstMinute": 480,
+          "azimuthDeg": 123.103882,
+          "altitudeDeg": 4.692607
+        },
+        {
+          "kstMinute": 540,
+          "azimuthDeg": 133.047487,
+          "altitudeDeg": 14.345966
+        },
+        {
+          "kstMinute": 600,
+          "azimuthDeg": 144.798861,
+          "altitudeDeg": 22.411849
+        },
+        {
+          "kstMinute": 660,
+          "azimuthDeg": 158.594738,
+          "altitudeDeg": 28.240515
+        },
+        {
+          "kstMinute": 720,
+          "azimuthDeg": 174.082387,
+          "altitudeDeg": 31.148148
+        },
+        {
+          "kstMinute": 780,
+          "azimuthDeg": 190.118014,
+          "altitudeDeg": 30.696855
+        },
+        {
+          "kstMinute": 840,
+          "azimuthDeg": 205.239779,
+          "altitudeDeg": 26.959661
+        },
+        {
+          "kstMinute": 900,
+          "azimuthDeg": 218.499287,
+          "altitudeDeg": 20.471796
+        },
+        {
+          "kstMinute": 960,
+          "azimuthDeg": 229.735885,
+          "altitudeDeg": 11.9292
+        },
+        {
+          "kstMinute": 1020,
+          "azimuthDeg": 239.276938,
+          "altitudeDeg": 1.947029
+        },
+        {
+          "kstMinute": 1080,
+          "azimuthDeg": 247.610205,
+          "altitudeDeg": -9.013756
+        }
+      ],
+      "sunriseKstMinute": 448.5,
+      "sunsetKstMinute": 1035.65
+    },
+    {
+      "site": "jeju",
+      "lat": 33.4996,
+      "lng": 126.5312,
+      "date": "2026-03-20",
+      "samples": [
+        {
+          "kstMinute": 360,
+          "azimuthDeg": 84.476393,
+          "altitudeDeg": -8.801616
+        },
+        {
+          "kstMinute": 420,
+          "azimuthDeg": 92.789574,
+          "altitudeDeg": 3.703923
+        },
+        {
+          "kstMinute": 480,
+          "azimuthDeg": 101.359489,
+          "altitudeDeg": 16.11887
+        },
+        {
+          "kstMinute": 540,
+          "azimuthDeg": 111.084621,
+          "altitudeDeg": 28.135878
+        },
+        {
+          "kstMinute": 600,
+          "azimuthDeg": 123.204665,
+          "altitudeDeg": 39.285711
+        },
+        {
+          "kstMinute": 660,
+          "azimuthDeg": 139.520353,
+          "altitudeDeg": 48.719826
+        },
+        {
+          "kstMinute": 720,
+          "azimuthDeg": 161.770167,
+          "altitudeDeg": 54.927111
+        },
+        {
+          "kstMinute": 780,
+          "azimuthDeg": 188.34055,
+          "altitudeDeg": 56.039443
+        },
+        {
+          "kstMinute": 840,
+          "azimuthDeg": 212.784381,
+          "altitudeDeg": 51.605666
+        },
+        {
+          "kstMinute": 900,
+          "azimuthDeg": 231.264899,
+          "altitudeDeg": 43.199762
+        },
+        {
+          "kstMinute": 960,
+          "azimuthDeg": 244.768923,
+          "altitudeDeg": 32.586053
+        },
+        {
+          "kstMinute": 1020,
+          "azimuthDeg": 255.256228,
+          "altitudeDeg": 20.841519
+        },
+        {
+          "kstMinute": 1080,
+          "azimuthDeg": 264.171759,
+          "altitudeDeg": 8.550056
+        }
+      ],
+      "sunriseKstMinute": 398.23333333333335,
+      "sunsetKstMinute": 1125.1
+    },
+    {
+      "site": "jeju",
+      "lat": 33.4996,
+      "lng": 126.5312,
+      "date": "2026-06-21",
+      "samples": [
+        {
+          "kstMinute": 360,
+          "azimuthDeg": 65.666872,
+          "altitudeDeg": 5.811949
+        },
+        {
+          "kstMinute": 420,
+          "azimuthDeg": 73.064767,
+          "altitudeDeg": 17.51214
+        },
+        {
+          "kstMinute": 480,
+          "azimuthDeg": 80.104077,
+          "altitudeDeg": 29.670266
+        },
+        {
+          "kstMinute": 540,
+          "azimuthDeg": 87.429194,
+          "altitudeDeg": 42.093282
+        },
+        {
+          "kstMinute": 600,
+          "azimuthDeg": 96.184309,
+          "altitudeDeg": 54.583151
+        },
+        {
+          "kstMinute": 660,
+          "azimuthDeg": 109.452929,
+          "altitudeDeg": 66.781429
+        },
+        {
+          "kstMinute": 720,
+          "azimuthDeg": 139.898981,
+          "altitudeDeg": 77.2651
+        },
+        {
+          "kstMinute": 780,
+          "azimuthDeg": 209.548235,
+          "altitudeDeg": 78.606448
+        },
+        {
+          "kstMinute": 840,
+          "azimuthDeg": 246.908269,
+          "altitudeDeg": 68.963687
+        },
+        {
+          "kstMinute": 900,
+          "azimuthDeg": 261.837008,
+          "altitudeDeg": 56.906228
+        },
+        {
+          "kstMinute": 960,
+          "azimuthDeg": 271.091994,
+          "altitudeDeg": 44.433476
+        },
+        {
+          "kstMinute": 1020,
+          "azimuthDeg": 278.570949,
+          "altitudeDeg": 31.981348
+        },
+        {
+          "kstMinute": 1080,
+          "azimuthDeg": 285.607378,
+          "altitudeDeg": 19.759831
+        }
+      ],
+      "sunriseKstMinute": 324.3,
+      "sunsetKstMinute": 1186.9166666666667
+    },
+    {
+      "site": "jeju",
+      "lat": 33.4996,
+      "lng": 126.5312,
+      "date": "2026-09-23",
+      "samples": [
+        {
+          "kstMinute": 360,
+          "azimuthDeg": 86.294738,
+          "altitudeDeg": -5.488729
+        },
+        {
+          "kstMinute": 420,
+          "azimuthDeg": 94.623647,
+          "altitudeDeg": 7.002334
+        },
+        {
+          "kstMinute": 480,
+          "azimuthDeg": 103.411853,
+          "altitudeDeg": 19.340456
+        },
+        {
+          "kstMinute": 540,
+          "azimuthDeg": 113.62145,
+          "altitudeDeg": 31.190357
+        },
+        {
+          "kstMinute": 600,
+          "azimuthDeg": 126.62985,
+          "altitudeDeg": 42.011138
+        },
+        {
+          "kstMinute": 660,
+          "azimuthDeg": 144.371926,
+          "altitudeDeg": 50.807067
+        },
+        {
+          "kstMinute": 720,
+          "azimuthDeg": 168.183469,
+          "altitudeDeg": 55.883943
+        },
+        {
+          "kstMinute": 780,
+          "azimuthDeg": 194.969287,
+          "altitudeDeg": 55.517626
+        },
+        {
+          "kstMinute": 840,
+          "azimuthDeg": 218.050901,
+          "altitudeDeg": 49.858007
+        },
+        {
+          "kstMinute": 900,
+          "azimuthDeg": 235.07692,
+          "altitudeDeg": 40.724328
+        },
+        {
+          "kstMinute": 960,
+          "azimuthDeg": 247.626137,
+          "altitudeDeg": 29.725345
+        },
+        {
+          "kstMinute": 1020,
+          "azimuthDeg": 257.577723,
+          "altitudeDeg": 17.781243
+        },
+        {
+          "kstMinute": 1080,
+          "azimuthDeg": 266.240327,
+          "altitudeDeg": 5.39486
+        }
+      ],
+      "sunriseKstMinute": 382.35,
+      "sunsetKstMinute": 1109.85
+    },
+    {
+      "site": "jeju",
+      "lat": 33.4996,
+      "lng": 126.5312,
+      "date": "2026-12-22",
+      "samples": [
+        {
+          "kstMinute": 360,
+          "azimuthDeg": 106.024174,
+          "altitudeDeg": -19.054552
+        },
+        {
+          "kstMinute": 420,
+          "azimuthDeg": 113.344784,
+          "altitudeDeg": -7.285919
+        },
+        {
+          "kstMinute": 480,
+          "azimuthDeg": 121.47907,
+          "altitudeDeg": 3.813771
+        },
+        {
+          "kstMinute": 540,
+          "azimuthDeg": 130.943661,
+          "altitudeDeg": 13.908288
+        },
+        {
+          "kstMinute": 600,
+          "azimuthDeg": 142.251584,
+          "altitudeDeg": 22.513589
+        },
+        {
+          "kstMinute": 660,
+          "azimuthDeg": 155.74724,
+          "altitudeDeg": 28.973686
+        },
+        {
+          "kstMinute": 720,
+          "azimuthDeg": 171.218598,
+          "altitudeDeg": 32.5456
+        },
+        {
+          "kstMinute": 780,
+          "azimuthDeg": 187.559847,
+          "altitudeDeg": 32.679721
+        },
+        {
+          "kstMinute": 840,
+          "azimuthDeg": 203.146715,
+          "altitudeDeg": 29.352996
+        },
+        {
+          "kstMinute": 900,
+          "azimuthDeg": 216.809005,
+          "altitudeDeg": 23.085155
+        },
+        {
+          "kstMinute": 960,
+          "azimuthDeg": 228.274219,
+          "altitudeDeg": 14.616816
+        },
+        {
+          "kstMinute": 1020,
+          "azimuthDeg": 237.860709,
+          "altitudeDeg": 4.615627
+        },
+        {
+          "kstMinute": 1080,
+          "azimuthDeg": 246.077288,
+          "altitudeDeg": -6.421528
+        }
+      ],
+      "sunriseKstMinute": 454.3333333333333,
+      "sunsetKstMinute": 1050.1833333333334
+    }
+  ]
+}
