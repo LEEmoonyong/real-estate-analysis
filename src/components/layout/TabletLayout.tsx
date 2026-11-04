@@ -5,7 +5,7 @@ import type { LayoutSlots } from './AppLayout';
 import styles from './Layouts.module.css';
 
 /** 태블릿: 상단 바(검색·날짜·시각) + 접이식 우측 상세 패널 + 좌측 드로어(보조·분석) */
-export function TabletLayout({ header, primary, secondary, analysis, detail }: LayoutSlots) {
+export function TabletLayout({ header, search, primary, secondary, analysis, detail }: LayoutSlots) {
   // 세로 태블릿(768px)에서는 패널을 펼치면 캔버스가 400px 남짓만 남으므로 가로가 넓을 때만 펼친 채 시작
   // (세대를 선택하면 자동으로 펼치는 동작은 7일차에 추가)
   const [isDetailOpen, setIsDetailOpen] = useState(() => window.innerWidth >= 1000);
@@ -34,6 +34,7 @@ export function TabletLayout({ header, primary, secondary, analysis, detail }: L
           ☰
         </button>
         {header}
+        <div className={styles.tabletSearch}>{search}</div>
         <div className={styles.tabletPrimary}>{primary}</div>
       </header>
 

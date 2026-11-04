@@ -1,16 +1,5 @@
-.scenePlaceholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  background: linear-gradient(180deg, #bcd9f2 0%, #e9f1f8 70%, #d7dccf 100%);
-  color: #1b1f24;
-  text-align: center;
-}
-
 .muted {
-  color: #5b6573;
+  color: var(--color-text-muted);
   font-size: var(--font-size-sm);
 }
 
@@ -21,4 +10,27 @@
   border-radius: var(--radius-sm);
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
+}
+
+.sceneError {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--color-bg);
+  text-align: center;
+}
+
+.sceneError button {
+  min-height: var(--touch-target);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
 }

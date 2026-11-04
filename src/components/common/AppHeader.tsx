@@ -10,7 +10,8 @@ export function AppHeader({ health }: AppHeaderProps) {
   return (
     <div className={styles.header}>
       <h1 className={styles.title}>
-        <span aria-hidden="true">☀</span> 일조 시뮬레이터
+        <span aria-hidden="true">☀</span>
+        <span className={styles.titleText}> 일조 시뮬레이터</span>
       </h1>
       {health.mode === 'sample' && (
         <span className={styles.badge} title={health.reason ?? undefined} role="status">

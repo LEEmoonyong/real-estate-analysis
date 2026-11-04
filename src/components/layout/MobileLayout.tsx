@@ -13,7 +13,7 @@ const TABS: { id: MobileTab; label: string }[] = [
   { id: 'analysis', label: '분석' },
 ];
 
-export function MobileLayout({ header, primary, secondary, analysis, detail }: LayoutSlots) {
+export function MobileLayout({ header, search, primary, secondary, analysis, detail }: LayoutSlots) {
   const [activeTab, setActiveTab] = useState<MobileTab>('controls');
   const baseId = useId();
 
@@ -29,7 +29,10 @@ export function MobileLayout({ header, primary, secondary, analysis, detail }: L
 
   return (
     <>
-      <header className={`${styles.header} ${styles.mobileHeader}`}>{header}</header>
+      <header className={`${styles.header} ${styles.mobileHeader}`}>
+        {header}
+        <div className={styles.mobileSearch}>{search}</div>
+      </header>
       <BottomSheet
         label="컨트롤 시트"
         tabs={

@@ -54,6 +54,11 @@
   flex-wrap: wrap;
 }
 
+.tabletSearch {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
 .tabletPrimary {
   display: flex;
   flex: 1 1 100%;
@@ -122,6 +127,12 @@
   padding-top: max(var(--space-2), env(safe-area-inset-top));
   background: color-mix(in srgb, var(--color-surface) 85%, transparent);
   backdrop-filter: blur(6px);
+  z-index: 25; /* 검색 후보 목록이 하단 시트 위에 보이도록 */
+}
+
+.mobileSearch {
+  flex: 1;
+  min-width: 0;
 }
 
 .tabs {

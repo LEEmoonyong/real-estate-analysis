@@ -12,6 +12,19 @@
   white-space: nowrap;
 }
 
+/* 모바일: 검색창 공간을 위해 제목 글자는 숨기고 아이콘만 (스크린리더에는 남김) */
+:global([data-breakpoint='mobile']) .titleText {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+:global([data-breakpoint='mobile']) .muted {
+  display: none;
+}
+
 .badge {
   padding: 2px var(--space-2);
   border-radius: 999px;

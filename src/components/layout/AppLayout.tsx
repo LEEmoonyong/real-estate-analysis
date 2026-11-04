@@ -15,7 +15,9 @@ export interface LayoutSlots {
   header: ReactNode;
   /** 3D 캔버스 */
   scene: ReactNode;
-  /** 자주 쓰는 컨트롤: 검색, 날짜, 시각 */
+  /** 검색창 (모바일에서는 화면 위에 떠 있음) */
+  search: ReactNode;
+  /** 자주 쓰는 컨트롤: 날짜, 시각 */
   primary: ReactNode;
   /** 보조 컨트롤: 동·호수, 즐겨찾기, 최근 검색 */
   secondary: ReactNode;

@@ -1,0 +1,60 @@
+.root {
+  position: absolute;
+  inset: 0;
+  background: #cfe3f5;
+}
+
+.compass {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  z-index: 3;
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-surface) 85%, transparent);
+  pointer-events: none;
+}
+
+:global([data-breakpoint='mobile']) .compass {
+  top: 64px;
+}
+
+.needle {
+  position: absolute;
+  inset: 4px;
+}
+
+.needle::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  border: 6px solid transparent;
+  border-bottom: 14px solid var(--color-danger);
+  transform: translateX(-50%);
+}
+
+.north {
+  position: absolute;
+  top: -3px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--color-danger);
+}
+
+.empty {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  transform: translate(-50%, -50%);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-surface) 90%, transparent);
+  color: var(--color-text);
+  pointer-events: none;
+}

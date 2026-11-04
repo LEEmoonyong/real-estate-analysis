@@ -27,5 +27,8 @@ export const DEFAULT_CRITERIA = {
   totalRequiredMin: 240,
 } as const;
 
+/** 첫 화면에 보여 줄 샘플 (층수 정보가 모두 있는 계획 신도시 판상형 단지) */
+export const DEFAULT_SAMPLE_ID = 'sejong-hansol';
+
 /** localStorage 키 접두사 */
 export const STORAGE_PREFIX = 'sunsim:';
