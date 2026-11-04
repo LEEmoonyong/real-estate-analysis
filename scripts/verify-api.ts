@@ -19,6 +19,9 @@ const SITES = [
   { id: 'sejong-hansol', lat: 36.4795, lng: 127.256, query: '세종 한솔동 첫마을' },
 ] as const;
 
+/** Overpass는 응답이 수십 초 걸릴 수 있어 키 검증만 할 때는 건너뛴다 */
+const SKIP_OSM = process.argv.includes('--skip-osm');
+
 mkdirSync('scripts/.cache', { recursive: true });
 
 async function call(path: string): Promise<{ status: number; body: Record<string, unknown> }> {
@@ -58,13 +61,17 @@ async function main() {
 
   for (const site of SITES) {
     console.log(`\n# ${site.id}`);
-    const t0 = Date.now();
-    const osm = await call(`/api/buildings/osm?lat=${site.lat}&lng=${site.lng}&r=400`);
-    save(`osm-${site.id}`, osm.body);
-    if (osm.status === 200) {
-      console.log(`OSM (${Date.now() - t0}ms, ${String(osm.body.endpoint)})`, summarizeOsm(osm.body.elements as OsmElement[]));
+    if (SKIP_OSM) {
+      console.log('OSM 건너뜀 (--skip-osm)');
     } else {
-      console.log('OSM 실패', osm.status, osm.body);
+      const t0 = Date.now();
+      const osm = await call(`/api/buildings/osm?lat=${site.lat}&lng=${site.lng}&r=400`);
+      save(`osm-${site.id}`, osm.body);
+      if (osm.status === 200) {
+        console.log(`OSM (${Date.now() - t0}ms, ${String(osm.body.endpoint)})`, summarizeOsm(osm.body.elements as OsmElement[]));
+      } else {
+        console.log('OSM 실패', osm.status, osm.body);
+      }
     }
 
     if (env.KAKAO_REST_API_KEY || env.VWORLD_API_KEY) {
