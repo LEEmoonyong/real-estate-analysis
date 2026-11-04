@@ -8,6 +8,7 @@ import { buildingCellMask, fillGroundShadow, type GroundGridSpec } from '../doma
 import { createPrism, type Prism } from '../domain/geometry/prism';
 import { createRayCaster, type RayCaster } from '../domain/spatial/rayCast';
 import { buildUniformGrid } from '../domain/spatial/uniformGrid';
+import { cosineHemisphereSamples, fillSkyView } from '../domain/sunlight/skyView';
 import { aggregateSunlight } from '../domain/sunlight/sunlight';
 import { fillVisibilityMask, type UnitGeometry } from '../domain/sunlight/visibility';
 import {
@@ -15,6 +16,7 @@ import {
   PROGRESS_INTERVAL_MS,
   type FromWorker,
   type GroundParams,
+  type SkyViewParams,
   type PrismsDTO,
   type SunlightParams,
   type ToWorker,
@@ -149,6 +151,54 @@ export function createWorkerRuntime(post: PostFn, yieldToEventLoop: () => Promis
     );
   }
 
+  /** 천공률 청크 — 세대 하나가 N(256)개 광선이라 일조보다 작게 */
+  const SKY_CHUNK = 128;
+
+  async function runSkyView(jobId: number, scene: WorkerScene, params: SkyViewParams, from: number, to: number) {
+    const started = performance.now();
+    const samples = cosineHemisphereSamples(params.sampleCount);
+    const out = new Float32Array(to - from);
+    let rays = 0;
+    let lastProgress = 0;
+    for (let c = from; c < to; c += SKY_CHUNK) {
+      if (cancelled.has(jobId)) {
+        cancelled.delete(jobId);
+        post({ type: 'CANCELLED', jobId });
+        return;
+      }
+      const end = Math.min(to, c + SKY_CHUNK);
+      rays += fillSkyView(
+        scene.units.positions,
+        scene.units.normals,
+        c,
+        end,
+        samples,
+        scene.caster,
+        out.subarray(c - from),
+      );
+      const now = performance.now();
+      if (now - lastProgress >= PROGRESS_INTERVAL_MS || end === to) {
+        lastProgress = now;
+        post({ type: 'PROGRESS', jobId, done: end - from, total: to - from });
+      }
+      await yieldToEventLoop();
+    }
+    if (cancelled.has(jobId)) {
+      cancelled.delete(jobId);
+      post({ type: 'CANCELLED', jobId });
+      return;
+    }
+    post(
+      {
+        type: 'RESULT',
+        jobId,
+        kind: 'skyView',
+        payload: { from, to, svf: out, rays, elapsedMs: performance.now() - started },
+      },
+      [out.buffer],
+    );
+  }
+
   async function handle(message: ToWorker): Promise<void> {
     switch (message.type) {
       case 'INIT_SCENE': {
@@ -184,6 +234,7 @@ export function createWorkerRuntime(post: PostFn, yieldToEventLoop: () => Promis
         }
         try {
           if (message.kind === 'ground') await runGround(message.jobId, scene, message.params, from, to);
+          else if (message.kind === 'skyView') await runSkyView(message.jobId, scene, message.params, from, to);
           else await runSunlight(message.jobId, scene, message.params, from, to);
         } catch (err) {
           post({ type: 'ERROR', jobId: message.jobId, message: err instanceof Error ? err.message : String(err) });

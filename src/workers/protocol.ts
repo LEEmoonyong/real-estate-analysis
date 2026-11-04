@@ -68,10 +68,29 @@ export interface GroundPartDTO {
   elapsedMs: number;
 }
 
-export type WorkerJobKind = 'sunlight' | 'ground';
+/** 천공률 계산 (PLAN.md 9.9) — 날짜와 무관 */
+export interface SkyViewParams {
+  sampleCount: number;
+}
 
-type RunJob = { kind: 'sunlight'; params: SunlightParams } | { kind: 'ground'; params: GroundParams };
-export type ResultPayload = { kind: 'sunlight'; payload: SunlightPartDTO } | { kind: 'ground'; payload: GroundPartDTO };
+export interface SkyViewPartDTO {
+  from: number;
+  to: number;
+  svf: Float32Array;
+  rays: number;
+  elapsedMs: number;
+}
+
+export type WorkerJobKind = 'sunlight' | 'ground' | 'skyView';
+
+type RunJob =
+  | { kind: 'sunlight'; params: SunlightParams }
+  | { kind: 'ground'; params: GroundParams }
+  | { kind: 'skyView'; params: SkyViewParams };
+export type ResultPayload =
+  | { kind: 'sunlight'; payload: SunlightPartDTO }
+  | { kind: 'ground'; payload: GroundPartDTO }
+  | { kind: 'skyView'; payload: SkyViewPartDTO };
 
 // 메인 → Worker
 export type ToWorker =

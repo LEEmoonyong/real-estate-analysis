@@ -29,7 +29,12 @@ const STOPS_RGB = SUNLIGHT_STOPS.map(hexToRgb);
 
 /** 일조 시간 [분] → 색 (0~1 RGB, sRGB). 8시간 이상은 같은 색 */
 export function sunlightColor(minutes: number): Rgb {
-  const t = Math.min(1, Math.max(0, minutes / SUNLIGHT_MAX_MINUTES)) * (STOPS_RGB.length - 1);
+  return viridisColor(minutes / SUNLIGHT_MAX_MINUTES);
+}
+
+/** 0~1 → viridis 색 (모든 세대 레이어 공용: 일조·천공률·일사량) */
+export function viridisColor(ratio: number): Rgb {
+  const t = Math.min(1, Math.max(0, ratio)) * (STOPS_RGB.length - 1);
   const i = Math.min(STOPS_RGB.length - 2, Math.floor(t));
   const f = t - i;
   const a = STOPS_RGB[i]!;

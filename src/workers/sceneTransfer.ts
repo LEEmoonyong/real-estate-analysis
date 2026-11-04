@@ -2,7 +2,7 @@
 
 import type { SunlightResult } from '../domain/sunlight/sunlight';
 import type { UnitSet } from '../domain/units/generateUnits';
-import type { GroundPartDTO, SceneDTO, SunlightPartDTO } from './protocol';
+import type { GroundPartDTO, SceneDTO, SkyViewPartDTO, SunlightPartDTO } from './protocol';
 
 export function toSceneDTO(buildings: readonly { ring: Float64Array; heightM: number }[], units: UnitSet): SceneDTO {
   const offsets = new Uint32Array(buildings.length + 1);
@@ -81,6 +81,23 @@ export interface GroundOutcome {
   endMin: number;
   date: string;
   sceneHash: string;
+  elapsedMs: number;
+  fromCache: boolean;
+}
+
+/** 천공률 부분 결과 이어 붙이기 */
+export function mergeSkyViewParts(parts: readonly SkyViewPartDTO[], unitCount: number): Float32Array {
+  const out = new Float32Array(unitCount);
+  for (const p of parts) out.set(p.svf, p.from);
+  return out;
+}
+
+/** 천공률 결과 (SimulationContext results.skyView) */
+export interface SkyViewOutcome {
+  svf: Float32Array;
+  sampleCount: number;
+  sceneHash: string;
+  unitCount: number;
   elapsedMs: number;
   fromCache: boolean;
 }

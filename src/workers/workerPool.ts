@@ -7,6 +7,8 @@ import type {
   GroundParams,
   GroundPartDTO,
   SceneDTO,
+  SkyViewParams,
+  SkyViewPartDTO,
   SunlightParams,
   SunlightPartDTO,
   ToWorker,
@@ -36,7 +38,7 @@ export interface RunOptions {
   onProgress?: (done: number, total: number) => void;
 }
 
-type AnyPart = SunlightPartDTO | GroundPartDTO;
+type AnyPart = SunlightPartDTO | GroundPartDTO | SkyViewPartDTO;
 
 interface PendingJob {
   total: number;
@@ -128,6 +130,25 @@ export class WorkerPool {
       params,
       unitRange,
     })) as Promise<GroundPartDTO[]>;
+  }
+
+  /** 천공률 — 세대 범위를 나눠 병렬 실행 */
+  runSkyView(opts: {
+    jobId: number;
+    sceneHash: string;
+    params: SkyViewParams;
+    unitCount: number;
+    onProgress?: (done: number, total: number) => void;
+  }): Promise<SkyViewPartDTO[]> {
+    const { jobId, sceneHash, params, unitCount, onProgress } = opts;
+    return this.runSplit(jobId, unitCount, onProgress, (unitRange) => ({
+      type: 'RUN',
+      jobId,
+      sceneHash,
+      kind: 'skyView',
+      params,
+      unitRange,
+    })) as Promise<SkyViewPartDTO[]>;
   }
 
   private runSplit(
