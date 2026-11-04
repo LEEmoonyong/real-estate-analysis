@@ -20,6 +20,13 @@ export interface DongAssignment {
 }
 export type CameraMode = 'orbit' | 'window';
 
+/** 카메라 이동 요청 — 동·호수 검색 등으로 선택한 대상을 화면 가운데로 (seq가 바뀔 때마다 한 번 이동) */
+export interface FocusRequest {
+  seq: number;
+  buildingId: string;
+  unitId: string | null;
+}
+
 /** 한 번에 교체되는 장면 데이터 (위치와 건물이 항상 짝이 맞도록) */
 export interface LoadedScene {
   place: Place;
@@ -56,6 +63,7 @@ interface SceneDataState {
   selectedBuildingId: string | null;
   selectedUnitId: string | null;
   cameraMode: CameraMode;
+  focusRequest: FocusRequest | null;
 }
 
 interface SceneDataActions {
@@ -64,6 +72,8 @@ interface SceneDataActions {
   selectUnit: (unitId: string | null, buildingId?: string) => void;
   clearSelection: () => void;
   setCameraMode: (mode: CameraMode) => void;
+  /** 세대(또는 건물)를 선택하고 카메라를 그쪽으로 옮긴다 */
+  focusOn: (buildingId: string, unitId: string | null) => void;
   correctFloors: (buildingId: string, floors: number) => void;
   resetFloors: (buildingId: string) => void;
   assignDong: (buildingId: string, dong: string) => void;
@@ -79,6 +89,7 @@ export function SceneDataProvider({ children }: { children: ReactNode }) {
   const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const [cameraMode, setCameraMode] = useState<CameraMode>('orbit');
+  const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null);
 
   const [corrections, setCorrections] = useLocalStorage(STORAGE_KEYS.corrections, EMPTY_CORRECTIONS, {
     version: 1,
@@ -121,6 +132,13 @@ export function SceneDataProvider({ children }: { children: ReactNode }) {
     setSelectedBuildingId(null);
     setSelectedUnitId(null);
     setCameraMode('orbit');
+    setFocusRequest(null);
+  }, []);
+
+  const focusOn = useCallback((buildingId: string, unitId: string | null) => {
+    setSelectedBuildingId(buildingId);
+    setSelectedUnitId(unitId);
+    setFocusRequest((prev) => ({ seq: (prev?.seq ?? 0) + 1, buildingId, unitId }));
   }, []);
 
   const selectUnit = useCallback((unitId: string | null, buildingId?: string) => {
@@ -175,8 +193,19 @@ export function SceneDataProvider({ children }: { children: ReactNode }) {
       selectedBuildingId,
       selectedUnitId,
       cameraMode,
+      focusRequest,
     }),
-    [scene, derived, unitData, corrections, dongAssignments, selectedBuildingId, selectedUnitId, cameraMode],
+    [
+      scene,
+      derived,
+      unitData,
+      corrections,
+      dongAssignments,
+      selectedBuildingId,
+      selectedUnitId,
+      cameraMode,
+      focusRequest,
+    ],
   );
 
   const actions = useMemo<SceneDataActions>(
@@ -186,12 +215,23 @@ export function SceneDataProvider({ children }: { children: ReactNode }) {
       selectUnit,
       clearSelection,
       setCameraMode,
+      focusOn,
       correctFloors,
       resetFloors,
       assignDong,
       unassignDong,
     }),
-    [loadScene, selectBuilding, selectUnit, clearSelection, correctFloors, resetFloors, assignDong, unassignDong],
+    [
+      loadScene,
+      selectBuilding,
+      selectUnit,
+      clearSelection,
+      focusOn,
+      correctFloors,
+      resetFloors,
+      assignDong,
+      unassignDong,
+    ],
   );
 
   return (

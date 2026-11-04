@@ -1,9 +1,14 @@
 // 궤도 카메라 — 마우스 드래그 회전·휠 확대, 터치 한 손가락 회전·두 손가락 확대
 // 장면이 바뀌면 전체가 보이도록 카메라를 맞추고, 나침반 방향을 DOM에 직접 반영한다(리렌더 없음).
 import { OrbitControls } from '@react-three/drei';
+import { Vector3 } from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useRef, type ElementRef, type RefObject } from 'react';
+import { useSceneData } from '../contexts/SceneDataContext';
+import { findUnitIndex } from '../domain/units/generateUnits';
+import { useCameraFlyTo } from '../hooks/useCameraFlyTo';
 import { defaultCameraPosition } from './buildingGeometry';
+import { buildingFocusPose, unitFocusPose } from './focusPose';
 
 type OrbitControlsImpl = ElementRef<typeof OrbitControls>;
 
@@ -24,6 +29,8 @@ export function CameraRig({ radiusM, sceneKey, compassRef, viewShiftRatio = 0 }:
   const invalidate = useThree((s) => s.invalidate);
   const getState = useThree((s) => s.get);
   const size = useThree((s) => s.size);
+  const { focusRequest, buildings, units } = useSceneData();
+  const { flyTo, cancel } = useCameraFlyTo(controlsRef);
 
   // 화면 크기·기기가 바뀔 때마다 투영 중심 이동을 다시 맞춘다 (R3F 리사이즈 이후 실행)
   useEffect(() => {
@@ -42,6 +49,7 @@ export function CameraRig({ radiusM, sceneKey, compassRef, viewShiftRatio = 0 }:
     const { width, height } = getState().size;
     const fov = 'fov' in camera ? camera.fov : 45;
     const [x, y, z] = defaultCameraPosition(radiusM, fov, height > 0 ? width / height : 1.5);
+    cancel();
     camera.position.set(x, y, z);
     camera.near = 1;
     camera.far = Math.max(radiusM, 100) * 20;
@@ -50,7 +58,31 @@ export function CameraRig({ radiusM, sceneKey, compassRef, viewShiftRatio = 0 }:
     controlsRef.current?.update();
     invalidate();
     // radiusM은 sceneKey와 함께 바뀌므로 sceneKey만 의존해도 되지만 명시적으로 둔다
-  }, [sceneKey, radiusM, camera, invalidate, getState]);
+  }, [sceneKey, radiusM, camera, invalidate, getState, cancel]);
+
+  // 동·호수 검색 등으로 대상을 고르면 그쪽으로 카메라 이동 (요청 번호가 바뀔 때만 — 건물·세대가 다시 만들어져도 다시 날지 않게)
+  const focusDataRef = useRef({ buildings, units });
+  focusDataRef.current = { buildings, units };
+  useEffect(() => {
+    if (!focusRequest) return;
+    const { buildings: list, units: set } = focusDataRef.current;
+    const building = list.find((b) => b.id === focusRequest.buildingId);
+    if (!building) return;
+    const index = focusRequest.unitId ? findUnitIndex(set, list, focusRequest.unitId) : -1;
+    if (index >= 0) {
+      flyTo(
+        unitFocusPose(
+          [set.positions[index * 3]!, set.positions[index * 3 + 1]!, set.positions[index * 3 + 2]!],
+          [set.normals[index * 2]!, set.normals[index * 2 + 1]!],
+          building.heightM,
+        ),
+      );
+    } else {
+      const target = controlsRef.current?.target ?? new Vector3();
+      const dir = camera.position.clone().sub(target).normalize();
+      flyTo(buildingFocusPose(building.ring, building.heightM, [dir.x, dir.y, dir.z]));
+    }
+  }, [focusRequest, flyTo, camera]);
 
   useFrame(() => {
     const controls = controlsRef.current;

@@ -1,5 +1,8 @@
-// [요구사항: 컴포넌트] 선택한 건물 정보 (층수 보정 폼은 8일차에 추가)
+// [요구사항: 컴포넌트] 선택한 건물 정보 + 동 번호 지정(B1) + 지상층수 보정(B4)
 import { useMemo } from 'react';
+import { FEATURES } from '../../config/features';
+import { DongAssignDialog } from '../dongHo/DongAssignDialog';
+import { HeightCorrectionForm } from '../heightCorrection/HeightCorrectionForm';
 import { SOURCE_LABELS } from '../../data/providers/BuildingProvider';
 import { useSceneData } from '../../contexts/SceneDataContext';
 import styles from './BuildingInfo.module.css';
@@ -30,6 +33,7 @@ export function BuildingInfo() {
         {title}
         {building.isEstimated && <span className={styles.tag}>추정값</span>}
         {building.isUserCorrected && <span className={styles.tag}>보정됨</span>}
+        {building.dongSource === 'user' && <span className={styles.tag}>동 번호 직접 지정</span>}
       </p>
       <dl className={styles.grid}>
         {building.name && building.dongNumber && (
@@ -49,6 +53,8 @@ export function BuildingInfo() {
         <dt>데이터</dt>
         <dd>{SOURCE_LABELS[building.source]}</dd>
       </dl>
+      {FEATURES.dongHoSearch && <DongAssignDialog building={building} />}
+      {FEATURES.heightCorrection && <HeightCorrectionForm building={building} />}
     </div>
   );
 }

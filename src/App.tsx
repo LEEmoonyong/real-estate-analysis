@@ -9,11 +9,13 @@ import { LayerSelector } from './components/controls/LayerSelector';
 import { TimeControls } from './components/controls/TimeControls';
 import { BuildingInfo } from './components/detail/BuildingInfo';
 import { UnitDetailPanel } from './components/detail/UnitDetailPanel';
+import { DongHoSearch } from './components/dongHo/DongHoSearch';
 import { AppLayout } from './components/layout/AppLayout';
 import { Panel } from './components/layout/Panel';
 import { SampleChips } from './components/search/SampleChips';
 import { SearchBar } from './components/search/SearchBar';
 import { DEFAULT_SAMPLE_ID } from './config/constants';
+import { FEATURES } from './config/features';
 import { AppProviders } from './contexts/AppProviders';
 import { useSceneData } from './contexts/SceneDataContext';
 import { useSettings } from './contexts/SettingsContext';
@@ -149,6 +151,12 @@ function Shell() {
           <Panel title="날짜·시각" tourId="time">
             <TimeControls />
           </Panel>
+          {FEATURES.dongHoSearch && (
+            <Panel title="동·호수 찾기" tourId="dongho">
+              {/* 지역이 바뀌면 입력·메시지를 비운다 */}
+              <DongHoSearch key={scene ? `${scene.place.lat},${scene.place.lng}` : 'none'} />
+            </Panel>
+          )}
           <Panel title="샘플 지역" tourId="samples">
             <SampleChips activeId={activeSampleId} onPick={handlePickSample} />
           </Panel>
