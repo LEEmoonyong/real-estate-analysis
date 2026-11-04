@@ -27,8 +27,7 @@ export function DataSourceBadge() {
         onClick={() => setIsOpen((o) => !o)}
         title="데이터 출처 자세히 보기"
       >
-        {SOURCE_LABELS[scene.source]} · 건물 {buildings.length}개
-        {stats.estimated > 0 && ` · 추정 ${stats.estimated}`}
+        {SOURCE_LABELS[scene.source]} · 건물 {buildings.length}개{stats.estimated > 0 && ` · 추정 ${stats.estimated}`}
       </button>
       {isOpen && (
         <div className={styles.details}>
@@ -36,7 +35,10 @@ export function DataSourceBadge() {
             <strong>{scene.place.name}</strong>
           </p>
           <ul>
-            <li>표시 중인 건물 {buildings.length}개{droppedCount > 0 && ` (외곽선이 너무 작거나 잘못된 ${droppedCount}개 제외)`}</li>
+            <li>
+              표시 중인 건물 {buildings.length}개
+              {droppedCount > 0 && ` (외곽선이 너무 작거나 잘못된 ${droppedCount}개 제외)`}
+            </li>
             {stats.estimated > 0 && <li>층수 정보가 없어 높이를 추정한 건물 {stats.estimated}개</li>}
             {stats.corrected > 0 && <li>사용자가 층수를 보정한 건물 {stats.corrected}개</li>}
             {scene.notes.map((n) => (
@@ -45,9 +47,7 @@ export function DataSourceBadge() {
           </ul>
         </div>
       )}
-      <p className={styles.attribution}>
-        {isOsm ? '© OpenStreetMap contributors (ODbL)' : '건물: 국토교통부 V-World'}
-      </p>
+      <p className={styles.attribution}>{isOsm ? '© OpenStreetMap contributors (ODbL)' : '건물: 국토교통부 V-World'}</p>
     </div>
   );
 }

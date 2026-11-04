@@ -64,7 +64,8 @@ export function SearchBar({ mode, onPickPlace, onPickSample }: SearchBarProps) {
   };
 
   const showList = isOpen && geo.status !== 'idle';
-  const placeholder = mode === 'sample' ? '샘플 지역 검색 (예: 잠실, 해운대, 세종)' : '아파트 단지명 또는 주소 (예: 잠실엘스)';
+  const placeholder =
+    mode === 'sample' ? '샘플 지역 검색 (예: 잠실, 해운대, 세종)' : '아파트 단지명 또는 주소 (예: 잠실엘스)';
 
   return (
     <div className={styles.root}>
@@ -100,7 +101,11 @@ export function SearchBar({ mode, onPickPlace, onPickSample }: SearchBarProps) {
       {showList && (
         <div className={styles.dropdown}>
           {geo.status === 'loading' && <p className={styles.message}>검색 중…</p>}
-          {geo.error && <p className={styles.message} role="alert">{geo.error}</p>}
+          {geo.error && (
+            <p className={styles.message} role="alert">
+              {geo.error}
+            </p>
+          )}
           {geo.candidates.length > 0 && (
             <ul id={listId} role="listbox" aria-label="검색 결과" className={styles.list}>
               {geo.candidates.map((c, i) => (

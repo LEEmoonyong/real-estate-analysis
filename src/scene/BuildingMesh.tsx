@@ -18,7 +18,10 @@ function BuildingMeshImpl({ building, selected, onSelect }: BuildingMeshProps) {
   useCursor(hovered);
 
   // [요구사항: Hooks] useMemo — 외곽선·높이가 바뀔 때만 지오메트리를 다시 만든다
-  const geometry = useMemo(() => createBuildingGeometry(building.ring, building.heightM), [building.ring, building.heightM]);
+  const geometry = useMemo(
+    () => createBuildingGeometry(building.ring, building.heightM),
+    [building.ring, building.heightM],
+  );
   useEffect(() => () => geometry.dispose(), [geometry]);
 
   const color = selected
