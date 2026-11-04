@@ -7,6 +7,7 @@ import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { GlobalShortcuts } from './components/common/GlobalShortcuts';
 import { LimitationsDialog, ShortcutsDialog } from './components/common/HelpDialogs';
 import { StatusBanner } from './components/common/StatusBanner';
+import { WindowViewControls } from './components/common/WindowViewControls';
 import { LayerSelector } from './components/controls/LayerSelector';
 import { TimeControls } from './components/controls/TimeControls';
 import { BuildingInfo } from './components/detail/BuildingInfo';
@@ -193,6 +194,7 @@ function Shell() {
             />
             <DataSourceBadge />
             <CalculationStatus />
+            {FEATURES.windowView && <WindowViewControls />}
           </>
         }
         primary={

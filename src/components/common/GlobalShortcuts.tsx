@@ -10,8 +10,8 @@ import { useKeyboardShortcuts, type ShortcutMap } from '../../hooks/useKeyboardS
 export function GlobalShortcuts({ onOpenHelp, enabled }: { onOpenHelp: () => void; enabled: boolean }) {
   const { toggle, pause, range } = usePlayback();
   const { setMinuteOfDay } = useTimeActions();
-  const { selectedBuildingId, selectedUnitId } = useSceneData();
-  const { focusOn, clearSelection } = useSceneDataActions();
+  const { selectedBuildingId, selectedUnitId, cameraMode } = useSceneData();
+  const { focusOn, clearSelection, setCameraMode } = useSceneDataActions();
   const { heatmapVisible } = useSettings();
   const { setLayer, setHeatmapVisible } = useSettingsActions();
 
@@ -29,9 +29,10 @@ export function GlobalShortcuts({ onOpenHelp, enabled }: { onOpenHelp: () => voi
       '1': () => setLayer('sunlight'),
       h: () => setHeatmapVisible(!heatmapVisible),
       f: () => {
-        if (selectedBuildingId) focusOn(selectedBuildingId, selectedUnitId);
+        if (selectedBuildingId && cameraMode === 'orbit') focusOn(selectedBuildingId, selectedUnitId);
       },
-      Escape: clearSelection,
+      // 창문 시점이면 먼저 궤도 보기로, 아니면 선택 해제
+      Escape: () => (cameraMode === 'window' ? setCameraMode('orbit') : clearSelection()),
       '/': () => document.querySelector<HTMLInputElement>('[data-shortcut="search"]')?.focus(),
       '?': onOpenHelp,
     };
@@ -47,6 +48,8 @@ export function GlobalShortcuts({ onOpenHelp, enabled }: { onOpenHelp: () => voi
     selectedUnitId,
     focusOn,
     clearSelection,
+    cameraMode,
+    setCameraMode,
     onOpenHelp,
   ]);
 

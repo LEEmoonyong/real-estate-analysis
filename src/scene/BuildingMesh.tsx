@@ -39,6 +39,8 @@ function BuildingMeshImpl({ building, selected, onSelect }: BuildingMeshProps) {
 
   const handleClick = (event: ThreeEvent<MouseEvent>) => {
     event.stopPropagation(); // 뒤에 있는 건물이 함께 선택되지 않도록
+    // 드래그(회전·둘러보기) 끝에 생기는 클릭은 선택으로 보지 않는다
+    if (event.delta > 6) return;
     onSelect(building.id, [event.point.x, event.point.y, event.point.z]);
   };
 

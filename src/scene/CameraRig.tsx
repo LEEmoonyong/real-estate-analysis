@@ -29,7 +29,10 @@ export function CameraRig({ radiusM, sceneKey, compassRef, viewShiftRatio = 0 }:
   const invalidate = useThree((s) => s.invalidate);
   const getState = useThree((s) => s.get);
   const size = useThree((s) => s.size);
-  const { focusRequest, buildings, units } = useSceneData();
+  const { focusRequest, buildings, units, cameraMode } = useSceneData();
+  const orbit = cameraMode === 'orbit';
+  const orbitRef = useRef(orbit);
+  orbitRef.current = orbit;
   const { flyTo, cancel } = useCameraFlyTo(controlsRef);
 
   // 화면 크기·기기가 바뀔 때마다 투영 중심 이동을 다시 맞춘다 (R3F 리사이즈 이후 실행)
@@ -64,7 +67,8 @@ export function CameraRig({ radiusM, sceneKey, compassRef, viewShiftRatio = 0 }:
   const focusDataRef = useRef({ buildings, units });
   focusDataRef.current = { buildings, units };
   useEffect(() => {
-    if (!focusRequest) return;
+    // 창문 시점에서는 WindowViewCamera가 새 세대로 옮겨 간다
+    if (!focusRequest || !orbitRef.current) return;
     const { buildings: list, units: set } = focusDataRef.current;
     const building = list.find((b) => b.id === focusRequest.buildingId);
     if (!building) return;
@@ -96,6 +100,7 @@ export function CameraRig({ radiusM, sceneKey, compassRef, viewShiftRatio = 0 }:
   return (
     <OrbitControls
       ref={controlsRef}
+      enabled={orbit} // 창문 시점에서는 궤도 조작을 끈다
       makeDefault
       enableDamping
       dampingFactor={0.12}

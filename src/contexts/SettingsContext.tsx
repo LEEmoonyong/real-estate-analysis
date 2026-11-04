@@ -11,6 +11,7 @@ export type QualityOverride = 'auto' | 'low' | 'medium' | 'high';
 /** 3D 태양 경로로 그릴 날: 선택한 날짜 / 동지 / 하지 / 춘분 */
 export type SunPathDay = 'today' | 'winter' | 'summer' | 'spring';
 export type SunPathVisibility = Record<SunPathDay, boolean>;
+export type GroundCellSize = 2 | 4 | 8;
 const DEFAULT_SUN_PATHS: SunPathVisibility = { today: true, winter: false, summer: false, spring: false };
 
 export interface Settings {
@@ -53,6 +54,10 @@ interface SettingsState {
   heatmapVisible: boolean;
   /** 태양 경로 표시 (B3) */
   sunPaths: SunPathVisibility;
+  /** 지면 그림자 셀 크기 [m] (C8) — 기본: 데스크톱 4m, 그 밖 8m */
+  groundCellSize: GroundCellSize;
+  /** 창문 시점 시야각 [°] (C7, 40~100) */
+  windowFov: number;
 }
 
 interface SettingsActions {
@@ -61,6 +66,8 @@ interface SettingsActions {
   setLayer: (layer: AnalysisLayer) => void;
   setHeatmapVisible: (visible: boolean) => void;
   setSunPathVisible: (day: SunPathDay, visible: boolean) => void;
+  setGroundCellSize: (size: GroundCellSize) => void;
+  setWindowFov: (fov: number) => void;
 }
 
 const SettingsStateContext = createContext<SettingsState | null>(null);
@@ -74,6 +81,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [layer, setLayer] = useState<AnalysisLayer>('sunlight');
   const [heatmapVisible, setHeatmapVisible] = useState(true);
   const [sunPaths, setSunPaths] = useState<SunPathVisibility>(DEFAULT_SUN_PATHS);
+  const [windowFov, setWindowFov] = useState(75);
+  const [groundCellSize, setGroundCellSize] = useState<GroundCellSize>(() =>
+    typeof window !== 'undefined' && window.matchMedia?.('(min-width: 1200px)').matches ? 4 : 8,
+  );
   const setSunPathVisible = useCallback(
     (day: SunPathDay, visible: boolean) => setSunPaths((prev) => ({ ...prev, [day]: visible })),
     [],
@@ -85,12 +96,20 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   );
 
   const state = useMemo(
-    () => ({ settings, layer, heatmapVisible, sunPaths }),
-    [settings, layer, heatmapVisible, sunPaths],
+    () => ({ settings, layer, heatmapVisible, sunPaths, groundCellSize, windowFov }),
+    [settings, layer, heatmapVisible, sunPaths, groundCellSize, windowFov],
   );
   // 동작만 쓰는 컴포넌트가 상태 변화로 다시 렌더링되지 않도록 actions를 분리한다
   const actions = useMemo(
-    () => ({ updateSettings, resetSettings: removeSettings, setLayer, setHeatmapVisible, setSunPathVisible }),
+    () => ({
+      updateSettings,
+      resetSettings: removeSettings,
+      setLayer,
+      setHeatmapVisible,
+      setSunPathVisible,
+      setGroundCellSize,
+      setWindowFov,
+    }),
     [updateSettings, removeSettings, setSunPathVisible],
   );
 

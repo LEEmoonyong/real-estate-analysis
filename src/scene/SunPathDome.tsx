@@ -13,19 +13,29 @@ import { SEASON_PRESETS, seasonDate } from '../domain/time/seasons';
 import type { Vec3 } from '../domain/types';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { useSunPosition } from '../hooks/useSunPosition';
+import { findUnitIndex } from '../domain/units/generateUnits';
 import { SUN_PATH_STYLE } from './sunPathStyle';
 
 const noRaycast = () => undefined;
 const scale = (r: number, [x, y, z]: Vec3): Vec3 => [x * r, y * r, z * r];
 
 export function SunPathDome() {
-  const { scene, radiusM } = useSceneData();
+  const { scene, radiusM, cameraMode, selectedUnitId, units, buildings } = useSceneData();
   const { sunPaths } = useSettings();
   const { date, minuteOfDay } = useTime();
   const breakpoint = useBreakpoint();
   const place = scene?.place ?? DEFAULT_LOCATION;
   const sun = useSunPosition(place.lat, place.lng, date, minuteOfDay);
-  const R = Math.max(radiusM, 100) * 0.85;
+  // 창문 시점: 반구 중심을 창문에 두고 모든 건물보다 멀리(태양은 무한히 멀다) — 시차 없이 방향이 맞고 건물에 가려진다
+  const windowIndex = useMemo(
+    () => (cameraMode === 'window' && selectedUnitId ? findUnitIndex(units, buildings, selectedUnitId) : -1),
+    [cameraMode, selectedUnitId, units, buildings],
+  );
+  const inWindow = windowIndex >= 0;
+  const center: Vec3 = inWindow
+    ? [units.positions[windowIndex * 3]!, units.positions[windowIndex * 3 + 1]!, units.positions[windowIndex * 3 + 2]!]
+    : [0, 0, 0];
+  const R = Math.max(radiusM, 100) * (inWindow ? 8 : 0.85);
 
   // [요구사항: Hooks] useMemo — 궤적은 날짜·위치가 바뀔 때만 다시 계산 (시각 슬라이더와 무관)
   const paths = useMemo(() => {
@@ -64,8 +74,10 @@ export function SunPathDome() {
   const showLabels = breakpoint === 'desktop';
 
   return (
-    <group name="sun-path">
-      <Line points={horizon} color="#9aa4b1" lineWidth={1} transparent opacity={0.5} raycast={noRaycast} />
+    <group name="sun-path" position={center}>
+      {!inWindow && (
+        <Line points={horizon} color="#9aa4b1" lineWidth={1} transparent opacity={0.5} raycast={noRaycast} />
+      )}
       {paths.map(({ day, path }) =>
         path.points.length < 2 ? null : (
           <group key={day}>

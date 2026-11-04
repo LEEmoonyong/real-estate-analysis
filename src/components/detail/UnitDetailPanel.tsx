@@ -1,7 +1,8 @@
 // [요구사항: 컴포넌트] 선택한 세대의 상세 — 동·층·추정 호수·방위, 일조 시간, 기준 판정, 타임라인 (PLAN.md A6)
 // [요구사항: Hooks] useMemo(세대 찾기·판정), Context(SceneData·Simulation·Time·Settings)
 import { useMemo } from 'react';
-import { useSceneData } from '../../contexts/SceneDataContext';
+import { FEATURES } from '../../config/features';
+import { useSceneData, useSceneDataActions } from '../../contexts/SceneDataContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useSimulation } from '../../contexts/SimulationContext';
 import { useTime, useTimeActions } from '../../contexts/TimeContext';
@@ -27,6 +28,8 @@ export function UnitDetailPanel() {
   const { settings } = useSettings();
   const { date, minuteOfDay } = useTime();
   const { setMinuteOfDay } = useTimeActions();
+  const { cameraMode } = useSceneData();
+  const { setCameraMode } = useSceneDataActions();
 
   const index = useMemo(
     () => (selectedUnitId ? findUnitIndex(units, buildings, selectedUnitId) : -1),
@@ -65,6 +68,16 @@ export function UnitDetailPanel() {
           {unit.floor}층 / {building?.floors ?? '?'}층
         </dd>
       </dl>
+      {FEATURES.windowView && (
+        <button
+          type="button"
+          className={styles.windowButton}
+          aria-pressed={cameraMode === 'window'}
+          onClick={() => setCameraMode(cameraMode === 'window' ? 'orbit' : 'window')}
+        >
+          {cameraMode === 'window' ? '궤도 보기로 돌아가기' : '🪟 창문에서 보기'}
+        </button>
+      )}
 
       {!valid || !row ? (
         <div className={styles.skeleton} aria-busy="true" aria-label="일조 계산 중">
