@@ -18,6 +18,7 @@ import { RecentSearches } from './components/favorites/RecentSearches';
 import { FloorCompareChart } from './components/floorCompare/FloorCompareChart';
 import { OnboardingTour } from './components/onboarding/OnboardingTour';
 import { useOnboarding } from './components/onboarding/useOnboarding';
+import { SolarPotentialCard } from './components/solar/SolarPotentialCard';
 import { SunInfoCard } from './components/sunPath/SunInfoCard';
 import { AppLayout } from './components/layout/AppLayout';
 import { Panel } from './components/layout/Panel';
@@ -241,6 +242,7 @@ function Shell() {
               <UnitDetailPanel />
               {FEATURES.floorCompare && <FloorCompareChart />}
               <BuildingInfo />
+              {FEATURES.irradiance && <SolarPotentialCard />}
             </ErrorBoundary>
           </Panel>
         }

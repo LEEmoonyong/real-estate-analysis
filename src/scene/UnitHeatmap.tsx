@@ -1,17 +1,16 @@
 // [요구사항: 컴포넌트] 세대 일조 히트맵 — 창문 패치 수만 개를 InstancedMesh 하나로 그린다 (draw call 1회)
 // [요구사항: Hooks] useMemo(패치 행렬), useLayoutEffect(행렬·색 갱신), useRef(InstancedMesh)
 //
-// 색은 기준 총량 구간(08~16시) 일조 시간. 날짜를 바꿔 재계산하는 동안에는 직전 결과를 유지해 깜빡이지 않게 한다.
+// 색은 선택한 분석 레이어 값(HeatmapContext: 일조·천공률·일사량). 재계산하는 동안에는 직전 색을 유지해 깜빡이지 않게 한다.
 // 클릭 판정은 패치가 아니라 건물 메시에서 한다(Buildings.tsx) — 수만 개 인스턴스 광선 검사를 피하기 위해.
 import { useThree } from '@react-three/fiber';
 import { useLayoutEffect, useMemo, useRef } from 'react';
 import { InstancedBufferAttribute, type InstancedMesh } from 'three';
 import { useSceneData } from '../contexts/SceneDataContext';
 import { useSettings } from '../contexts/SettingsContext';
-import { useSimulation } from '../contexts/SimulationContext';
-import { sunlightColor } from '../domain/heatmap/colorScale';
+import { useHeatmap, type HeatmapData } from '../contexts/HeatmapContext';
+import { viridisColor } from '../domain/heatmap/colorScale';
 import { patchMatrices } from '../domain/heatmap/patches';
-import type { SunlightOutcome } from '../workers/sceneTransfer';
 
 /** sRGB(0~1) → 선형 (three.js 색 계산은 선형 공간) */
 const toLinear = (c: number) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
@@ -21,29 +20,29 @@ const noRaycast = () => undefined;
 
 export function UnitHeatmap() {
   const { units, sceneHash } = useSceneData();
-  const { results } = useSimulation();
+  const { heatmap } = useHeatmap();
   const { heatmapVisible } = useSettings();
   const invalidate = useThree((s) => s.invalidate);
   const meshRef = useRef<InstancedMesh>(null);
 
   // 재계산 중에도 같은 장면의 직전 결과를 보여 준다
-  const lastRef = useRef<SunlightOutcome | null>(null);
-  const current = results.sunlight as SunlightOutcome | undefined;
-  if (current && current.sceneHash === sceneHash) lastRef.current = current;
-  const outcome = lastRef.current?.sceneHash === sceneHash ? lastRef.current : null;
+  const lastRef = useRef<HeatmapData | null>(null);
+  if (heatmap && heatmap.sceneHash === sceneHash) lastRef.current = heatmap;
+  const outcome =
+    lastRef.current?.sceneHash === sceneHash && lastRef.current.ratios.length === units.count ? lastRef.current : null;
 
   const matrices = useMemo(() => patchMatrices(units), [units]);
 
   useLayoutEffect(() => {
     const mesh = meshRef.current;
-    if (!mesh || !outcome || outcome.unitCount !== units.count) return;
+    if (!mesh || !outcome) return;
     mesh.instanceMatrix.array.set(matrices);
     mesh.instanceMatrix.needsUpdate = true;
 
     const colors = new Float32Array(units.count * 3);
-    const values = outcome.windowTotalMinutes;
+    const values = outcome.ratios;
     for (let i = 0; i < units.count; i++) {
-      const [r, g, b] = sunlightColor(values[i]!);
+      const [r, g, b] = viridisColor(values[i]!);
       colors[i * 3] = toLinear(r);
       colors[i * 3 + 1] = toLinear(g);
       colors[i * 3 + 2] = toLinear(b);
@@ -53,7 +52,7 @@ export function UnitHeatmap() {
     invalidate();
   }, [matrices, outcome, units.count, invalidate]);
 
-  if (!outcome || units.count === 0 || outcome.unitCount !== units.count) return null;
+  if (!outcome || units.count === 0) return null;
 
   return (
     <instancedMesh

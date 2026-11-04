@@ -3,10 +3,12 @@
 import { useMemo } from 'react';
 import { FEATURES } from '../../config/features';
 import { useSceneData, useSceneDataActions } from '../../contexts/SceneDataContext';
+import { useHeatmap } from '../../contexts/HeatmapContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useSimulation } from '../../contexts/SimulationContext';
 import { useTime, useTimeActions } from '../../contexts/TimeContext';
 import { compass8 } from '../../domain/geo/compass';
+import { skyOpenness } from '../../domain/sunlight/skyView';
 import { evaluateCriteria } from '../../domain/sunlight/criteria';
 import { formatMinute } from '../../domain/time/kst';
 import { matchSeason } from '../../domain/time/seasons';
@@ -25,6 +27,7 @@ const duration = (min: number) => {
 export function UnitDetailPanel() {
   const { units, buildings, selectedUnitId, sceneHash } = useSceneData();
   const { results, progress } = useSimulation();
+  const { svf, irradiance } = useHeatmap();
   const { settings } = useSettings();
   const { date, minuteOfDay } = useTime();
   const { setMinuteOfDay } = useTimeActions();
@@ -67,6 +70,22 @@ export function UnitDetailPanel() {
         <dd>
           {unit.floor}층 / {building?.floors ?? '?'}층
         </dd>
+        {svf && index >= 0 && (
+          <>
+            <dt>천공률</dt>
+            <dd>
+              {svf[index]!.toFixed(2)} <small>(하늘 개방도 {Math.round(skyOpenness(svf[index]!) * 100)}%)</small>
+            </dd>
+          </>
+        )}
+        {irradiance && index >= 0 && (
+          <>
+            <dt>하루 일사량</dt>
+            <dd>
+              {irradiance[index]!.toFixed(2)} kWh/m² <small>(맑은 날 추정)</small>
+            </dd>
+          </>
+        )}
       </dl>
       {FEATURES.windowView && (
         <button

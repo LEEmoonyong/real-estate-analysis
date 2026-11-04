@@ -1,6 +1,7 @@
 // Context 계층 조립 — Toast → Settings → SceneData → Favorites → Time → Playback → Simulation (PLAN.md 4.1)
 import type { ReactNode } from 'react';
 import { FavoritesProvider } from './FavoritesContext';
+import { HeatmapProvider } from './HeatmapContext';
 import { PlaybackProvider } from './PlaybackContext';
 import { SceneDataProvider } from './SceneDataContext';
 import { SettingsProvider } from './SettingsContext';
@@ -16,7 +17,9 @@ export function AppProviders({ children }: { children: ReactNode }) {
           <FavoritesProvider>
             <TimeProvider>
               <PlaybackProvider>
-                <SimulationProvider>{children}</SimulationProvider>
+                <SimulationProvider>
+                  <HeatmapProvider>{children}</HeatmapProvider>
+                </SimulationProvider>
               </PlaybackProvider>
             </TimeProvider>
           </FavoritesProvider>

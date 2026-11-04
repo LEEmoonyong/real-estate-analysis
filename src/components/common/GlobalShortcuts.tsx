@@ -27,6 +27,9 @@ export function GlobalShortcuts({ onOpenHelp, enabled }: { onOpenHelp: () => voi
       'shift+ArrowLeft': shift(-60),
       'shift+ArrowRight': shift(60),
       '1': () => setLayer('sunlight'),
+      '2': () => setLayer('skyView'),
+      '3': () => setLayer('irradiance'),
+      '4': () => setLayer('groundShadow'),
       h: () => setHeatmapVisible(!heatmapVisible),
       f: () => {
         if (selectedBuildingId && cameraMode === 'orbit') focusOn(selectedBuildingId, selectedUnitId);

@@ -16,11 +16,15 @@ import { JobQueue } from '../workers/jobQueue';
 import { LruCache } from '../workers/resultCache';
 import {
   mergeGroundParts,
+  mergeSkyViewParts,
   mergeSunlightParts,
   toSceneDTO,
   type GroundOutcome,
+  type SkyViewOutcome,
   type SunlightOutcome,
 } from '../workers/sceneTransfer';
+import { SKY_SAMPLES } from '../domain/sunlight/skyView';
+import { useBreakpoint } from './useBreakpoint';
 import { JobCancelledError, poolSizeFor, WorkerPool } from '../workers/workerPool';
 
 function createSimulationWorker(): Worker {
@@ -42,6 +46,8 @@ export function useSunlightWorker(): SunlightWorkerInfo {
   const queueRef = useRef<JobQueue | null>(null);
   const cacheRef = useRef(new LruCache<SunlightOutcome>(24));
   const groundCacheRef = useRef(new LruCache<GroundOutcome>(8));
+  const skyCacheRef = useRef(new LruCache<SkyViewOutcome>(8));
+  const breakpoint = useBreakpoint();
   const sceneReadyRef = useRef<{ hash: string; ready: Promise<void> } | null>(null);
   const jobIdRef = useRef(0);
   const sizeRef = useRef(0);
@@ -273,6 +279,75 @@ export function useSunlightWorker(): SunlightWorkerInfo {
     totalEnd,
     dispatch,
   ]);
+
+  // ── 천공률 (C9): 천공률·일사량 레이어에서 필요, 날짜와 무관 → 장면이 바뀔 때만 ──
+  const skyOn = layer === 'skyView' || layer === 'irradiance';
+  const sampleCount = SKY_SAMPLES[breakpoint];
+  useEffect(() => {
+    const pool = poolRef.current;
+    const queue = queueRef.current;
+    if (!skyOn || !pool || !queue || !sceneReady || units.count === 0) return;
+
+    const cacheKey = `${sceneHash}|${sampleCount}`;
+    const jobId = ++jobIdRef.current;
+    dispatch({ type: 'JOB_STARTED', kind: 'skyView', jobId, total: units.count });
+    const cached = skyCacheRef.current.get(cacheKey);
+    if (cached) {
+      dispatch({ type: 'RESULT', kind: 'skyView', jobId, payload: { ...cached, elapsedMs: 0, fromCache: true } });
+      return;
+    }
+    const ready = ensureSceneRef.current(pool, queue);
+    const started = performance.now();
+    const result = queue.submit('skyView', () => {
+      let cancelled = false;
+      const promise = (async () => {
+        await ready;
+        if (cancelled) throw new JobCancelledError();
+        const parts = await pool.runSkyView({
+          jobId,
+          sceneHash,
+          params: { sampleCount },
+          unitCount: units.count,
+          onProgress: (done, total) => dispatch({ type: 'PROGRESS', kind: 'skyView', jobId, done, total }),
+        });
+        const outcome: SkyViewOutcome = {
+          svf: mergeSkyViewParts(parts, units.count),
+          sampleCount,
+          sceneHash,
+          unitCount: units.count,
+          elapsedMs: performance.now() - started,
+          fromCache: false,
+        };
+        return outcome;
+      })();
+      return {
+        promise,
+        cancel: () => {
+          cancelled = true;
+          pool.cancel(jobId);
+        },
+      };
+    });
+    result.then(
+      (outcome) => {
+        skyCacheRef.current.set(cacheKey, outcome);
+        dispatch({ type: 'RESULT', kind: 'skyView', jobId, payload: outcome });
+      },
+      (error: unknown) => {
+        if (error instanceof JobCancelledError) {
+          dispatch({ type: 'JOB_CANCELLED', kind: 'skyView', jobId });
+          return;
+        }
+        dispatch({
+          type: 'JOB_FAILED',
+          kind: 'skyView',
+          jobId,
+          message: error instanceof Error ? error.message : String(error),
+        });
+      },
+    );
+    return () => queue.cancel('skyView');
+  }, [skyOn, sceneReady, sceneHash, units, sampleCount, dispatch]);
 
   return { workers: sizeRef.current };
 }

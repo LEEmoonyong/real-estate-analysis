@@ -1,4 +1,4 @@
-// [요구사항: 컴포넌트] 분석 레이어 선택 — 구현된 레이어만 보여 준다 (천공률·일사량은 추가되는 날 함께 노출)
+// [요구사항: 컴포넌트] 분석 레이어 선택 — 기능 플래그가 켜진 레이어만 보여 준다
 // [요구사항: 이벤트 처리] onChange(radio, checkbox, select)
 import { FEATURES } from '../../config/features';
 import { useSettings, useSettingsActions, type GroundCellSize } from '../../contexts/SettingsContext';
@@ -8,6 +8,18 @@ import styles from './Controls.module.css';
 
 const LAYERS: { id: AnalysisLayer; label: string; description: string; enabled: boolean }[] = [
   { id: 'sunlight', label: '일조 시간', description: '세대 창문에 직사광이 드는 시간 (기준 구간)', enabled: true },
+  {
+    id: 'skyView',
+    label: '천공률',
+    description: '창문에서 보이는 하늘의 비율 — 날짜와 무관, 낮을수록 답답한 조망',
+    enabled: FEATURES.skyView,
+  },
+  {
+    id: 'irradiance',
+    label: '일사량',
+    description: '맑은 날 가정 하루 일사량(kWh/m²) — 직달·산란·반사 합',
+    enabled: FEATURES.irradiance,
+  },
   {
     id: 'groundShadow',
     label: '지면 그림자',
