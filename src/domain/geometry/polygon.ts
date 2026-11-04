@@ -69,8 +69,10 @@ export function pointInPolygon(x: number, z: number, ring: Ring): boolean {
   const n = vertexCount(ring);
   let inside = false;
   for (let i = 0, j = n - 1; i < n; j = i++) {
-    const xi = ring[i * 2]!, zi = ring[i * 2 + 1]!;
-    const xj = ring[j * 2]!, zj = ring[j * 2 + 1]!;
+    const xi = ring[i * 2]!,
+      zi = ring[i * 2 + 1]!;
+    const xj = ring[j * 2]!,
+      zj = ring[j * 2 + 1]!;
     if (zi > z !== zj > z && x < ((xj - xi) * (z - zi)) / (zj - zi) + xi) inside = !inside;
   }
   return inside;
@@ -80,8 +82,14 @@ const cross = (ax: number, az: number, bx: number, bz: number) => ax * bz - az *
 
 /** 두 선분 p1p2, p3p4가 교차(접촉 포함)하는지 */
 export function segmentsIntersect(
-  p1x: number, p1z: number, p2x: number, p2z: number,
-  p3x: number, p3z: number, p4x: number, p4z: number,
+  p1x: number,
+  p1z: number,
+  p2x: number,
+  p2z: number,
+  p3x: number,
+  p3z: number,
+  p4x: number,
+  p4z: number,
 ): boolean {
   const d1 = cross(p4x - p3x, p4z - p3z, p1x - p3x, p1z - p3z);
   const d2 = cross(p4x - p3x, p4z - p3z, p2x - p3x, p2z - p3z);
@@ -116,9 +124,13 @@ export function isSelfIntersecting(ring: Ring): boolean {
 /** 볼록 껍질 (Andrew monotone chain) — 결과는 CCW */
 export function convexHull(ring: Ring): Ring {
   // (x, n = −z) 평면에서 계산하면 표준 수학 좌표계라 결과가 그대로 CCW
-  const pts = Array.from({ length: vertexCount(ring) }, (_, i) => [ring[i * 2]!, -ring[i * 2 + 1]!] as [number, number]);
+  const pts = Array.from(
+    { length: vertexCount(ring) },
+    (_, i) => [ring[i * 2]!, -ring[i * 2 + 1]!] as [number, number],
+  );
   pts.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-  const turn = (o: number[], a: number[], b: number[]) => (a[0]! - o[0]!) * (b[1]! - o[1]!) - (a[1]! - o[1]!) * (b[0]! - o[0]!);
+  const turn = (o: number[], a: number[], b: number[]) =>
+    (a[0]! - o[0]!) * (b[1]! - o[1]!) - (a[1]! - o[1]!) * (b[0]! - o[0]!);
   const lower: [number, number][] = [];
   for (const p of pts) {
     while (lower.length >= 2 && turn(lower[lower.length - 2]!, lower[lower.length - 1]!, p) <= 0) lower.pop();
@@ -165,8 +177,10 @@ function removeCollinear(pts: [number, number][], minSin: number): [number, numb
       const a = out[(i - 1 + out.length) % out.length]!;
       const b = out[i]!;
       const c = out[(i + 1) % out.length]!;
-      const ux = b[0] - a[0], uz = b[1] - a[1];
-      const vx = c[0] - b[0], vz = c[1] - b[1];
+      const ux = b[0] - a[0],
+        uz = b[1] - a[1];
+      const vx = c[0] - b[0],
+        vz = c[1] - b[1];
       const sin = Math.abs(cross(ux, uz, vx, vz)) / (Math.hypot(ux, uz) * Math.hypot(vx, vz));
       if (sin < minSin) {
         out = out.filter((_, k) => k !== i);
@@ -184,7 +198,10 @@ function removeCollinear(pts: [number, number][], minSin: number): [number, numb
  * 쓸 수 없는 외곽선이면 null.
  */
 export function cleanFootprint(input: Ring, options: CleanOptions = DEFAULT_CLEAN_OPTIONS): CleanResult {
-  let pts = Array.from({ length: vertexCount(input) }, (_, i) => [input[i * 2]!, input[i * 2 + 1]!] as [number, number]);
+  let pts = Array.from(
+    { length: vertexCount(input) },
+    (_, i) => [input[i * 2]!, input[i * 2 + 1]!] as [number, number],
+  );
   if (pts.some(([x, z]) => !Number.isFinite(x) || !Number.isFinite(z))) return null;
   pts = removeDuplicates(pts, options.duplicateEpsilon);
   pts = removeCollinear(pts, options.collinearSin);

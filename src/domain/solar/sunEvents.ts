@@ -68,5 +68,12 @@ export function sunEvents(lat: number, lng: number, date: string): SunEvents {
       polar,
     };
   }
-  return { sunriseMin, solarNoonMin: noon, sunsetMin, noonAltitudeDeg, dayLengthMin: sunsetMin - sunriseMin, polar: null };
+  return {
+    sunriseMin,
+    solarNoonMin: noon,
+    sunsetMin,
+    noonAltitudeDeg,
+    dayLengthMin: sunsetMin - sunriseMin,
+    polar: null,
+  };
 }

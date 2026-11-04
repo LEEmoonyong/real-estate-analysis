@@ -68,7 +68,7 @@ export function sunDirection(altitudeDeg: number, azimuthDeg: number): Vec3 {
 export function solarPositionAtJd(lat: number, lng: number, jd: number): SunPosition {
   const { declinationDeg: dec, equationOfTimeMin } = solarCoordinates(jd);
   // UTC 기준 그날 0시부터의 분
-  const utcMinutes = (((jd - 0.5) % 1) + 1) % 1 * 1440;
+  const utcMinutes = ((((jd - 0.5) % 1) + 1) % 1) * 1440;
   const trueSolarTime = (((utcMinutes + equationOfTimeMin + 4 * lng) % 1440) + 1440) % 1440; // [분]
   const hourAngle = trueSolarTime / 4 - 180; // [°] 남중 = 0, 오후 +
 

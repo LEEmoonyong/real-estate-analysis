@@ -19,7 +19,9 @@ interface ReferenceCase {
   sunsetKstMinute: number;
 }
 
-const reference = JSON.parse(readFileSync('src/test/fixtures/sun-reference.json', 'utf8')) as { cases: ReferenceCase[] };
+const reference = JSON.parse(readFileSync('src/test/fixtures/sun-reference.json', 'utf8')) as {
+  cases: ReferenceCase[];
+};
 
 /** 방위각 차이 (0/360 경계 처리) */
 const azDiff = (a: number, b: number) => Math.abs(((a - b + 540) % 360) - 180);

@@ -36,7 +36,12 @@ describe('buildBuildings', () => {
   });
 
   it('실측 높이가 있으면 우선한다', () => {
-    const { buildings } = buildBuildings([raw('a', { heightM: 92.5, heightSource: 'measured', floors: 30 })], ORIGIN, 2.9, NO_OVERRIDES);
+    const { buildings } = buildBuildings(
+      [raw('a', { heightM: 92.5, heightSource: 'measured', floors: 30 })],
+      ORIGIN,
+      2.9,
+      NO_OVERRIDES,
+    );
     expect(buildings[0]!.heightM).toBe(92.5);
   });
 
@@ -68,16 +73,27 @@ describe('buildBuildings', () => {
   });
 
   it('사용자 동 번호가 데이터 동 번호보다 우선한다', () => {
-    const { buildings } = buildBuildings([raw('a', { dongNumber: '101' }), raw('b', { dongNumber: '102' })], ORIGIN, 2.9, {
-      floors: {},
-      dongs: { b: '205' },
-    });
+    const { buildings } = buildBuildings(
+      [raw('a', { dongNumber: '101' }), raw('b', { dongNumber: '102' })],
+      ORIGIN,
+      2.9,
+      {
+        floors: {},
+        dongs: { b: '205' },
+      },
+    );
     expect(buildings[0]).toMatchObject({ dongNumber: '101', dongSource: 'data' });
     expect(buildings[1]).toMatchObject({ dongNumber: '205', dongSource: 'user' });
   });
 
   it('잘못된 외곽선은 제외하고 개수를 보고한다', () => {
-    const bad = raw('x', { footprint: [[127, 37.5], [127.00001, 37.5], [127, 37.50001]] });
+    const bad = raw('x', {
+      footprint: [
+        [127, 37.5],
+        [127.00001, 37.5],
+        [127, 37.50001],
+      ],
+    });
     const { buildings, dropped } = buildBuildings([raw('a'), bad], ORIGIN, 2.9, NO_OVERRIDES);
     expect(buildings).toHaveLength(1);
     expect(dropped).toBe(1);

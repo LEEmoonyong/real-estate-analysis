@@ -56,16 +56,44 @@ describe('edgeOutwardNormal', () => {
 
 describe('isSelfIntersecting', () => {
   it('나비넥타이 모양은 자기교차', () => {
-    expect(isSelfIntersecting(fromMap([[0, 0], [10, 10], [10, 0], [0, 10]]))).toBe(true);
+    expect(
+      isSelfIntersecting(
+        fromMap([
+          [0, 0],
+          [10, 10],
+          [10, 0],
+          [0, 10],
+        ]),
+      ),
+    ).toBe(true);
   });
   it('ㄱ자(오목) 다각형은 자기교차가 아니다', () => {
-    expect(isSelfIntersecting(fromMap([[0, 0], [30, 0], [30, 10], [10, 10], [10, 30], [0, 30]]))).toBe(false);
+    expect(
+      isSelfIntersecting(
+        fromMap([
+          [0, 0],
+          [30, 0],
+          [30, 10],
+          [10, 10],
+          [10, 30],
+          [0, 30],
+        ]),
+      ),
+    ).toBe(false);
   });
 });
 
 describe('convexHull', () => {
   it('내부 점을 제거하고 CCW로 낸다', () => {
-    const hull = convexHull(fromMap([[0, 0], [5, 5], [10, 0], [10, 10], [0, 10]]));
+    const hull = convexHull(
+      fromMap([
+        [0, 0],
+        [5, 5],
+        [10, 0],
+        [10, 10],
+        [0, 10],
+      ]),
+    );
     expect(vertexCount(hull)).toBe(4);
     expect(signedArea(hull)).toBeCloseTo(100);
   });
@@ -96,25 +124,74 @@ describe('cleanFootprint', () => {
   });
 
   it('바늘처럼 튀어나온 스파이크를 제거한다', () => {
-    const r = cleanFootprint(fromMap([[0, 0], [20, 0], [20, 5], [40, 5], [20, 5], [20, 10], [0, 10]]))!;
+    const r = cleanFootprint(
+      fromMap([
+        [0, 0],
+        [20, 0],
+        [20, 5],
+        [40, 5],
+        [20, 5],
+        [20, 10],
+        [0, 10],
+      ]),
+    )!;
     expect(vertexCount(r.ring)).toBe(4);
   });
 
   it('자기교차 외곽선은 볼록 껍질로 복구하고 표시한다', () => {
-    const r = cleanFootprint(fromMap([[0, 0], [10, 10], [10, 0], [0, 10]]))!;
+    const r = cleanFootprint(
+      fromMap([
+        [0, 0],
+        [10, 10],
+        [10, 0],
+        [0, 10],
+      ]),
+    )!;
     expect(r.repaired).toBe(true);
     expect(r.area).toBeCloseTo(100);
     expect(isSelfIntersecting(r.ring)).toBe(false);
   });
 
   it('너무 작거나 정점이 부족하면 null', () => {
-    expect(cleanFootprint(fromMap([[0, 0], [3, 0], [3, 3], [0, 3]]))).toBeNull(); // 9m² < 10m²
-    expect(cleanFootprint(fromMap([[0, 0], [10, 0], [20, 0]]))).toBeNull(); // 일직선
-    expect(cleanFootprint(fromMap([[0, 0], [NaN, 0], [10, 10]]))).toBeNull();
+    expect(
+      cleanFootprint(
+        fromMap([
+          [0, 0],
+          [3, 0],
+          [3, 3],
+          [0, 3],
+        ]),
+      ),
+    ).toBeNull(); // 9m² < 10m²
+    expect(
+      cleanFootprint(
+        fromMap([
+          [0, 0],
+          [10, 0],
+          [20, 0],
+        ]),
+      ),
+    ).toBeNull(); // 일직선
+    expect(
+      cleanFootprint(
+        fromMap([
+          [0, 0],
+          [NaN, 0],
+          [10, 10],
+        ]),
+      ),
+    ).toBeNull();
   });
 
   it('오목 다각형(ㄱ자 동)은 그대로 유지한다', () => {
-    const L = fromMap([[0, 0], [30, 0], [30, 10], [10, 10], [10, 30], [0, 30]]);
+    const L = fromMap([
+      [0, 0],
+      [30, 0],
+      [30, 10],
+      [10, 10],
+      [10, 30],
+      [0, 30],
+    ]);
     const r = cleanFootprint(L)!;
     expect(vertexCount(r.ring)).toBe(6);
     expect(r.area).toBeCloseTo(500);

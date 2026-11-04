@@ -13,11 +13,19 @@ function vincentyDistance(lat1: number, lng1: number, lat2: number, lng2: number
   const L = (lng2 - lng1) * rad;
   const U1 = Math.atan((1 - f) * Math.tan(lat1 * rad));
   const U2 = Math.atan((1 - f) * Math.tan(lat2 * rad));
-  const sinU1 = Math.sin(U1), cosU1 = Math.cos(U1), sinU2 = Math.sin(U2), cosU2 = Math.cos(U2);
+  const sinU1 = Math.sin(U1),
+    cosU1 = Math.cos(U1),
+    sinU2 = Math.sin(U2),
+    cosU2 = Math.cos(U2);
   let lambda = L;
-  let sinSigma = 0, cosSigma = 0, sigma = 0, cos2Alpha = 0, cos2SigmaM = 0;
+  let sinSigma = 0,
+    cosSigma = 0,
+    sigma = 0,
+    cos2Alpha = 0,
+    cos2SigmaM = 0;
   for (let i = 0; i < 200; i++) {
-    const sinL = Math.sin(lambda), cosL = Math.cos(lambda);
+    const sinL = Math.sin(lambda),
+      cosL = Math.cos(lambda);
     sinSigma = Math.hypot(cosU2 * sinL, cosU1 * sinU2 - sinU1 * cosU2 * cosL);
     if (sinSigma === 0) return 0;
     cosSigma = sinU1 * sinU2 + cosU1 * cosU2 * cosL;
@@ -27,14 +35,20 @@ function vincentyDistance(lat1: number, lng1: number, lat2: number, lng2: number
     cos2SigmaM = cos2Alpha === 0 ? 0 : cosSigma - (2 * sinU1 * sinU2) / cos2Alpha;
     const C = (f / 16) * cos2Alpha * (4 + f * (4 - 3 * cos2Alpha));
     const prev = lambda;
-    lambda = L + (1 - C) * f * sinAlpha * (sigma + C * sinSigma * (cos2SigmaM + C * cosSigma * (-1 + 2 * cos2SigmaM ** 2)));
+    lambda =
+      L + (1 - C) * f * sinAlpha * (sigma + C * sinSigma * (cos2SigmaM + C * cosSigma * (-1 + 2 * cos2SigmaM ** 2)));
     if (Math.abs(lambda - prev) < 1e-12) break;
   }
   const u2 = (cos2Alpha * (a * a - b * b)) / (b * b);
   const A = 1 + (u2 / 16384) * (4096 + u2 * (-768 + u2 * (320 - 175 * u2)));
   const B = (u2 / 1024) * (256 + u2 * (-128 + u2 * (74 - 47 * u2)));
   const dSigma =
-    B * sinSigma * (cos2SigmaM + (B / 4) * (cosSigma * (-1 + 2 * cos2SigmaM ** 2) - (B / 6) * cos2SigmaM * (-3 + 4 * sinSigma ** 2) * (-3 + 4 * cos2SigmaM ** 2)));
+    B *
+    sinSigma *
+    (cos2SigmaM +
+      (B / 4) *
+        (cosSigma * (-1 + 2 * cos2SigmaM ** 2) -
+          (B / 6) * cos2SigmaM * (-3 + 4 * sinSigma ** 2) * (-3 + 4 * cos2SigmaM ** 2)));
   return b * A * (sigma - dSigma);
 }
 
@@ -61,7 +75,11 @@ describe('localProjection', () => {
 
   it.each(ORIGINS)('$name: 왕복 변환 오차 < 1e-6 m', (origin) => {
     const p = createProjection(origin);
-    for (const [x, z] of [[123.4, -456.7], [-500, 500], [0, 0]] as const) {
+    for (const [x, z] of [
+      [123.4, -456.7],
+      [-500, 500],
+      [0, 0],
+    ] as const) {
       const [lng, lat] = p.toLngLat(x, z);
       const [x2, z2] = p.toLocal(lng, lat);
       expect(Math.abs(x2 - x)).toBeLessThan(1e-6);

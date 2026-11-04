@@ -50,7 +50,8 @@ export function utcMsToKst(ms: number): { date: string; minuteOfDay: number } {
   const pad = (n: number) => String(n).padStart(2, '0');
   return {
     date: `${kst.getUTCFullYear()}-${pad(kst.getUTCMonth() + 1)}-${pad(kst.getUTCDate())}`,
-    minuteOfDay: kst.getUTCHours() * 60 + kst.getUTCMinutes() + kst.getUTCSeconds() / 60 + kst.getUTCMilliseconds() / 60_000,
+    minuteOfDay:
+      kst.getUTCHours() * 60 + kst.getUTCMinutes() + kst.getUTCSeconds() / 60 + kst.getUTCMilliseconds() / 60_000,
   };
 }
 
