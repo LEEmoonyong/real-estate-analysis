@@ -23,7 +23,11 @@ export function useApiHealth(): ApiHealth {
   useEffect(() => {
     if (FORCE_SAMPLE_MODE) return;
     const controller = new AbortController();
-    const timer = window.setTimeout(() => controller.abort(), HEALTH_TIMEOUT_MS);
+    let timedOut = false;
+    const timer = window.setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, HEALTH_TIMEOUT_MS);
 
     fetch('/api/health', { signal: controller.signal })
       .then((res) => (res.ok ? (res.json() as Promise<{ kakao?: boolean; vworld?: boolean }>) : Promise.reject()))
@@ -37,6 +41,8 @@ export function useApiHealth(): ApiHealth {
         });
       })
       .catch(() => {
+        // 언마운트(StrictMode 이중 실행 포함)로 취소된 요청은 실패가 아니다. 시간 초과만 실패로 본다.
+        if (controller.signal.aborted && !timedOut) return;
         setHealth({
           mode: 'sample',
           reason: '데이터 서버에 연결할 수 없어 샘플 지역으로 동작합니다.',
