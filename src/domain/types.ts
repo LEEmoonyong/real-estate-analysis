@@ -29,15 +29,28 @@ export interface RawBuilding {
 }
 
 /** 보정값·동 번호·로컬 좌표가 반영된 건물 (3D·계산용) */
-export interface Building extends RawBuilding {
-  /** 로컬 평면 좌표 (x, z) 쌍, CCW, 정리 완료 — 3일차 구현 */
+export interface Building {
+  id: string;
+  source: BuildingSource;
+  /** 로컬 평면 좌표 (x0, z0, x1, z1, …), CCW, 정리 완료 */
   ring: Float64Array;
+  /** 바닥 면적 [m²] */
+  areaM2: number;
+  floors: number;
+  /** 건물 높이 [m] (지면 y=0부터) */
   heightM: number;
-  heightSourceResolved: HeightSource;
+  heightSource: HeightSource;
+  /** 기본값으로 추정한 높이 (화면에 "추정값" 표시) */
   isEstimated: boolean;
   isUserCorrected: boolean;
+  /** 보정 전 데이터의 층수 */
   originalFloors: number;
-  dongSource?: 'data' | 'user' | 'sample';
+  dongNumber?: string;
+  dongSource?: 'data' | 'user';
+  name?: string;
+  usage?: string;
+  /** 자기교차 외곽선을 볼록 껍질로 복구함 */
+  geometryRepaired: boolean;
 }
 
 export interface Place extends LatLng {
