@@ -64,6 +64,8 @@ export interface Favorite extends LatLng {
   id: string;
   name: string;
   address?: string;
+  /** 샘플 지역이면 샘플 id (누르면 API 대신 샘플을 불러온다) */
+  sampleId?: string;
   createdAt: number;
 }
 
@@ -71,6 +73,7 @@ export interface RecentSearch extends LatLng {
   query: string;
   label: string;
   provider: 'kakao' | 'vworld' | 'sample';
+  sampleId?: string;
   at: number;
 }
 

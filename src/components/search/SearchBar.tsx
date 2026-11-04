@@ -10,8 +10,10 @@ import styles from './SearchBar.module.css';
 
 interface SearchBarProps {
   mode: DataMode;
-  onPickPlace: (result: GeoResult, query: string) => void;
-  onPickSample: (sample: SampleIndexEntry) => void;
+  /** 검색 결과 선택 — provider는 최근 검색 기록용 */
+  onPickPlace: (result: GeoResult, query: string, provider: 'kakao' | 'vworld') => void;
+  /** query는 검색창에서 고른 경우에만 (샘플 버튼과 구별) */
+  onPickSample: (sample: SampleIndexEntry, query?: string) => void;
 }
 
 const candidateLabel = (c: SearchCandidate) => (c.type === 'place' ? c.result.label : c.sample.name);
@@ -25,8 +27,9 @@ export function SearchBar({ mode, onPickPlace, onPickSample }: SearchBarProps) {
   const geo = useGeocode(mode);
 
   const pick = (candidate: SearchCandidate) => {
-    if (candidate.type === 'place') onPickPlace(candidate.result, query.trim());
-    else onPickSample(candidate.sample);
+    if (candidate.type === 'place') {
+      onPickPlace(candidate.result, query.trim(), geo.provider === 'vworld' ? 'vworld' : 'kakao');
+    } else onPickSample(candidate.sample, query.trim());
     setIsOpen(false);
     setActiveIndex(-1);
     inputRef.current?.blur();
@@ -68,7 +71,7 @@ export function SearchBar({ mode, onPickPlace, onPickSample }: SearchBarProps) {
     mode === 'sample' ? '샘플 지역 검색 (예: 잠실, 해운대, 세종)' : '아파트 단지명 또는 주소 (예: 잠실엘스)';
 
   return (
-    <div className={styles.root}>
+    <div className={styles.root} data-tour="search">
       <form role="search" className={styles.form} onSubmit={handleSubmit}>
         <label htmlFor={`${listId}-input`} className={styles.srOnly}>
           아파트 단지명 또는 주소 검색
