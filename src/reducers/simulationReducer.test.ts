@@ -60,7 +60,10 @@ describe('simulationReducer — 정상 흐름', () => {
 
 describe('simulationReducer — 오류', () => {
   it('데이터 실패 → error, RETRY → loading', () => {
-    const s = run([{ type: 'SEARCH_START', source: 'vworld' }, { type: 'DATA_FAILED', message: 'x' }]);
+    const s = run([
+      { type: 'SEARCH_START', source: 'vworld' },
+      { type: 'DATA_FAILED', message: 'x' },
+    ]);
     expect(s).toMatchObject({ phase: 'error', error: { kind: 'data' } });
     expect(simulationReducer(s, { type: 'RETRY' }).phase).toBe('loading');
   });

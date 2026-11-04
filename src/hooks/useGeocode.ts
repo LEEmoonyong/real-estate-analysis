@@ -8,9 +8,7 @@ import type { SampleIndexEntry } from '../data/samples/sampleSchema';
 
 export type GeocodeStatus = 'idle' | 'loading' | 'success' | 'empty' | 'error';
 
-export type SearchCandidate =
-  | { type: 'place'; result: GeoResult }
-  | { type: 'sample'; sample: SampleIndexEntry };
+export type SearchCandidate = { type: 'place'; result: GeoResult } | { type: 'sample'; sample: SampleIndexEntry };
 
 export interface GeocodeState {
   status: GeocodeStatus;
@@ -62,7 +60,9 @@ export function useGeocode(mode: 'live' | 'sample' | 'checking') {
             status: sampleCandidates.length ? 'success' : 'empty',
             candidates: sampleCandidates,
             provider: 'sample',
-            error: sampleCandidates.length ? null : '샘플 모드에서는 샘플 지역(잠실·마린시티·세종)만 검색할 수 있습니다.',
+            error: sampleCandidates.length
+              ? null
+              : '샘플 모드에서는 샘플 지역(잠실·마린시티·세종)만 검색할 수 있습니다.',
           });
           return;
         }

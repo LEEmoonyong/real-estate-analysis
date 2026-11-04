@@ -79,7 +79,10 @@ export function useBuildings(request: BuildingsRequest | null, keys: { vworld: b
           }
           loadScene({ place, rawBuildings: raws, source: provider.id, notes: [] });
           if (failures.length) {
-            setNotice({ tone: 'warning', message: `${failures.join(', ')} 응답에 실패해 ${provider.label} 데이터를 사용합니다.` });
+            setNotice({
+              tone: 'warning',
+              message: `${failures.join(', ')} 응답에 실패해 ${provider.label} 데이터를 사용합니다.`,
+            });
           }
           dispatch({ type: 'DATA_LOADED' });
           return;
