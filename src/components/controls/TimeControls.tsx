@@ -1,13 +1,11 @@
 // [요구사항: 컴포넌트] 날짜·시각 컨트롤 묶음 — 날짜/절기, 시각 슬라이더, 재생, 현재 태양 고도·방위
-// [요구사항: Hooks] useSunEvents·useSunPosition·useTimePlayback(커스텀 훅), useMemo, useEffect
-import { useEffect, useMemo } from 'react';
+// [요구사항: Hooks] useSunPosition(커스텀 훅), usePlayback(재생 Context — 모바일 탭을 바꿔도 재생 유지)
 import { DEFAULT_LOCATION } from '../../config/constants';
+import { usePlayback } from '../../contexts/PlaybackContext';
 import { useSceneData } from '../../contexts/SceneDataContext';
 import { useTime, useTimeActions } from '../../contexts/TimeContext';
 import { compass8 } from '../../domain/geo/compass';
-import { clampMinute, daylightRange } from '../../domain/time/seasons';
-import { useSunEvents, useSunPosition } from '../../hooks/useSunPosition';
-import { useTimePlayback } from '../../hooks/useTimePlayback';
+import { useSunPosition } from '../../hooks/useSunPosition';
 import { DateControls } from './DateControls';
 import { PlaybackButton } from './PlaybackButton';
 import { TimeSlider } from './TimeSlider';
@@ -19,16 +17,9 @@ export function TimeControls() {
   const { setMinuteOfDay } = useTimeActions();
   const place = scene?.place ?? DEFAULT_LOCATION;
 
-  const events = useSunEvents(place.lat, place.lng, date);
-  const range = useMemo(() => daylightRange(events.sunriseMin, events.sunsetMin), [events]);
+  const playback = usePlayback();
+  const { events, range } = playback;
   const sun = useSunPosition(place.lat, place.lng, date, minuteOfDay);
-  const playback = useTimePlayback({ minute: minuteOfDay, setMinute: setMinuteOfDay, range });
-
-  // 날짜·지역이 바뀌어 현재 시각이 일출~일몰 범위를 벗어나면 범위 안으로 맞춘다
-  useEffect(() => {
-    const clamped = clampMinute(minuteOfDay, range);
-    if (clamped !== minuteOfDay) setMinuteOfDay(clamped);
-  }, [range, minuteOfDay, setMinuteOfDay]);
 
   // 슬라이더를 직접 움직이면 재생을 멈춘다 (PLAN.md A2)
   const handleSlide = (minute: number) => {
