@@ -5,18 +5,19 @@ import { Canvas } from '@react-three/fiber';
 import { useRef } from 'react';
 import { useSceneData, useSceneDataActions } from '../contexts/SceneDataContext';
 import { useBreakpoint } from '../hooks/useBreakpoint';
+import { useQuality } from '../hooks/useQuality';
 import { Buildings } from './Buildings';
 import { defaultCameraPosition } from './buildingGeometry';
 import { CameraRig } from './CameraRig';
 import { Ground } from './Ground';
+import { SunLight } from './SunLight';
 import styles from './SceneCanvas.module.css';
-
-const MAX_DPR = { mobile: 1.5, tablet: 1.75, desktop: 2 } as const;
 
 export function SceneCanvas() {
   const { scene, buildings, radiusM, selectedBuildingId } = useSceneData();
   const { clearSelection } = useSceneDataActions();
   const breakpoint = useBreakpoint();
+  const quality = useQuality();
   const compassRef = useRef<HTMLDivElement>(null);
   const sceneKey = scene ? `${scene.source}:${scene.place.lat},${scene.place.lng}` : 'empty';
 
@@ -27,16 +28,14 @@ export function SceneCanvas() {
       data-selected-building={selectedBuildingId ?? ''}
     >
       <Canvas
-        dpr={[1, MAX_DPR[breakpoint]]}
+        dpr={[1, quality.maxDpr]}
+        shadows // PCF 소프트 그림자
         frameloop="demand" // 변화가 있을 때만 그려 모바일 배터리·발열을 줄인다
         camera={{ fov: 45, position: defaultCameraPosition(radiusM) }}
         onPointerMissed={clearSelection}
         aria-label="3D 아파트 단지 장면"
       >
-        <color attach="background" args={['#cfe3f5']} />
-        <hemisphereLight args={['#ffffff', '#b8b29f', 0.9]} />
-        {/* 5일차에 태양 방향 DirectionalLight + 그림자로 교체 */}
-        <directionalLight position={[200, 400, 300]} intensity={1.2} />
+        <SunLight shadowMapSize={quality.shadowMapSize} />
         <Ground radiusM={radiusM} />
         <Buildings />
         <CameraRig

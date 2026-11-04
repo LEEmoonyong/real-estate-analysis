@@ -4,6 +4,7 @@ import { AppHeader } from './components/common/AppHeader';
 import { DataSourceBadge } from './components/common/DataSourceBadge';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { StatusBanner } from './components/common/StatusBanner';
+import { TimeControls } from './components/controls/TimeControls';
 import { BuildingInfo } from './components/detail/BuildingInfo';
 import { AppLayout } from './components/layout/AppLayout';
 import { Panel } from './components/layout/Panel';
@@ -13,7 +14,6 @@ import { DEFAULT_SAMPLE_ID } from './config/constants';
 import { AppProviders } from './contexts/AppProviders';
 import { useSceneData } from './contexts/SceneDataContext';
 import { useSettings } from './contexts/SettingsContext';
-import { useTime } from './contexts/TimeContext';
 import type { GeoResult } from './data/geocode/geocodeClient';
 import { loadSampleIndex, nearestSample } from './data/samples/sampleClient';
 import type { SampleIndexEntry } from './data/samples/sampleSchema';
@@ -51,7 +51,6 @@ function SceneFallback({ error, reset }: { error: Error; reset: () => void }) {
 
 function Shell() {
   const health = useApiHealth();
-  const { date } = useTime();
   const { scene, selectedBuildingId, selectedUnitId } = useSceneData();
 
   // [요구사항: 상태관리] useState — 현재 건물 데이터 요청 (검색·샘플 선택·재시도마다 새 객체)
@@ -136,11 +135,12 @@ function Shell() {
       }
       primary={
         <>
+          {/* 가장 자주 쓰는 날짜·시각을 먼저 (모바일 시트에서 스크롤 없이 보이도록) */}
+          <Panel title="날짜·시각" tourId="time">
+            <TimeControls />
+          </Panel>
           <Panel title="샘플 지역" tourId="samples">
             <SampleChips activeId={activeSampleId} onPick={handlePickSample} />
-          </Panel>
-          <Panel title="날짜·시각" tourId="time">
-            <Placeholder text={`선택 날짜 ${date} — 시각 슬라이더 (5일차)`} />
           </Panel>
         </>
       }

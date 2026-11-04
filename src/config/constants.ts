@@ -30,5 +30,8 @@ export const DEFAULT_CRITERIA = {
 /** 첫 화면에 보여 줄 샘플 (층수 정보가 모두 있는 계획 신도시 판상형 단지) */
 export const DEFAULT_SAMPLE_ID = 'sejong-hansol';
 
+/** 장면이 없을 때 태양 위치 계산에 쓰는 기본 위치 (서울시청) */
+export const DEFAULT_LOCATION = { lat: 37.5665, lng: 126.978 } as const;
+
 /** localStorage 키 접두사 */
 export const STORAGE_PREFIX = 'sunsim:';

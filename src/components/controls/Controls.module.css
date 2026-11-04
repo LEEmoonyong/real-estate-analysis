@@ -1,0 +1,144 @@
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.muted {
+  color: var(--color-text-muted);
+}
+
+/* ── 날짜·시각 묶음 ─────────────────────────── */
+.timeControls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.dateRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.dateInput {
+  min-height: var(--touch-target);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-sm);
+}
+
+.presets {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.presetButton,
+.speedButton {
+  min-width: 44px;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.presetButton[aria-pressed='true'],
+.speedButton[aria-pressed='true'] {
+  border-color: var(--color-accent-strong);
+  background: color-mix(in srgb, var(--color-accent) 20%, transparent);
+  font-weight: 600;
+}
+
+.timeRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* ── 재생 ─────────────────────────────────── */
+.playback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.playButton {
+  width: var(--touch-target);
+  height: var(--touch-target);
+  border: none;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: #1b1f24;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.playButton[aria-pressed='true'] {
+  background: var(--color-accent-strong);
+  color: #fff;
+}
+
+.speeds {
+  display: flex;
+  gap: 2px;
+}
+
+.speeds .speedButton {
+  min-width: 0;
+  min-height: 28px;
+  padding: 0 6px;
+  font-size: 0.75rem;
+}
+
+/* ── 슬라이더 ─────────────────────────────── */
+.slider {
+  flex: 1;
+  min-width: 0;
+}
+
+.sliderHead {
+  display: flex;
+  justify-content: center;
+}
+
+.time {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.range {
+  width: 100%;
+  min-height: var(--touch-target);
+  margin: 0;
+  accent-color: var(--color-accent-strong);
+  cursor: pointer;
+}
+
+.sliderEnds {
+  display: flex;
+  justify-content: space-between;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.sunInfo {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
