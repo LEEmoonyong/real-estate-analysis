@@ -210,22 +210,52 @@ describe('JobQueue', () => {
     const q = new JobQueue();
     const order: string[] = [];
     const first = manual<void>();
-    const p1 = q.submit('season', () => {
-      order.push('season');
+    const p1 = q.submit('skyView', () => {
+      order.push('skyView');
       return first.handle;
     });
-    const p2 = q.submit('skyView', () => {
-      order.push('skyView');
+    const p2 = q.submit('season', () => {
+      order.push('season');
       return { promise: Promise.resolve(), cancel: () => {} };
     });
-    const p3 = q.submit('sunlight', () => {
-      order.push('sunlight');
+    const p3 = q.submit('roof', () => {
+      order.push('roof');
       return { promise: Promise.resolve(), cancel: () => {} };
     });
-    expect(order).toEqual(['season']); // 실행 중인 작업이 끝나기 전에는 다음을 시작하지 않는다
+    expect(order).toEqual(['skyView']); // 더 낮은 우선순위는 실행 중인 작업을 기다린다
     first.resolve();
     await Promise.all([p1, p2, p3]);
-    expect(order).toEqual(['season', 'sunlight', 'skyView']);
+    expect(order).toEqual(['skyView', 'roof', 'season']);
+  });
+
+  it('높은 우선순위가 오면 실행 중인 낮은 작업은 양보하고(취소) 다시 큐에 들어가 나중에 끝난다', async () => {
+    const q = new JobQueue();
+    const order: string[] = [];
+    const runs: ReturnType<typeof manual<string>>[] = [];
+    const pSeason = q.submit('season', () => {
+      order.push('season');
+      const m = manual<string>();
+      runs.push(m);
+      return m.handle;
+    });
+    const pSun = q.submit('sunlight', () => {
+      order.push('sunlight');
+      return { promise: Promise.resolve('sun'), cancel: () => {} };
+    });
+    expect(runs[0]!.isCancelled()).toBe(true); // 첫 실행은 양보로 취소
+    await expect(pSun).resolves.toBe('sun');
+    await new Promise((r) => setTimeout(r, 0));
+    expect(order).toEqual(['season', 'sunlight', 'season']); // 다시 시작
+    runs[1]!.resolve('done');
+    await expect(pSeason).resolves.toBe('done'); // 호출한 쪽은 취소 오류를 보지 않는다
+  });
+
+  it('양보 중이던 작업도 같은 kind의 새 요청이 오면 취소된다', async () => {
+    const q = new JobQueue();
+    const a = manual<void>();
+    const pa = q.submit('season', () => a.handle);
+    q.cancel('season');
+    await expect(pa).rejects.toBeInstanceOf(JobCancelledError);
   });
 
   it('cancelAll은 대기·실행 중 작업을 모두 취소한다', async () => {

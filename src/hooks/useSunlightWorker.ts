@@ -240,6 +240,8 @@ export function useSunlightWorker(): SunlightWorkerInfo {
     const started = performance.now();
 
     const result = queue.submit('ground', () => {
+      // 양보 후 다시 시작하면 Worker 쪽 작업 번호는 새로 받는다 (이전 번호의 취소 표시와 섞이지 않게)
+      const workerJobId = ++jobIdRef.current;
       let cancelled = false;
       const promise = (async () => {
         await ready;
@@ -247,7 +249,7 @@ export function useSunlightWorker(): SunlightWorkerInfo {
         const steps = computeSunSteps(place.lat, place.lng, date, stepMinutes);
         const { directions, count } = sliceStepDirections(steps, totalStart, totalEnd);
         const parts = await pool.runGround({
-          jobId,
+          jobId: workerJobId,
           sceneHash,
           params: { ...spec, stepMinutes, stepCount: count, directions },
           onProgress: (done, total) => dispatch({ type: 'PROGRESS', kind: 'ground', jobId, done, total }),
@@ -269,7 +271,7 @@ export function useSunlightWorker(): SunlightWorkerInfo {
         promise,
         cancel: () => {
           cancelled = true;
-          pool.cancel(jobId);
+          pool.cancel(workerJobId);
         },
       };
     });
@@ -327,12 +329,13 @@ export function useSunlightWorker(): SunlightWorkerInfo {
     const ready = ensureSceneRef.current(pool, queue);
     const started = performance.now();
     const result = queue.submit('skyView', () => {
+      const workerJobId = ++jobIdRef.current;
       let cancelled = false;
       const promise = (async () => {
         await ready;
         if (cancelled) throw new JobCancelledError();
         const parts = await pool.runSkyView({
-          jobId,
+          jobId: workerJobId,
           sceneHash,
           params: { sampleCount },
           unitCount: units.count,
@@ -352,7 +355,7 @@ export function useSunlightWorker(): SunlightWorkerInfo {
         promise,
         cancel: () => {
           cancelled = true;
-          pool.cancel(jobId);
+          pool.cancel(workerJobId);
         },
       };
     });
@@ -414,14 +417,13 @@ export function useSunlightWorker(): SunlightWorkerInfo {
       summarize(cached);
       return;
     }
-    const jobId = ++jobIdRef.current;
     const ready = ensureSceneRef.current(pool, queue);
     const criteria = criteriaRef.current;
     let alive = true;
     queue
       .submit('season', () =>
         startSunlightJob(pool, ready, {
-          jobId,
+          jobId: ++jobIdRef.current, // 양보 후 다시 시작하면 새 번호
           sceneHash,
           place,
           date: mDate,
