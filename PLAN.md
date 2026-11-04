@@ -1000,6 +1000,12 @@ export const FEATURES = {
 > - 작업 큐 규칙 (3) 구현: 더 높은 우선순위 작업이 오면 실행 중인 낮은 작업을 취소(Worker는 현재 청크에서 멈춤)하고 다시 대기열에 넣는다. 다시 시작할 때는 Worker 작업 번호를 새로 받아 이전 취소 표시와 섞이지 않게 했다. 호출한 쪽 promise는 취소 오류 없이 최종 결과를 받는다(테스트 추가).
 > - 접근성 점검: 이름 없는 버튼·입력 0개, `lang="ko"`, `h1` 1개, 전역 `:focus-visible` 링. 깨끗한 새로 고침에서 콘솔 오류 0.
 
+> **14일차 (배포·README·최종 점검)**
+> - 배포: Vercel CLI로 연결·배포, https://sunlight-simulator-alpha.vercel.app (`sunlight-simulator.vercel.app`은 다른 사용자 소유). 카카오·V-World 키는 Production·Preview 환경변수(Sensitive), `VWORLD_DOMAIN` = 배포 도메인, V-World 서비스 URL에 배포 도메인 등록.
+> - V-World는 해외 IP 요청을 막아 Vercel 기본 리전(미국)에서는 `fetch failed` → `vercel.json`에 `"regions": ["icn1"]`(서울). 서버 상대 import에는 `.js` 확장자(Node ESM 런타임).
+> - 배포본 확인: 샘플 자동 시작, 카카오 검색 → V-World 건물 631개 · 세대 40,222곳 0.17초, OSM 대체 경로 응답(Overpass 첫 호출은 약 27초로 느려 실패할 때가 있고, 그때는 샘플로 전환), 375/768/1440px 가로 넘침 없음, 첫 방문 온보딩, 번들 키 문자열 0.
+> - 점검표: `npm ci && npm run build`, ESLint 0, 테스트 389개(`test:tz` 포함) 통과, `.env*` 중 `.env.example`만 추적, 외부 상태 라이브러리 없음, 기능 플래그 전부 on(미완성 기능 없음).
+
 ### 단계 D. 기타 확장 (시간이 남을 때 순서)
 
 1. 결과 CSV 내보내기(세대별 동·호·층·방위·일조·SVF·일사량, UTF-8 BOM으로 엑셀 한글 대응)
