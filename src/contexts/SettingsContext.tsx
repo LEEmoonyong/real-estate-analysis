@@ -8,6 +8,11 @@ import { useLocalStorage } from '../hooks/useLocalStorage';
 export type ThemePreference = 'system' | 'light' | 'dark';
 export type QualityOverride = 'auto' | 'low' | 'medium' | 'high';
 
+/** 3D 태양 경로로 그릴 날: 선택한 날짜 / 동지 / 하지 / 춘분 */
+export type SunPathDay = 'today' | 'winter' | 'summer' | 'spring';
+export type SunPathVisibility = Record<SunPathDay, boolean>;
+const DEFAULT_SUN_PATHS: SunPathVisibility = { today: true, winter: false, summer: false, spring: false };
+
 export interface Settings {
   theme: ThemePreference;
   floorHeightM: number;
@@ -46,6 +51,8 @@ interface SettingsState {
   layer: AnalysisLayer;
   /** 3D 장면의 세대 히트맵 표시 여부 */
   heatmapVisible: boolean;
+  /** 태양 경로 표시 (B3) */
+  sunPaths: SunPathVisibility;
 }
 
 interface SettingsActions {
@@ -53,6 +60,7 @@ interface SettingsActions {
   resetSettings: () => void;
   setLayer: (layer: AnalysisLayer) => void;
   setHeatmapVisible: (visible: boolean) => void;
+  setSunPathVisible: (day: SunPathDay, visible: boolean) => void;
 }
 
 const SettingsStateContext = createContext<SettingsState | null>(null);
@@ -65,17 +73,25 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   });
   const [layer, setLayer] = useState<AnalysisLayer>('sunlight');
   const [heatmapVisible, setHeatmapVisible] = useState(true);
+  const [sunPaths, setSunPaths] = useState<SunPathVisibility>(DEFAULT_SUN_PATHS);
+  const setSunPathVisible = useCallback(
+    (day: SunPathDay, visible: boolean) => setSunPaths((prev) => ({ ...prev, [day]: visible })),
+    [],
+  );
 
   const updateSettings = useCallback(
     (patch: Partial<Settings>) => setSettings((prev) => ({ ...prev, ...patch })),
     [setSettings],
   );
 
-  const state = useMemo(() => ({ settings, layer, heatmapVisible }), [settings, layer, heatmapVisible]);
+  const state = useMemo(
+    () => ({ settings, layer, heatmapVisible, sunPaths }),
+    [settings, layer, heatmapVisible, sunPaths],
+  );
   // 동작만 쓰는 컴포넌트가 상태 변화로 다시 렌더링되지 않도록 actions를 분리한다
   const actions = useMemo(
-    () => ({ updateSettings, resetSettings: removeSettings, setLayer, setHeatmapVisible }),
-    [updateSettings, removeSettings],
+    () => ({ updateSettings, resetSettings: removeSettings, setLayer, setHeatmapVisible, setSunPathVisible }),
+    [updateSettings, removeSettings, setSunPathVisible],
   );
 
   return (

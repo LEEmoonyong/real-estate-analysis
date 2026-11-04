@@ -10,6 +10,8 @@ import { TimeControls } from './components/controls/TimeControls';
 import { BuildingInfo } from './components/detail/BuildingInfo';
 import { UnitDetailPanel } from './components/detail/UnitDetailPanel';
 import { DongHoSearch } from './components/dongHo/DongHoSearch';
+import { FloorCompareChart } from './components/floorCompare/FloorCompareChart';
+import { SunInfoCard } from './components/sunPath/SunInfoCard';
 import { AppLayout } from './components/layout/AppLayout';
 import { Panel } from './components/layout/Panel';
 import { SampleChips } from './components/search/SampleChips';
@@ -163,9 +165,16 @@ function Shell() {
         </>
       }
       analysis={
-        <Panel title="분석 레이어" tourId="layers">
-          <LayerSelector />
-        </Panel>
+        <>
+          <Panel title="분석 레이어" tourId="layers">
+            <LayerSelector />
+          </Panel>
+          {FEATURES.sunPath && (
+            <Panel title="태양 정보" tourId="sun">
+              <SunInfoCard />
+            </Panel>
+          )}
+        </>
       }
       secondary={
         <Panel title="즐겨찾기·최근 검색">
@@ -177,6 +186,7 @@ function Shell() {
           {/* 상세 패널 오류가 3D 장면·컨트롤까지 멈추지 않도록 따로 감싼다. 선택이 바뀌면 다시 그린다 */}
           <ErrorBoundary scope="세대 정보" resetKey={selectedUnitId ?? selectedBuildingId}>
             <UnitDetailPanel />
+            {FEATURES.floorCompare && <FloorCompareChart />}
             <BuildingInfo />
           </ErrorBoundary>
         </Panel>

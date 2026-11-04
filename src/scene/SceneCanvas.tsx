@@ -12,6 +12,8 @@ import { CameraRig } from './CameraRig';
 import { Ground } from './Ground';
 import { SelectionHighlight } from './SelectionHighlight';
 import { SunLight } from './SunLight';
+import { SunPathDome } from './SunPathDome';
+import { FEATURES } from '../config/features';
 import { UnitHeatmap } from './UnitHeatmap';
 import styles from './SceneCanvas.module.css';
 
@@ -42,6 +44,7 @@ export function SceneCanvas() {
         <Buildings />
         <UnitHeatmap />
         <SelectionHighlight />
+        {FEATURES.sunPath && <SunPathDome />}
         <CameraRig
           radiusM={radiusM}
           sceneKey={sceneKey}
