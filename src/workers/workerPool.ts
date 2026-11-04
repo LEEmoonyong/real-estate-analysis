@@ -2,7 +2,15 @@
 // - 모든 Worker가 같은 장면(INIT_SCENE)을 받고, 큰 작업은 세대 범위로 나눠 병렬 처리한 뒤 메인에서 이어 붙인다.
 // - 나눈 하위 작업은 같은 jobId를 공유해 한 번에 취소된다.
 
-import type { FromWorker, SceneDTO, SunlightParams, SunlightPartDTO, ToWorker } from './protocol';
+import type {
+  FromWorker,
+  GroundParams,
+  GroundPartDTO,
+  SceneDTO,
+  SunlightParams,
+  SunlightPartDTO,
+  ToWorker,
+} from './protocol';
 import { CHUNK_UNITS } from './protocol';
 
 /** 실제 Worker와 테스트용 가짜 Worker가 함께 따르는 최소 인터페이스 */
@@ -28,15 +36,24 @@ export interface RunOptions {
   onProgress?: (done: number, total: number) => void;
 }
 
+type AnyPart = SunlightPartDTO | GroundPartDTO;
+
 interface PendingJob {
   total: number;
-  /** 하위 작업별 완료 세대 수 (Worker 인덱스 → done) */
+  /** 하위 작업별 완료 수 (Worker 인덱스 → done) */
   done: Map<number, number>;
-  parts: SunlightPartDTO[];
+  parts: AnyPart[];
   remaining: number;
   onProgress?: (done: number, total: number) => void;
-  resolve: (parts: SunlightPartDTO[]) => void;
+  resolve: (parts: AnyPart[]) => void;
   reject: (error: Error) => void;
+}
+
+export interface GroundRunOptions {
+  jobId: number;
+  sceneHash: string;
+  params: GroundParams;
+  onProgress?: (done: number, total: number) => void;
 }
 
 /** 기기에 맞는 Worker 수: 코어 − 1 (메인 스레드 몫), 1~4개, 모바일은 최대 2개 */
@@ -91,11 +108,39 @@ export class WorkerPool {
 
   /** 일조 계산 — 세대 범위를 Worker 수만큼 나눠 병렬 실행하고 부분 결과를 from 순서로 돌려준다 */
   runSunlight({ jobId, sceneHash, params, unitCount, onProgress }: RunOptions): Promise<SunlightPartDTO[]> {
+    return this.runSplit(jobId, unitCount, onProgress, (unitRange) => ({
+      type: 'RUN',
+      jobId,
+      sceneHash,
+      kind: 'sunlight',
+      params,
+      unitRange,
+    })) as Promise<SunlightPartDTO[]>;
+  }
+
+  /** 지면 그림자 — 셀 범위를 Worker 수만큼 나눠 병렬 실행 */
+  runGround({ jobId, sceneHash, params, onProgress }: GroundRunOptions): Promise<GroundPartDTO[]> {
+    return this.runSplit(jobId, params.cols * params.rows, onProgress, (unitRange) => ({
+      type: 'RUN',
+      jobId,
+      sceneHash,
+      kind: 'ground',
+      params,
+      unitRange,
+    })) as Promise<GroundPartDTO[]>;
+  }
+
+  private runSplit(
+    jobId: number,
+    count: number,
+    onProgress: ((done: number, total: number) => void) | undefined,
+    message: (range: [number, number]) => ToWorker,
+  ): Promise<AnyPart[]> {
     if (this.disposed) return Promise.reject(new JobCancelledError());
-    const ranges = splitRange(unitCount, this.workers.length);
+    const ranges = splitRange(count, this.workers.length);
     return new Promise((resolve, reject) => {
       this.jobs.set(jobId, {
-        total: unitCount,
+        total: count,
         done: new Map(),
         parts: [],
         remaining: ranges.length,
@@ -103,9 +148,7 @@ export class WorkerPool {
         resolve,
         reject,
       });
-      ranges.forEach((unitRange, i) =>
-        this.workers[i]!.postMessage({ type: 'RUN', jobId, sceneHash, kind: 'sunlight', params, unitRange }),
-      );
+      ranges.forEach((range, i) => this.workers[i]!.postMessage(message(range)));
     });
   }
 

@@ -2,7 +2,7 @@
 
 import type { SunlightResult } from '../domain/sunlight/sunlight';
 import type { UnitSet } from '../domain/units/generateUnits';
-import type { SceneDTO, SunlightPartDTO } from './protocol';
+import type { GroundPartDTO, SceneDTO, SunlightPartDTO } from './protocol';
 
 export function toSceneDTO(buildings: readonly { ring: Float64Array; heightM: number }[], units: UnitSet): SceneDTO {
   const offsets = new Uint32Array(buildings.length + 1);
@@ -61,4 +61,26 @@ export function mergeSunlightParts(
   }
   if (expected !== unitCount) throw new Error(`부분 결과가 모자랍니다 (${expected}/${unitCount})`);
   return { mask, totalMinutes, windowTotalMinutes, windowMaxContinuous, meets, rays };
+}
+
+/** 지면 그림자 부분 결과(셀 범위)를 하나의 배열로 */
+export function mergeGroundParts(parts: readonly GroundPartDTO[], cellCount: number): Float32Array {
+  const out = new Float32Array(cellCount);
+  for (const p of parts) out.set(p.shadowMinutes, p.from);
+  return out;
+}
+
+/** 지면 그림자 계산 결과 (SimulationContext results.ground) */
+export interface GroundOutcome {
+  spec: { originX: number; originZ: number; cellSize: number; cols: number; rows: number };
+  /** 셀별 그림자 시간 [분], 건물 안은 NaN */
+  shadowMinutes: Float32Array;
+  /** 구간 길이 [분] — 색 스케일 최대값 */
+  windowMinutes: number;
+  startMin: number;
+  endMin: number;
+  date: string;
+  sceneHash: string;
+  elapsedMs: number;
+  fromCache: boolean;
 }

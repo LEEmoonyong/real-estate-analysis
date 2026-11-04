@@ -46,19 +46,43 @@ export interface SunlightPartDTO {
   elapsedMs: number;
 }
 
-export type WorkerJobKind = 'sunlight';
+/** 지면 그림자 계산 (PLAN.md 9.11) — 셀 범위로 나눠 병렬 처리 */
+export interface GroundParams {
+  originX: number;
+  originZ: number;
+  cellSize: number;
+  cols: number;
+  rows: number;
+  stepMinutes: number;
+  stepCount: number;
+  /** 구간 칸의 태양 방향 (dx, dy, dz) × K */
+  directions: Float32Array;
+}
+
+export interface GroundPartDTO {
+  from: number;
+  to: number;
+  /** 셀별 그림자 시간 [분], 건물 안은 NaN */
+  shadowMinutes: Float32Array;
+  rays: number;
+  elapsedMs: number;
+}
+
+export type WorkerJobKind = 'sunlight' | 'ground';
+
+type RunJob = { kind: 'sunlight'; params: SunlightParams } | { kind: 'ground'; params: GroundParams };
+export type ResultPayload = { kind: 'sunlight'; payload: SunlightPartDTO } | { kind: 'ground'; payload: GroundPartDTO };
 
 // 메인 → Worker
 export type ToWorker =
   | { type: 'INIT_SCENE'; sceneHash: string; scene: SceneDTO; gridCellSize: number }
-  | {
+  | ({
       type: 'RUN';
       jobId: number;
       sceneHash: string;
-      kind: WorkerJobKind;
-      params: SunlightParams;
+      /** 일조: 세대 범위, 지면 그림자: 셀 범위 */
       unitRange: [number, number];
-    }
+    } & RunJob)
   | { type: 'CANCEL'; jobId: number }
   | { type: 'DISPOSE_SCENE'; sceneHash: string };
 
@@ -66,7 +90,7 @@ export type ToWorker =
 export type FromWorker =
   | { type: 'READY'; sceneHash: string }
   | { type: 'PROGRESS'; jobId: number; done: number; total: number }
-  | { type: 'RESULT'; jobId: number; kind: WorkerJobKind; payload: SunlightPartDTO }
+  | ({ type: 'RESULT'; jobId: number } & ResultPayload)
   | { type: 'CANCELLED'; jobId: number }
   | { type: 'ERROR'; jobId: number | null; message: string };
 

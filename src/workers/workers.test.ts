@@ -13,7 +13,8 @@ import { generateUnits } from '../domain/units/generateUnits';
 import { JobQueue, type RunningHandle } from './jobQueue';
 import type { FromWorker, SunlightParams, ToWorker } from './protocol';
 import { LruCache } from './resultCache';
-import { mergeSunlightParts, toSceneDTO } from './sceneTransfer';
+import { mergeGroundParts, mergeSunlightParts, toSceneDTO } from './sceneTransfer';
+import { buildingCellMask, fillGroundShadow, groundGridFor, sliceStepDirections } from '../domain/ground/groundShadow';
 import { createWorkerRuntime } from './workerRuntime';
 import { JobCancelledError, poolSizeFor, splitRange, WorkerPool, type WorkerLike } from './workerPool';
 
@@ -83,6 +84,29 @@ describe('Worker 풀 + 런타임 (가짜 Worker 3개)', () => {
     expect(merged.totalMinutes).toEqual(direct.totalMinutes);
     expect(merged.meets).toEqual(direct.meets);
     expect(progress.at(-1)).toBe(units.count);
+    pool.dispose();
+  });
+
+  it('지면 그림자: 셀 범위로 나눠 계산한 결과 == 한 번에 계산한 결과', async () => {
+    const { buildings, units, steps } = loadScene('sejong-hansol');
+    const spec = groundGridFor(200, 8);
+    const { directions, count } = sliceStepDirections(steps, 480, 960);
+    const pool = new WorkerPool(() => new FakeWorker(), 3);
+    await pool.initScene('g1', toSceneDTO(buildings, units), 20);
+    const parts = await pool.runGround({
+      jobId: 7,
+      sceneHash: 'g1',
+      params: { ...spec, stepMinutes: 10, stepCount: count, directions },
+    });
+    const merged = mergeGroundParts(parts, spec.cols * spec.rows);
+
+    const prisms = prismsFromBuildings(buildings);
+    const direct = new Float32Array(spec.cols * spec.rows);
+    const caster = createRayCaster(buildUniformGrid(prisms, 20));
+    fillGroundShadow(spec, buildingCellMask(spec, prisms), caster, directions, count, 10, 0, direct.length, direct);
+    expect(merged).toEqual(direct);
+    expect(merged.some((v) => Number.isNaN(v))).toBe(true); // 건물 안 셀
+    expect(merged.some((v) => v > 0)).toBe(true);
     pool.dispose();
   });
 
