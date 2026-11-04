@@ -7,6 +7,7 @@ import { useSettings } from '../../contexts/SettingsContext';
 import { useSimulation } from '../../contexts/SimulationContext';
 import { useSunlightWorker } from '../../hooks/useSunlightWorker';
 import type { SunlightOutcome } from '../../workers/sceneTransfer';
+import { GroundLegend } from '../analysis/GroundLegend';
 import { Legend } from '../analysis/Legend';
 import styles from './CalculationStatus.module.css';
 
@@ -46,6 +47,7 @@ export function CalculationStatus() {
         >
           <div className={styles.fill} style={{ width: `${ratio * 100}%` }} />
         </div>
+        <GroundLegend />
       </div>
     );
   }
@@ -65,6 +67,7 @@ export function CalculationStatus() {
         data-workers={outcome.workers || workers}
         role="status"
       >
+        <GroundLegend />
         {heatmapVisible && <Legend />}
         <span>
           남향 세대 {summary.main.toLocaleString()}곳 중 기준 충족 <strong>{Math.round(ratio * 100)}%</strong>
