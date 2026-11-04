@@ -1,0 +1,53 @@
+[
+  {
+    "id": "seoul-jamsil",
+    "name": "서울 송파 잠실 (엘스·리센츠·트리지움)",
+    "center": {
+      "lat": 37.5115,
+      "lng": 127.083
+    },
+    "file": "seoul-jamsil.json",
+    "aliases": [
+      "잠실",
+      "송파",
+      "잠실엘스",
+      "엘스",
+      "리센츠",
+      "트리지움",
+      "서울"
+    ],
+    "buildingCount": 625
+  },
+  {
+    "id": "busan-marine-city",
+    "name": "부산 해운대 마린시티",
+    "center": {
+      "lat": 35.1567,
+      "lng": 129.145
+    },
+    "file": "busan-marine-city.json",
+    "aliases": [
+      "마린시티",
+      "해운대",
+      "부산",
+      "우동"
+    ],
+    "buildingCount": 49
+  },
+  {
+    "id": "sejong-hansol",
+    "name": "세종 한솔동 첫마을",
+    "center": {
+      "lat": 36.4795,
+      "lng": 127.256
+    },
+    "file": "sejong-hansol.json",
+    "aliases": [
+      "세종",
+      "한솔동",
+      "첫마을",
+      "세종시"
+    ],
+    "buildingCount": 79
+  }
+]

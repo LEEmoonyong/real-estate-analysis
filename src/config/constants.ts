@@ -1,7 +1,8 @@
 // 앱 전역 상수 (사용자 설정의 기본값)
 
 /** VITE_FORCE_SAMPLE_MODE=true 이면 키가 있어도 샘플 모드로 시작 (비밀 값 아님) */
-export const FORCE_SAMPLE_MODE = import.meta.env.VITE_FORCE_SAMPLE_MODE === 'true';
+// import.meta.env는 Vite 밖(Node 스크립트·테스트)에서 undefined일 수 있다
+export const FORCE_SAMPLE_MODE = import.meta.env?.VITE_FORCE_SAMPLE_MODE === 'true';
 
 /** 기본 층고 [m] */
 export const DEFAULT_FLOOR_HEIGHT_M = 2.9;
