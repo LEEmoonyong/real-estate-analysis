@@ -18,6 +18,7 @@
     "test:watch": "vitest",
     "test:tz": "cross-env TZ=America/New_York vitest run",
     "coverage": "vitest run --coverage",
+    "bench": "tsx bench/raycast.ts",
     "verify:api": "tsx scripts/verify-api.ts"
   },
   "dependencies": {

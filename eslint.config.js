@@ -10,7 +10,17 @@ const domainRestriction = {
     { group: ['react', 'react-dom', 'react/*'], message: 'domain/은 React에 의존할 수 없습니다.' },
     { group: ['three', 'three/*', '@react-three/*'], message: 'domain/은 three.js에 의존할 수 없습니다.' },
     {
-      group: ['**/components/*', '**/scene/*', '**/hooks/*', '**/contexts/*', '**/features/*', '**/data/*', '**/workers/*'],
+      group: [
+        '**/components/*',
+        // src/scene(three 계층)만 막고 domain/ 안의 형제 폴더 domain/scene(../scene/*)은 허용
+        '../../scene/*',
+        '../../../scene/*',
+        '**/hooks/*',
+        '**/contexts/*',
+        '**/features/*',
+        '**/data/*',
+        '**/workers/*',
+      ],
       message: 'domain/은 다른 앱 계층을 import할 수 없습니다.',
     },
   ],

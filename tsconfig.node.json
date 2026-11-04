@@ -18,6 +18,6 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true
   },
-  "include": ["vite.config.ts", "vitest.config.ts", "server", "api", "scripts"],
+  "include": ["vite.config.ts", "vitest.config.ts", "server", "api", "scripts", "bench"],
   "exclude": ["server/**/*.test.ts", "scripts/.cache"]
 }
