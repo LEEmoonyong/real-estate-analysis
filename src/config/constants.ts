@@ -5,8 +5,10 @@ export const FORCE_SAMPLE_MODE = import.meta.env.VITE_FORCE_SAMPLE_MODE === 'tru
 
 /** 기본 층고 [m] */
 export const DEFAULT_FLOOR_HEIGHT_M = 2.9;
-/** 층수 정보가 없을 때 사용하는 기본 층수 (추정값 표시) */
-export const DEFAULT_FLOORS = 10;
+/** 층수·높이 정보가 없을 때 사용하는 기본 층수 (추정값 표시). 1일차 실측: 누락 건물 대부분이 소형 부속 건물 */
+export const DEFAULT_FLOORS = 5;
+/** 이 면적 [m²] 미만의 외곽선은 층수 정보가 없을 때 1층으로 추정 (경비실·창고 등) */
+export const SMALL_STRUCTURE_AREA_M2 = 50;
 /** 건물 조회 반경 [m] */
 export const DEFAULT_RADIUS_M = 400;
 /** 일조 판정 샘플링 간격 [분] */

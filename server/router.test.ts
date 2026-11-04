@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { isRelevantPlace } from './handlers/geocode';
 import { bboxAround } from './handlers/vworldBuildings';
 import { OVERPASS_ENDPOINTS, buildOverpassQuery, endpointOrder } from './handlers/overpassBuildings';
 import { parseCenter } from './http';
@@ -43,6 +44,20 @@ describe('입력 검증', () => {
     expect(() => parseCenter(new URLSearchParams('lat=10&lng=127&r=400'))).toThrow();
     expect(() => parseCenter(new URLSearchParams('lat=37.5&lng=127&r=5000'))).toThrow();
     expect(parseCenter(new URLSearchParams('lat=37.5&lng=127&r=400'))).toEqual({ lat: 37.5, lng: 127, radius: 400 });
+  });
+});
+
+describe('isRelevantPlace (V-World 장소 검색 필터)', () => {
+  const place = (label: string) => ({ label, address: '', lat: 36.5, lng: 127.3, kind: 'place' as const });
+
+  it('주소 검색어와 무관한 장소를 제외한다 (실측 사례)', () => {
+    expect(isRelevantPlace(place('경부선'), '세종특별자치시 나리로 57')).toBe(false);
+    expect(isRelevantPlace(place('고북군립공원'), '세종특별자치시 나리로 57')).toBe(false);
+  });
+
+  it('단지명이 들어간 장소는 남긴다', () => {
+    expect(isRelevantPlace(place('잠실엘스입구'), '잠실엘스')).toBe(true);
+    expect(isRelevantPlace(place('첫마을7단지래미안아파트'), '세종 첫마을')).toBe(true);
   });
 });
 

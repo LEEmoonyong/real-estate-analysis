@@ -150,7 +150,19 @@ async function geocodeVworld(query: string, env: ServerEnv): Promise<GeoResult[]
     vworldPlaceSearch(query, env).catch(() => [] as GeoResult[]),
   ]);
   const parcel = road ? null : await vworldGeocoder(query, 'PARCEL', env);
-  return [road, parcel, ...places].filter((g): g is GeoResult => g !== null);
+  return [road, parcel, ...places.filter((p) => isRelevantPlace(p, query))].filter(
+    (g): g is GeoResult => g !== null,
+  );
+}
+
+/**
+ * V-World 장소 검색은 주소 검색어에도 느슨하게 매칭된다
+ * (실측: "세종특별자치시 나리로 57" → "경부선", "고북군립공원").
+ * 검색어의 숫자가 아닌 2글자 이상 토큰이 이름에 하나라도 들어간 장소만 남긴다.
+ */
+export function isRelevantPlace(place: GeoResult, query: string): boolean {
+  const tokens = query.split(/\s+/).filter((t) => t.length >= 2 && !/^\d+(-\d+)?$/.test(t));
+  return tokens.length === 0 || tokens.some((t) => place.label.includes(t));
 }
 
 // ---- 공통 ------------------------------------------------------------------

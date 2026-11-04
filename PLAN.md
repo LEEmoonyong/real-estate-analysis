@@ -374,7 +374,8 @@ stateDiagram-v2
 - 응답 공통: `response.status`, `response.record{total,current}`, `response.page{total,current,size}`, `response.result`(json이면 GeoJSON)
 - ⚠️ 확인 필요: (a) GeoJSON 경로가 `response.result.featureCollection.features`인지, (b) 지오메트리 타입이 Polygon인지 MultiPolygon인지, (c) 피처 고유 ID 필드(`id`/`pnu` 등) 유무, (d) BOX 최대 면적 제한, (e) `height`가 0이나 빈 값으로 오는 비율, (f) `domain`을 서버 측 요청에서 쓸 때 localhost를 등록할 수 있는지
 - 참고: 공개 프로젝트 사례에 따르면 이 레이어 응답에는 CORS 헤더가 없다고 한다 → 프록시 필수.
-- 높이 결정 순서: `height > 0`이면 실측 높이를 쓴다(`heightSource: 'measured'`). 없으면 `grnd_flr × 층고`(`'floors'`), 둘 다 없으면 기본 10층 × 층고(`'default'`, **추정값** 표시).
+- 높이 결정 순서: `height > 0`이면 실측 높이를 쓴다(`heightSource: 'measured'`). 없으면 `grnd_flr × 층고`(`'floors'`). 둘 다 없으면 외곽선 면적 < 50m²는 1층, 그 이상은 5층 × 층고(`'default'`, **추정값** 표시).
+- 1일차 실측 결과(`docs/api-verification.md`): GeoJSON 경로 `response.result.featureCollection.features`, 전부 MultiPolygon, ID `LT_C_BLDGINFO.<숫자>`, 숫자 속성도 문자열, 층수 누락 19~50%(대부분 소형 부속 건물), 공동주택 평균 층고 2.90m(잠실).
 
 #### (6) OSM Overpass API ✅ (건물 대체)
 
