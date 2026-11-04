@@ -6,7 +6,7 @@
 import type { ReactNode } from 'react';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { DesktopLayout } from './DesktopLayout';
-import { MobileLayout } from './MobileLayout';
+import { MobileLayout, type MobileTab } from './MobileLayout';
 import { TabletLayout } from './TabletLayout';
 import styles from './AppLayout.module.css';
 
@@ -27,13 +27,15 @@ export interface LayoutSlots {
   detail: ReactNode;
   /** 이 값이 새 값(null 아님)으로 바뀌면 상세 영역을 보여 준다 — 모바일: 세대 정보 탭, 태블릿: 우측 패널 펼침 */
   detailFocusKey?: string | null;
+  /** 모바일 하단 시트 탭을 강제로 바꾼다 (온보딩 가이드) — 값이 바뀔 때 한 번 적용 */
+  forcedMobileTab?: MobileTab | null;
 }
 
 export function AppLayout(slots: LayoutSlots) {
   const breakpoint = useBreakpoint();
   return (
     <div className={styles.root} data-breakpoint={breakpoint}>
-      <main className={styles.scene} aria-label="3D 장면">
+      <main className={styles.scene} aria-label="3D 장면" data-tour="scene">
         {slots.scene}
       </main>
       {breakpoint === 'desktop' && <DesktopLayout {...slots} />}

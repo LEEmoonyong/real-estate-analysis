@@ -39,3 +39,48 @@
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
 }
+
+.actions {
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.iconButton {
+  width: 36px;
+  height: 36px;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.iconButton:hover,
+.iconButton:focus-visible {
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* 단축키는 키보드가 있는 데스크톱에서만 */
+:global([data-breakpoint='mobile']) .desktopOnly,
+:global([data-breakpoint='tablet']) .desktopOnly {
+  display: none;
+}
+
+:global([data-breakpoint='mobile']) .iconButton {
+  width: var(--touch-target);
+  height: var(--touch-target);
+}

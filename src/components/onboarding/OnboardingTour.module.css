@@ -1,0 +1,113 @@
+.root {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+}
+
+/* 대상 둘레만 투명하게 남기고 나머지를 어둡게 — 큰 box-shadow로 "구멍"을 만든다 */
+.hole {
+  position: fixed;
+  border-radius: var(--radius-md);
+  box-shadow:
+    0 0 0 3px var(--color-accent),
+    0 0 0 9999px rgb(0 0 0 / 0.55);
+  transition:
+    top 0.2s ease,
+    left 0.2s ease,
+    width 0.2s ease,
+    height 0.2s ease;
+  pointer-events: none;
+}
+
+.dim {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 0.55);
+}
+
+.bubble {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.3);
+  outline: none;
+}
+
+.bubble:focus-visible {
+  box-shadow:
+    0 0 0 3px var(--color-accent),
+    0 12px 32px rgb(0 0 0 / 0.3);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+}
+
+.body {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.55;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.dots {
+  display: flex;
+  flex: 1;
+  gap: 6px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-border);
+}
+
+.dot[data-active='true'] {
+  background: var(--color-accent-strong);
+}
+
+.button,
+.textButton {
+  min-height: var(--touch-target);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.textButton {
+  padding: 0 var(--space-1);
+  border: none;
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+
+.primary {
+  border-color: var(--color-accent-strong);
+  background: var(--color-accent);
+  color: #1b1f24;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hole {
+    transition: none;
+  }
+}

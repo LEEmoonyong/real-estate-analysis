@@ -43,6 +43,7 @@ export function TabletLayout({
           aria-label="메뉴 열기"
           aria-expanded={isDrawerOpen}
           aria-controls="tablet-drawer"
+          data-tour="menu"
           onClick={() => setIsDrawerOpen(true)}
         >
           ☰

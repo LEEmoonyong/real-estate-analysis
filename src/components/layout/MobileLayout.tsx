@@ -21,6 +21,7 @@ export function MobileLayout({
   analysis,
   detail,
   detailFocusKey = null,
+  forcedMobileTab = null,
 }: LayoutSlots) {
   const [activeTab, setActiveTab] = useState<MobileTab>('controls');
 
@@ -29,6 +30,12 @@ export function MobileLayout({
   if (detailFocusKey !== seenFocusKey) {
     setSeenFocusKey(detailFocusKey);
     if (detailFocusKey) setActiveTab('detail');
+  }
+  // 온보딩 가이드가 탭 전환을 요청하면 따른다
+  const [seenForcedTab, setSeenForcedTab] = useState(forcedMobileTab);
+  if (forcedMobileTab !== seenForcedTab) {
+    setSeenForcedTab(forcedMobileTab);
+    if (forcedMobileTab) setActiveTab(forcedMobileTab);
   }
   const baseId = useId();
 

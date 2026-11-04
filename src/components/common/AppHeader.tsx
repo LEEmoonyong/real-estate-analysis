@@ -1,12 +1,16 @@
+// [요구사항: 컴포넌트] 앱 제목·데이터 모드 배지·도움말 버튼(가이드 다시 보기, 단축키, 시뮬레이션 한계)
+// [요구사항: 이벤트 처리] onClick(도움말 버튼)
 import type { ApiHealth } from '../../hooks/useApiHealth';
 import styles from './AppHeader.module.css';
 
 interface AppHeaderProps {
   health: ApiHealth;
+  onShowTour?: () => void;
+  onShowShortcuts?: () => void;
+  onShowLimitations?: () => void;
 }
 
-/** 앱 제목과 데이터 모드 배지 (도움말·설정·한계 안내 버튼은 10일차에 추가) */
-export function AppHeader({ health }: AppHeaderProps) {
+export function AppHeader({ health, onShowTour, onShowShortcuts, onShowLimitations }: AppHeaderProps) {
   return (
     <div className={styles.header}>
       <h1 className={styles.title}>
@@ -23,6 +27,31 @@ export function AppHeader({ health }: AppHeaderProps) {
           연결 확인 중…
         </span>
       )}
+      <div className={styles.actions}>
+        {onShowTour && (
+          <button type="button" className={styles.iconButton} onClick={onShowTour} title="사용 가이드 다시 보기">
+            <span aria-hidden="true">?</span>
+            <span className={styles.srOnly}>사용 가이드 다시 보기</span>
+          </button>
+        )}
+        {onShowShortcuts && (
+          <button
+            type="button"
+            className={`${styles.iconButton} ${styles.desktopOnly}`}
+            onClick={onShowShortcuts}
+            title="키보드 단축키 (?)"
+          >
+            <span aria-hidden="true">⌨</span>
+            <span className={styles.srOnly}>키보드 단축키</span>
+          </button>
+        )}
+        {onShowLimitations && (
+          <button type="button" className={styles.iconButton} onClick={onShowLimitations} title="시뮬레이션 한계">
+            <span aria-hidden="true">ⓘ</span>
+            <span className={styles.srOnly}>시뮬레이션 한계</span>
+          </button>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,0 +1,92 @@
+.dialog {
+  width: min(520px, calc(100vw - 32px));
+  max-height: min(80dvh, 640px);
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: 0 16px 40px rgb(0 0 0 / 0.3);
+}
+
+.dialog::backdrop {
+  background: rgb(0 0 0 / 0.4);
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+}
+
+.close {
+  width: var(--touch-target);
+  height: var(--touch-target);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.close:hover,
+.close:focus-visible {
+  background: color-mix(in srgb, var(--color-text-muted) 15%, transparent);
+}
+
+.list {
+  margin: 0;
+  padding-left: 1.2em;
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+}
+
+.keys {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-2) var(--space-3);
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.keys dt {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.keys dd {
+  margin: 0;
+}
+
+.kbd {
+  min-width: 1.8em;
+  padding: 1px 6px;
+  border: 1px solid var(--color-border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--color-text-muted) 8%, transparent);
+  font-family: inherit;
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.note {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}

@@ -4,13 +4,19 @@ import { AppHeader } from './components/common/AppHeader';
 import { CalculationStatus } from './components/common/CalculationStatus';
 import { DataSourceBadge } from './components/common/DataSourceBadge';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { GlobalShortcuts } from './components/common/GlobalShortcuts';
+import { LimitationsDialog, ShortcutsDialog } from './components/common/HelpDialogs';
 import { StatusBanner } from './components/common/StatusBanner';
 import { LayerSelector } from './components/controls/LayerSelector';
 import { TimeControls } from './components/controls/TimeControls';
 import { BuildingInfo } from './components/detail/BuildingInfo';
 import { UnitDetailPanel } from './components/detail/UnitDetailPanel';
 import { DongHoSearch } from './components/dongHo/DongHoSearch';
+import { FavoritesPanel, type NavigateTarget } from './components/favorites/FavoritesPanel';
+import { RecentSearches } from './components/favorites/RecentSearches';
 import { FloorCompareChart } from './components/floorCompare/FloorCompareChart';
+import { OnboardingTour } from './components/onboarding/OnboardingTour';
+import { useOnboarding } from './components/onboarding/useOnboarding';
 import { SunInfoCard } from './components/sunPath/SunInfoCard';
 import { AppLayout } from './components/layout/AppLayout';
 import { Panel } from './components/layout/Panel';
@@ -19,6 +25,7 @@ import { SearchBar } from './components/search/SearchBar';
 import { DEFAULT_SAMPLE_ID } from './config/constants';
 import { FEATURES } from './config/features';
 import { AppProviders } from './contexts/AppProviders';
+import { useFavoritesActions } from './contexts/FavoritesContext';
 import { useSceneData } from './contexts/SceneDataContext';
 import { useSettings } from './contexts/SettingsContext';
 import type { GeoResult } from './data/geocode/geocodeClient';
@@ -38,10 +45,6 @@ function ThemeSync() {
     else root.dataset.theme = settings.theme;
   }, [settings.theme]);
   return null;
-}
-
-function Placeholder({ text }: { text: string }) {
-  return <p className={styles.placeholder}>{text}</p>;
 }
 
 function SceneFallback({ error, reset }: { error: Error; reset: () => void }) {
@@ -65,6 +68,13 @@ function Shell() {
   const requestIdRef = useRef(0);
   const nextId = () => ++requestIdRef.current;
   const { notice, dismissNotice } = useBuildings(request, health.keys);
+  const { addRecent } = useFavoritesActions();
+
+  // [요구사항: 상태관리] useState — 도움말 대화상자 열림
+  const [dialog, setDialog] = useState<'shortcuts' | 'limitations' | null>(null);
+  const closeDialog = useCallback(() => setDialog(null), []);
+  const openShortcuts = useCallback(() => setDialog('shortcuts'), []);
+  const tour = useOnboarding(scene !== null);
 
   // 첫 화면: 연결 확인이 끝나면 기본 샘플을 보여 준다 (API 키가 없어도 바로 3D를 볼 수 있게)
   useEffect(() => {
@@ -97,16 +107,42 @@ function Shell() {
   }, []);
 
   // [요구사항: Hooks] useCallback — 자식에게 넘기는 이벤트 핸들러 참조 고정
-  const handlePickPlace = useCallback((result: GeoResult) => {
-    setRequest({
-      type: 'live',
-      place: { name: result.label, address: result.address, lat: result.lat, lng: result.lng },
-      requestId: nextId(),
-    });
-  }, []);
+  // 검색 결과를 고르면(검색 성공) 최근 검색에 쌓는다
+  const handlePickPlace = useCallback(
+    (result: GeoResult, query: string, provider: 'kakao' | 'vworld') => {
+      setRequest({
+        type: 'live',
+        place: { name: result.label, address: result.address, lat: result.lat, lng: result.lng },
+        requestId: nextId(),
+      });
+      addRecent({ query, label: result.label, lat: result.lat, lng: result.lng, provider });
+    },
+    [addRecent],
+  );
 
-  const handlePickSample = useCallback((sample: SampleIndexEntry) => {
-    setRequest({ type: 'sample', sample, requestId: nextId() });
+  const handlePickSample = useCallback(
+    (sample: SampleIndexEntry, query?: string) => {
+      setRequest({ type: 'sample', sample, requestId: nextId() });
+      if (query) {
+        const { lat, lng } = sample.center;
+        addRecent({ query, label: sample.name, lat, lng, provider: 'sample', sampleId: sample.id });
+      }
+    },
+    [addRecent],
+  );
+
+  // 즐겨찾기·최근 검색 클릭 → 샘플이면 샘플 파일, 아니면 실데이터로 이동
+  const handleNavigate = useCallback((target: NavigateTarget) => {
+    if (target.sampleId) {
+      const sampleId = target.sampleId;
+      void loadSampleIndex().then((index) => {
+        const entry = index.find((e) => e.id === sampleId);
+        if (entry) setRequest({ type: 'sample', sample: entry, requestId: nextId() });
+      });
+      return;
+    }
+    const { name, address, lat, lng } = target;
+    setRequest({ type: 'live', place: { name, ...(address ? { address } : {}), lat, lng }, requestId: nextId() });
   }, []);
 
   const handleRetry = useCallback(() => {
@@ -122,76 +158,96 @@ function Shell() {
   }, [scene]);
 
   const activeSampleId = request?.type === 'sample' && scene?.source === 'sample' ? request.sample.id : null;
+  const currentPlace: NavigateTarget | null = scene
+    ? { ...scene.place, ...(activeSampleId ? { sampleId: activeSampleId } : {}) }
+    : null;
 
   return (
-    <AppLayout
-      detailFocusKey={selectedUnitId ?? selectedBuildingId}
-      header={<AppHeader health={health} />}
-      search={<SearchBar mode={health.mode} onPickPlace={handlePickPlace} onPickSample={handlePickSample} />}
-      scene={
-        <>
-          <ErrorBoundary
-            scope="3D 장면"
-            resetKey={scene}
-            fallback={(error, reset) => <SceneFallback error={error} reset={reset} />}
-          >
-            <SceneCanvas />
-          </ErrorBoundary>
-          <StatusBanner
-            notice={notice}
-            onDismissNotice={dismissNotice}
-            onRetry={handleRetry}
-            onShowSample={handleShowSample}
+    <>
+      <AppLayout
+        detailFocusKey={selectedUnitId ?? selectedBuildingId}
+        forcedMobileTab={tour.active ? (tour.step.mobileTab ?? null) : null}
+        header={
+          <AppHeader
+            health={health}
+            {...(FEATURES.onboarding ? { onShowTour: tour.restart } : {})}
+            onShowShortcuts={openShortcuts}
+            onShowLimitations={() => setDialog('limitations')}
           />
-          <DataSourceBadge />
-          <CalculationStatus />
-        </>
-      }
-      primary={
-        <>
-          {/* 가장 자주 쓰는 날짜·시각을 먼저 (모바일 시트에서 스크롤 없이 보이도록) */}
-          <Panel title="날짜·시각" tourId="time">
-            <TimeControls />
-          </Panel>
-          {FEATURES.dongHoSearch && (
-            <Panel title="동·호수 찾기" tourId="dongho">
-              {/* 지역이 바뀌면 입력·메시지를 비운다 */}
-              <DongHoSearch key={scene ? `${scene.place.lat},${scene.place.lng}` : 'none'} />
+        }
+        search={<SearchBar mode={health.mode} onPickPlace={handlePickPlace} onPickSample={handlePickSample} />}
+        scene={
+          <>
+            <ErrorBoundary
+              scope="3D 장면"
+              resetKey={scene}
+              fallback={(error, reset) => <SceneFallback error={error} reset={reset} />}
+            >
+              <SceneCanvas />
+            </ErrorBoundary>
+            <StatusBanner
+              notice={notice}
+              onDismissNotice={dismissNotice}
+              onRetry={handleRetry}
+              onShowSample={handleShowSample}
+            />
+            <DataSourceBadge />
+            <CalculationStatus />
+          </>
+        }
+        primary={
+          <>
+            {/* 가장 자주 쓰는 날짜·시각을 먼저 (모바일 시트에서 스크롤 없이 보이도록) */}
+            <Panel title="날짜·시각" tourId="time">
+              <TimeControls />
             </Panel>
-          )}
-          <Panel title="샘플 지역" tourId="samples">
-            <SampleChips activeId={activeSampleId} onPick={handlePickSample} />
-          </Panel>
-        </>
-      }
-      analysis={
-        <>
-          <Panel title="분석 레이어" tourId="layers">
-            <LayerSelector />
-          </Panel>
-          {FEATURES.sunPath && (
-            <Panel title="태양 정보" tourId="sun">
-              <SunInfoCard />
+            {FEATURES.dongHoSearch && (
+              <Panel title="동·호수 찾기" tourId="dongho">
+                {/* 지역이 바뀌면 입력·메시지를 비운다 */}
+                <DongHoSearch key={scene ? `${scene.place.lat},${scene.place.lng}` : 'none'} />
+              </Panel>
+            )}
+            <Panel title="샘플 지역" tourId="samples">
+              <SampleChips activeId={activeSampleId} onPick={handlePickSample} />
             </Panel>
-          )}
-        </>
-      }
-      secondary={
-        <Panel title="즐겨찾기·최근 검색">
-          <Placeholder text="10일차" />
-        </Panel>
-      }
-      detail={
-        <Panel title="세대·건물 정보" tourId="detail">
-          {/* 상세 패널 오류가 3D 장면·컨트롤까지 멈추지 않도록 따로 감싼다. 선택이 바뀌면 다시 그린다 */}
-          <ErrorBoundary scope="세대 정보" resetKey={selectedUnitId ?? selectedBuildingId}>
-            <UnitDetailPanel />
-            {FEATURES.floorCompare && <FloorCompareChart />}
-            <BuildingInfo />
-          </ErrorBoundary>
-        </Panel>
-      }
-    />
+          </>
+        }
+        analysis={
+          <>
+            <Panel title="분석 레이어" tourId="layers">
+              <LayerSelector />
+            </Panel>
+            {FEATURES.sunPath && (
+              <Panel title="태양 정보" tourId="sun">
+                <SunInfoCard />
+              </Panel>
+            )}
+          </>
+        }
+        secondary={
+          FEATURES.favorites && (
+            <Panel title="즐겨찾기·최근 검색" tourId="favorites">
+              <FavoritesPanel current={currentPlace} onNavigate={handleNavigate} />
+              <RecentSearches onNavigate={handleNavigate} />
+            </Panel>
+          )
+        }
+        detail={
+          <Panel title="세대·건물 정보" tourId="detail">
+            {/* 상세 패널 오류가 3D 장면·컨트롤까지 멈추지 않도록 따로 감싼다. 선택이 바뀌면 다시 그린다 */}
+            <ErrorBoundary scope="세대 정보" resetKey={selectedUnitId ?? selectedBuildingId}>
+              <UnitDetailPanel />
+              {FEATURES.floorCompare && <FloorCompareChart />}
+              <BuildingInfo />
+            </ErrorBoundary>
+          </Panel>
+        }
+      />
+      <GlobalShortcuts onOpenHelp={openShortcuts} enabled={!tour.active} />
+      {FEATURES.onboarding && <OnboardingTour tour={tour} />}
+      <ShortcutsDialog open={dialog === 'shortcuts'} onClose={closeDialog} />
+      <LimitationsDialog open={dialog === 'limitations'} onClose={closeDialog} />
+    </>
   );
 }
 
