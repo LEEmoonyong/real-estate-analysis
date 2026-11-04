@@ -49,7 +49,12 @@ export function normalizeOsm(
   elements: OverpassElement[],
   options: OsmNormalizeOptions = {},
 ): { buildings: RawBuilding[]; report: NormalizeReport } {
-  const report: NormalizeReport = { total: elements.length, kept: 0, skippedInvalidGeometry: 0, skippedExcludedType: 0 };
+  const report: NormalizeReport = {
+    total: elements.length,
+    kept: 0,
+    skippedInvalidGeometry: 0,
+    skippedExcludedType: 0,
+  };
   const buildings: RawBuilding[] = [];
 
   for (const el of elements) {

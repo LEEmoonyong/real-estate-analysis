@@ -21,8 +21,20 @@ describe('cleanLngLatRing', () => {
   });
 
   it('정점이 3개 미만이거나 숫자가 아니면 null', () => {
-    expect(cleanLngLatRing([[127, 37.5], [127.001, 37.5], [127, 37.5]])).toBeNull();
-    expect(cleanLngLatRing([[NaN, 37.5], [127.001, 37.5], [127, 37.501]])).toBeNull();
+    expect(
+      cleanLngLatRing([
+        [127, 37.5],
+        [127.001, 37.5],
+        [127, 37.5],
+      ]),
+    ).toBeNull();
+    expect(
+      cleanLngLatRing([
+        [NaN, 37.5],
+        [127.001, 37.5],
+        [127, 37.501],
+      ]),
+    ).toBeNull();
   });
 });
 
@@ -56,8 +68,9 @@ describe('extractDongNumber', () => {
   ])('%o → %o', (input, expected) => expect(extractDongNumber(input)).toBe(expected));
 
   // V-World·OSM 실측에 나온 비숫자 동 이름
-  it.each(['주동3', '상가동', '부속건축물제1동', '마린시티자이', 'Tower1', '씨동', '', undefined])('%o → null', (input) =>
-    expect(extractDongNumber(input)).toBeNull(),
+  it.each(['주동3', '상가동', '부속건축물제1동', '마린시티자이', 'Tower1', '씨동', '', undefined])(
+    '%o → null',
+    (input) => expect(extractDongNumber(input)).toBeNull(),
   );
 });
 

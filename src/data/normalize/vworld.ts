@@ -37,7 +37,12 @@ function largestRing(rings: Position[][]): [number, number][] | null {
 }
 
 export function normalizeVworld(features: unknown[]): { buildings: RawBuilding[]; report: NormalizeReport } {
-  const report: NormalizeReport = { total: features.length, kept: 0, skippedInvalidGeometry: 0, skippedExcludedType: 0 };
+  const report: NormalizeReport = {
+    total: features.length,
+    kept: 0,
+    skippedInvalidGeometry: 0,
+    skippedExcludedType: 0,
+  };
   const buildings: RawBuilding[] = [];
 
   features.forEach((feature, index) => {
@@ -54,14 +59,20 @@ export function normalizeVworld(features: unknown[]): { buildings: RawBuilding[]
     const rawId = typeof feature.id === 'string' ? feature.id.replace(/^LT_C_BLDGINFO\./, '') : `idx${index}`;
     const floors = parsePositive(props.grnd_flr);
     const usability = typeof props.usability === 'string' ? props.usability : '';
-    const name = [props.bld_nm, props.dong_nm].filter((v): v is string => typeof v === 'string' && v.trim() !== '').join(' ');
+    const name = [props.bld_nm, props.dong_nm]
+      .filter((v): v is string => typeof v === 'string' && v.trim() !== '')
+      .join(' ');
     const dong = extractDongNumber(typeof props.dong_nm === 'string' ? props.dong_nm : null);
 
     buildings.push({
       id: `vworld:${rawId}`,
       source: 'vworld',
       footprint,
-      ...resolveHeight(floors === null ? null : Math.round(floors), parsePositive(props.height), approxAreaM2(footprint)),
+      ...resolveHeight(
+        floors === null ? null : Math.round(floors),
+        parsePositive(props.height),
+        approxAreaM2(footprint),
+      ),
       ...(dong ? { dongNumber: dong } : {}),
       ...(name ? { name } : {}),
       ...(usability ? { usage: usability === APARTMENT_USABILITY ? 'apartments' : usability } : {}),

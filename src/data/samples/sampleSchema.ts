@@ -33,8 +33,7 @@ export interface SampleIndexEntry {
   buildingCount: number;
 }
 
-const isLatLng = (x: unknown): x is LatLng =>
-  isRecord(x) && typeof x.lat === 'number' && typeof x.lng === 'number';
+const isLatLng = (x: unknown): x is LatLng => isRecord(x) && typeof x.lat === 'number' && typeof x.lng === 'number';
 
 const isLngLatRing = (x: unknown): x is [number, number][] =>
   Array.isArray(x) &&

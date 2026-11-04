@@ -21,7 +21,10 @@ export function loadSampleIndex(): Promise<SampleIndexEntry[]> {
   return indexPromise;
 }
 
-export async function loadSample(entry: SampleIndexEntry, signal?: AbortSignal): Promise<{ sample: SampleFile; buildings: RawBuilding[] }> {
+export async function loadSample(
+  entry: SampleIndexEntry,
+  signal?: AbortSignal,
+): Promise<{ sample: SampleFile; buildings: RawBuilding[] }> {
   const res = await fetch(`${BASE}${entry.file}`, signal ? { signal } : {});
   if (!res.ok) throw new Error(`샘플 파일을 불러오지 못했습니다 (${res.status}).`);
   const body: unknown = await res.json();
@@ -45,6 +48,7 @@ export function matchSamples(index: readonly SampleIndexEntry[], query: string):
 
 /** 가장 가까운 샘플 (실데이터 실패 시 대체 제안용) */
 export function nearestSample(index: readonly SampleIndexEntry[], point: LatLng): SampleIndexEntry | undefined {
-  const dist = (e: SampleIndexEntry) => Math.hypot(e.center.lat - point.lat, (e.center.lng - point.lng) * Math.cos((point.lat * Math.PI) / 180));
+  const dist = (e: SampleIndexEntry) =>
+    Math.hypot(e.center.lat - point.lat, (e.center.lng - point.lng) * Math.cos((point.lat * Math.PI) / 180));
   return [...index].sort((a, b) => dist(a) - dist(b))[0];
 }

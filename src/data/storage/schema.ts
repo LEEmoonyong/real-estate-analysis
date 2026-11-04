@@ -53,7 +53,8 @@ export function serializeStored<T>(data: T, version: number): string {
 
 // ---- 공용 검증기 ----------------------------------------------------------
 
-export const isRecord = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x);
+export const isRecord = (x: unknown): x is Record<string, unknown> =>
+  typeof x === 'object' && x !== null && !Array.isArray(x);
 
 export const isArrayOf =
   <T>(guard: (x: unknown) => x is T) =>
