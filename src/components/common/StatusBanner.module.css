@@ -7,7 +7,8 @@
   align-items: center;
   gap: var(--space-3);
   width: max-content;
-  max-width: calc(100% - 2 * var(--space-3));
+  /* 오른쪽 위 나침반(48px)을 가리지 않도록 양쪽에 여백을 둔다 */
+  max-width: calc(100% - 2 * (48px + 2 * var(--space-3)));
   padding: var(--space-2) var(--space-3);
   transform: translateX(-50%);
   border: 1px solid var(--color-border);
@@ -18,9 +19,12 @@
   font-size: var(--font-size-sm);
 }
 
-/* 모바일: 떠 있는 헤더 아래에 표시 */
+/* 모바일: 떠 있는 헤더 아래, 나침반 왼쪽에 왼쪽 정렬로 표시 */
 :global([data-breakpoint='mobile']) .banner {
   top: 64px;
+  left: var(--space-3);
+  max-width: calc(100% - 48px - 3 * var(--space-3));
+  transform: none;
 }
 
 .warning {

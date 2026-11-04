@@ -14,16 +14,34 @@ interface CameraRigProps {
   sceneKey: string;
   /** 나침반 요소 — 카메라 방위에 맞춰 회전 */
   compassRef: RefObject<HTMLElement | null>;
+  /** 투영 중심을 화면 높이의 이 비율만큼 위로 올린다 (모바일: 아래 바텀시트에 가리지 않게) */
+  viewShiftRatio?: number;
 }
 
-export function CameraRig({ radiusM, sceneKey, compassRef }: CameraRigProps) {
+export function CameraRig({ radiusM, sceneKey, compassRef, viewShiftRatio = 0 }: CameraRigProps) {
   const controlsRef = useRef<OrbitControlsImpl>(null);
   const camera = useThree((s) => s.camera);
   const invalidate = useThree((s) => s.invalidate);
+  const getState = useThree((s) => s.get);
+  const size = useThree((s) => s.size);
+
+  // 화면 크기·기기가 바뀔 때마다 투영 중심 이동을 다시 맞춘다 (R3F 리사이즈 이후 실행)
+  useEffect(() => {
+    if (!('setViewOffset' in camera)) return;
+    if (viewShiftRatio > 0 && size.height > 0) {
+      camera.setViewOffset(size.width, size.height, 0, size.height * viewShiftRatio, size.width, size.height);
+    } else {
+      camera.clearViewOffset();
+    }
+    invalidate();
+  }, [camera, size.width, size.height, viewShiftRatio, invalidate]);
 
   // [요구사항: Hooks] useEffect — 새 장면이면 카메라를 장면 전체가 보이게 배치
   useEffect(() => {
-    const [x, y, z] = defaultCameraPosition(radiusM);
+    // 화면 비율은 리렌더 없이 현재 값을 읽는다 (창 크기가 바뀔 때마다 사용자가 돌려 놓은 시점을 되돌리지 않도록)
+    const { width, height } = getState().size;
+    const fov = 'fov' in camera ? camera.fov : 45;
+    const [x, y, z] = defaultCameraPosition(radiusM, fov, height > 0 ? width / height : 1.5);
     camera.position.set(x, y, z);
     camera.near = 1;
     camera.far = Math.max(radiusM, 100) * 20;
@@ -32,7 +50,7 @@ export function CameraRig({ radiusM, sceneKey, compassRef }: CameraRigProps) {
     controlsRef.current?.update();
     invalidate();
     // radiusM은 sceneKey와 함께 바뀌므로 sceneKey만 의존해도 되지만 명시적으로 둔다
-  }, [sceneKey, radiusM, camera, invalidate]);
+  }, [sceneKey, radiusM, camera, invalidate, getState]);
 
   useFrame(() => {
     const controls = controlsRef.current;
@@ -50,7 +68,7 @@ export function CameraRig({ radiusM, sceneKey, compassRef }: CameraRigProps) {
       enableDamping
       dampingFactor={0.12}
       minDistance={15}
-      maxDistance={r * 4}
+      maxDistance={r * 6}
       maxPolarAngle={Math.PI / 2 - 0.03} // 지면 아래로 내려가지 않게
       screenSpacePanning={false}
     />

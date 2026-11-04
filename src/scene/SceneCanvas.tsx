@@ -39,7 +39,12 @@ export function SceneCanvas() {
         <directionalLight position={[200, 400, 300]} intensity={1.2} />
         <Ground radiusM={radiusM} />
         <Buildings />
-        <CameraRig radiusM={radiusM} sceneKey={sceneKey} compassRef={compassRef} />
+        <CameraRig
+          radiusM={radiusM}
+          sceneKey={sceneKey}
+          compassRef={compassRef}
+          viewShiftRatio={breakpoint === 'mobile' ? 0.2 : 0}
+        />
       </Canvas>
 
       <div className={styles.compass} aria-hidden="true" title="북쪽">

@@ -25,6 +25,8 @@ export interface LayoutSlots {
   analysis: ReactNode;
   /** 선택한 건물·세대 상세 */
   detail: ReactNode;
+  /** 이 값이 새 값(null 아님)으로 바뀌면 상세 영역을 보여 준다 — 모바일: 세대 정보 탭, 태블릿: 우측 패널 펼침 */
+  detailFocusKey?: string | null;
 }
 
 export function AppLayout(slots: LayoutSlots) {

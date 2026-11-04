@@ -27,7 +27,6 @@ export function SampleChips({ activeId, onPick }: SampleChipsProps) {
 
   return (
     <div className={styles.root} role="group" aria-label="샘플 지역">
-      <span className={styles.label}>샘플 지역</span>
       {samples.map((s) => (
         <button
           key={s.id}

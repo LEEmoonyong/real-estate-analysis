@@ -30,8 +30,24 @@ export function createBuildingGeometry(ring: Float64Array, heightM: number): Ext
   return geometry;
 }
 
-/** 남남동 상공에서 내려다보는 기본 카메라 위치 (남향 아파트 정면이 잘 보이도록) */
-export function defaultCameraPosition(radiusM: number): [number, number, number] {
-  const r = Math.max(radiusM, 80);
-  return [r * 0.35, r * 0.9, r * 1.15];
+/** 카메라 방향: 남남동(방위 약 162°) 위쪽, 고도각 약 37° — 남향 아파트 정면이 잘 보이도록 */
+const VIEW_DIR = (() => {
+  const v = [0.3, 0.75, 0.95] as const;
+  const len = Math.hypot(...v);
+  return [v[0] / len, v[1] / len, v[2] / len] as const;
+})();
+
+/** 단지 대부분(반경의 FIT_RATIO)이 화면에 들어오게 맞춘다. 외곽 건물까지 다 넣으면 너무 작아진다. */
+const FIT_RATIO = 0.75;
+
+/**
+ * 기본 카메라 위치 — 반경 r·fitR인 구가 세로·가로 시야각 중 좁은 쪽에 꼭 맞는 거리.
+ * 세로로 긴 화면(모바일·태블릿 세로)에서는 가로 시야각이 좁아 더 멀리 물러난다.
+ */
+export function defaultCameraPosition(radiusM: number, fovDeg = 45, aspect = 1.5): [number, number, number] {
+  const r = Math.max(radiusM, 80) * FIT_RATIO;
+  const halfV = (fovDeg * Math.PI) / 360;
+  const halfH = Math.atan(Math.tan(halfV) * Math.max(aspect, 0.1));
+  const dist = r / Math.sin(Math.min(halfV, halfH));
+  return [VIEW_DIR[0] * dist, VIEW_DIR[1] * dist, VIEW_DIR[2] * dist];
 }

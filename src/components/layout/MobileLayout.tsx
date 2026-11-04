@@ -13,8 +13,23 @@ const TABS: { id: MobileTab; label: string }[] = [
   { id: 'analysis', label: '분석' },
 ];
 
-export function MobileLayout({ header, search, primary, secondary, analysis, detail }: LayoutSlots) {
+export function MobileLayout({
+  header,
+  search,
+  primary,
+  secondary,
+  analysis,
+  detail,
+  detailFocusKey = null,
+}: LayoutSlots) {
   const [activeTab, setActiveTab] = useState<MobileTab>('controls');
+
+  // 3D에서 건물을 새로 고르면 세대 정보 탭으로 전환 (렌더 중 이전 값과 비교 — effect 없이 상태 조정)
+  const [seenFocusKey, setSeenFocusKey] = useState(detailFocusKey);
+  if (detailFocusKey !== seenFocusKey) {
+    setSeenFocusKey(detailFocusKey);
+    if (detailFocusKey) setActiveTab('detail');
+  }
   const baseId = useId();
 
   // 좌우 화살표로 탭 이동 (WAI-ARIA 탭 패턴)

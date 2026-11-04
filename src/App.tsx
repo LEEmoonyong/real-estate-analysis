@@ -52,7 +52,7 @@ function SceneFallback({ error, reset }: { error: Error; reset: () => void }) {
 function Shell() {
   const health = useApiHealth();
   const { date } = useTime();
-  const { scene } = useSceneData();
+  const { scene, selectedBuildingId, selectedUnitId } = useSceneData();
 
   // [요구사항: 상태관리] useState — 현재 건물 데이터 요청 (검색·샘플 선택·재시도마다 새 객체)
   const [request, setRequest] = useState<BuildingsRequest | null>(null);
@@ -113,11 +113,16 @@ function Shell() {
 
   return (
     <AppLayout
+      detailFocusKey={selectedUnitId ?? selectedBuildingId}
       header={<AppHeader health={health} />}
       search={<SearchBar mode={health.mode} onPickPlace={handlePickPlace} onPickSample={handlePickSample} />}
       scene={
         <>
-          <ErrorBoundary scope="3D 장면" resetKey={scene} fallback={(error, reset) => <SceneFallback error={error} reset={reset} />}>
+          <ErrorBoundary
+            scope="3D 장면"
+            resetKey={scene}
+            fallback={(error, reset) => <SceneFallback error={error} reset={reset} />}
+          >
             <SceneCanvas />
           </ErrorBoundary>
           <StatusBanner
