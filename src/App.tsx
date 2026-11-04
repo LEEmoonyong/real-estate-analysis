@@ -1,6 +1,7 @@
 // [요구사항: 컴포넌트] 최상위 조립 — Context 계층 + 반응형 레이아웃 + 검색·3D 장면
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppHeader } from './components/common/AppHeader';
+import { CalculationStatus } from './components/common/CalculationStatus';
 import { DataSourceBadge } from './components/common/DataSourceBadge';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { StatusBanner } from './components/common/StatusBanner';
@@ -131,6 +132,7 @@ function Shell() {
             onShowSample={handleShowSample}
           />
           <DataSourceBadge />
+          <CalculationStatus />
         </>
       }
       primary={

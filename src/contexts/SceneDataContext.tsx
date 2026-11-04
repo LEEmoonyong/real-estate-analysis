@@ -4,6 +4,8 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 import { STORAGE_KEYS, isRecord, isRecordOf } from '../data/storage/schema';
 import { buildBuildings, maxBuildingHeight, sceneRadius } from '../domain/scene/buildBuildings';
+import { sceneHash } from '../domain/scene/sceneHash';
+import { DEFAULT_UNIT_OPTIONS, generateUnits, type UnitSet } from '../domain/units/generateUnits';
 import type { Building, BuildingSource, Place, RawBuilding } from '../domain/types';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useSettings } from './SettingsContext';
@@ -34,6 +36,7 @@ const isDongAssignment = (x: unknown): x is DongAssignment =>
 
 const EMPTY_CORRECTIONS: Record<string, FloorCorrection> = {};
 const EMPTY_DONGS: Record<string, DongAssignment> = {};
+const EMPTY_UNITS = generateUnits([]);
 
 interface SceneDataState {
   scene: LoadedScene | null;
@@ -44,6 +47,10 @@ interface SceneDataState {
   /** 원점에서 가장 먼 건물 정점까지 거리 [m] */
   radiusM: number;
   maxHeightM: number;
+  /** 세대 샘플 지점 (건물에서 useMemo 파생, 필드별 typed array) */
+  units: UnitSet;
+  /** 건물·세대 설정이 같으면 같은 값 — 계산 캐시·Worker 장면 식별 */
+  sceneHash: string;
   corrections: Record<string, FloorCorrection>;
   dongAssignments: Record<string, DongAssignment>;
   selectedBuildingId: string | null;
@@ -90,8 +97,24 @@ export function SceneDataProvider({ children }: { children: ReactNode }) {
       dongs: Object.fromEntries(Object.entries(dongAssignments).map(([id, d]) => [id, d.dong])),
     };
     const { buildings, dropped } = buildBuildings(scene.rawBuildings, scene.place, settings.floorHeightM, overrides);
-    return { buildings, droppedCount: dropped, radiusM: sceneRadius(buildings), maxHeightM: maxBuildingHeight(buildings) };
+    return {
+      buildings,
+      droppedCount: dropped,
+      radiusM: sceneRadius(buildings),
+      maxHeightM: maxBuildingHeight(buildings),
+    };
   }, [scene, corrections, dongAssignments, settings.floorHeightM]);
+
+  // 세대는 건물(높이·외곽선)이 바뀔 때만 다시 만든다 — 날짜·시각과는 무관
+  const unitData = useMemo(
+    () => ({
+      units: derived.buildings.length ? generateUnits(derived.buildings) : EMPTY_UNITS,
+      sceneHash: derived.buildings.length
+        ? sceneHash(derived.buildings, `unitWidth=${DEFAULT_UNIT_OPTIONS.unitWidthM}`)
+        : 'empty',
+    }),
+    [derived.buildings],
+  );
 
   const loadScene = useCallback((next: LoadedScene) => {
     setScene(next);
@@ -146,13 +169,14 @@ export function SceneDataProvider({ children }: { children: ReactNode }) {
     () => ({
       scene,
       ...derived,
+      ...unitData,
       corrections,
       dongAssignments,
       selectedBuildingId,
       selectedUnitId,
       cameraMode,
     }),
-    [scene, derived, corrections, dongAssignments, selectedBuildingId, selectedUnitId, cameraMode],
+    [scene, derived, unitData, corrections, dongAssignments, selectedBuildingId, selectedUnitId, cameraMode],
   );
 
   const actions = useMemo<SceneDataActions>(
