@@ -1,0 +1,41 @@
+.root {
+  display: grid;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--color-bg);
+}
+
+.scene {
+  grid-area: scene;
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  touch-action: none; /* 캔버스에서 브라우저 스크롤·확대 대신 3D 조작 */
+}
+
+/* 데스크톱 ≥ 1200px: 좌 컨트롤 / 중앙 캔버스 / 우 상세 */
+.root[data-breakpoint='desktop'] {
+  grid-template-columns: var(--panel-left-width) minmax(0, 1fr) var(--panel-right-width);
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas:
+    'header header header'
+    'left scene right';
+}
+
+/* 태블릿 768~1199px: 상단 바 / 캔버스 + 접이식 우측 패널 */
+.root[data-breakpoint='tablet'] {
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas:
+    'header header'
+    'scene right';
+}
+
+/* 모바일 < 768px: 전체 화면 캔버스, 헤더와 하단 시트는 위에 겹쳐 띄운다 */
+.root[data-breakpoint='mobile'] {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: 'scene';
+}

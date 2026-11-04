@@ -1,5 +1,24 @@
-.shell {
-  max-width: 40rem;
-  margin: 0 auto;
-  padding: var(--space-6) var(--space-4);
+.scenePlaceholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background: linear-gradient(180deg, #bcd9f2 0%, #e9f1f8 70%, #d7dccf 100%);
+  color: #1b1f24;
+  text-align: center;
+}
+
+.muted {
+  color: #5b6573;
+  font-size: var(--font-size-sm);
+}
+
+.placeholder {
+  margin: 0;
+  padding: var(--space-3);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
 }

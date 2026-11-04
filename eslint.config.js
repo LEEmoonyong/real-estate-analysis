@@ -17,7 +17,7 @@ const domainRestriction = {
 };
 
 export default tseslint.config(
-  { ignores: ['dist', 'coverage', 'node_modules'] },
+  { ignores: ['dist', 'coverage', 'node_modules', 'scripts/.cache'] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['**/*.{ts,tsx}'],
@@ -27,8 +27,16 @@ export default tseslint.config(
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', ignoreRestSiblings: true },
+      ],
     },
+  },
+  {
+    // Provider와 전용 훅을 한 파일에 두는 Context 패턴은 Fast Refresh 경고 대상에서 제외
+    files: ['src/contexts/**/*.tsx'],
+    rules: { 'react-refresh/only-export-components': 'off' },
   },
   {
     files: ['src/domain/**/*.ts'],
