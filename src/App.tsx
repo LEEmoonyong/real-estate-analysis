@@ -19,6 +19,8 @@ import { FloorCompareChart } from './components/floorCompare/FloorCompareChart';
 import { OnboardingTour } from './components/onboarding/OnboardingTour';
 import { useOnboarding } from './components/onboarding/useOnboarding';
 import { SolarPotentialCard } from './components/solar/SolarPotentialCard';
+import { MonthlySummaryChart } from './components/season/MonthlySummaryChart';
+import { SeasonTimelapseControls } from './components/season/SeasonTimelapseControls';
 import { SunInfoCard } from './components/sunPath/SunInfoCard';
 import { AppLayout } from './components/layout/AppLayout';
 import { Panel } from './components/layout/Panel';
@@ -225,6 +227,11 @@ function Shell() {
                 <SunInfoCard />
               </Panel>
             )}
+            {FEATURES.seasonTimelapse && (
+              <Panel title="계절 타임랩스" tourId="season">
+                <SeasonTimelapseControls />
+              </Panel>
+            )}
           </>
         }
         secondary={
@@ -241,6 +248,7 @@ function Shell() {
             <ErrorBoundary scope="세대 정보" resetKey={selectedUnitId ?? selectedBuildingId}>
               <UnitDetailPanel />
               {FEATURES.floorCompare && <FloorCompareChart />}
+              {FEATURES.seasonTimelapse && <MonthlySummaryChart />}
               <BuildingInfo />
               {FEATURES.irradiance && <SolarPotentialCard />}
             </ErrorBoundary>

@@ -5,6 +5,7 @@
 // - 같은 장면·날짜·설정이면 캐시 결과를 바로 쓴다
 import { useEffect, useRef } from 'react';
 import { useSceneData } from '../contexts/SceneDataContext';
+import { useSeason, useSeasonActions } from '../contexts/SeasonContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useSimulation, useSimulationDispatch } from '../contexts/SimulationContext';
 import { useTime } from '../contexts/TimeContext';
@@ -12,7 +13,8 @@ import { criteriaKey } from '../domain/sunlight/criteria';
 import { computeSunSteps } from '../domain/sunlight/sunSteps';
 import { groundGridFor, sliceStepDirections } from '../domain/ground/groundShadow';
 import { DEFAULT_CELL_SIZE_M } from '../domain/spatial/uniformGrid';
-import { JobQueue } from '../workers/jobQueue';
+import { JobQueue, type RunningHandle } from '../workers/jobQueue';
+import type { SunlightCriteria } from '../domain/types';
 import { LruCache } from '../workers/resultCache';
 import {
   mergeGroundParts,
@@ -24,11 +26,70 @@ import {
   type SunlightOutcome,
 } from '../workers/sceneTransfer';
 import { SKY_SAMPLES } from '../domain/sunlight/skyView';
+import { dayOfYear, unitDailyIrradiance } from '../domain/solar/irradiance';
+import { mainFaceStats, monthComputeOrder, monthDate } from '../domain/time/season';
 import { useBreakpoint } from './useBreakpoint';
 import { JobCancelledError, poolSizeFor, WorkerPool } from '../workers/workerPool';
 
 function createSimulationWorker(): Worker {
   return new Worker(new URL('../workers/simulation.worker.ts', import.meta.url), { type: 'module' });
+}
+
+interface SunlightJobInput {
+  jobId: number;
+  sceneHash: string;
+  place: { lat: number; lng: number };
+  date: string;
+  stepMinutes: number;
+  criteria: SunlightCriteria;
+  unitCount: number;
+  onProgress?: (done: number, total: number) => void;
+}
+
+/** 일조 계산 하나를 시작한다 — 현재 날짜(일조 effect)와 계절 대표일(타임랩스 effect)이 함께 쓴다 */
+function startSunlightJob(
+  pool: WorkerPool,
+  ready: Promise<void>,
+  input: SunlightJobInput,
+): RunningHandle<SunlightOutcome> {
+  const { jobId, sceneHash, place, date, stepMinutes, criteria, unitCount, onProgress } = input;
+  const started = performance.now();
+  let cancelled = false;
+  const promise = (async () => {
+    await ready;
+    if (cancelled) throw new JobCancelledError();
+    const steps = computeSunSteps(place.lat, place.lng, date, stepMinutes);
+    const params = {
+      stepMinutes,
+      startMinute: steps.startMinute,
+      stepCount: steps.count,
+      directions: steps.directions,
+      criteria,
+    };
+    const parts = await pool.runSunlight({ jobId, sceneHash, params, unitCount, onProgress });
+    const merged = mergeSunlightParts(parts, unitCount, steps.count);
+    const outcome: SunlightOutcome = {
+      ...merged,
+      date,
+      stepMinutes,
+      startMinute: steps.startMinute,
+      steps: steps.count,
+      sceneHash,
+      unitCount,
+      elapsedMs: performance.now() - started,
+      workers: pool.size,
+      fromCache: false,
+      sunUp: Uint8Array.from({ length: steps.count }, (_, k) => (steps.directions[k * 3 + 1]! > 0 ? 1 : 0)),
+    };
+    return outcome;
+  })();
+  return {
+    promise,
+    cancel: () => {
+      cancelled = true;
+      pool.cancel(jobId);
+    },
+  };
 }
 
 export interface SunlightWorkerInfo {
@@ -39,7 +100,7 @@ export function useSunlightWorker(): SunlightWorkerInfo {
   const { scene, buildings, units, sceneHash, radiusM } = useSceneData();
   const { date } = useTime();
   const { settings, layer, groundCellSize } = useSettings();
-  const { phase } = useSimulation();
+  const { phase, results } = useSimulation();
   const dispatch = useSimulationDispatch();
 
   const poolRef = useRef<WorkerPool | null>(null);
@@ -110,52 +171,19 @@ export function useSunlightWorker(): SunlightWorkerInfo {
 
     const ready = ensureScene(pool, queue);
     const criteria = criteriaRef.current;
-    const started = performance.now();
 
-    const result = queue.submit('sunlight', () => {
-      let cancelled = false;
-      const promise = (async () => {
-        await ready;
-        if (cancelled) throw new JobCancelledError();
-        const steps = computeSunSteps(place.lat, place.lng, date, stepMinutes);
-        const params = {
-          stepMinutes,
-          startMinute: steps.startMinute,
-          stepCount: steps.count,
-          directions: steps.directions,
-          criteria,
-        };
-        const parts = await pool.runSunlight({
-          jobId,
-          sceneHash,
-          params,
-          unitCount: units.count,
-          onProgress: (done, total) => dispatch({ type: 'PROGRESS', kind: 'sunlight', jobId, done, total }),
-        });
-        const merged = mergeSunlightParts(parts, units.count, steps.count);
-        const outcome: SunlightOutcome = {
-          ...merged,
-          date,
-          stepMinutes,
-          startMinute: steps.startMinute,
-          steps: steps.count,
-          sceneHash,
-          unitCount: units.count,
-          elapsedMs: performance.now() - started,
-          workers: pool.size,
-          fromCache: false,
-          sunUp: Uint8Array.from({ length: steps.count }, (_, k) => (steps.directions[k * 3 + 1]! > 0 ? 1 : 0)),
-        };
-        return outcome;
-      })();
-      return {
-        promise,
-        cancel: () => {
-          cancelled = true;
-          pool.cancel(jobId);
-        },
-      };
-    });
+    const result = queue.submit('sunlight', () =>
+      startSunlightJob(pool, ready, {
+        jobId,
+        sceneHash,
+        place,
+        date,
+        stepMinutes,
+        criteria,
+        unitCount: units.count,
+        onProgress: (done, total) => dispatch({ type: 'PROGRESS', kind: 'sunlight', jobId, done, total }),
+      }),
+    );
 
     result.then(
       (outcome) => {
@@ -348,6 +376,86 @@ export function useSunlightWorker(): SunlightWorkerInfo {
     );
     return () => queue.cancel('skyView');
   }, [skyOn, sceneReady, sceneHash, units, sampleCount, dispatch]);
+
+  // ── 계절 타임랩스 (C11): 대표일(매월 21일)을 한 달씩 계산해 일조 캐시에 넣고 월별 요약을 남긴다 ──
+  // 한 작업 = 한 달 → 사이사이 날짜 변경(일조, 우선순위 0)이 끼어들 수 있다. 요약이 들어오면 effect가 다시 돌아 다음 달로.
+  const { active: seasonActive, months, currentMonth, year } = useSeason();
+  const { putMonth } = useSeasonActions();
+  const skyOutcome = results.skyView as SkyViewOutcome | undefined;
+  const seasonSvf = skyOutcome && skyOutcome.sceneHash === sceneHash ? skyOutcome.svf : null;
+  useEffect(() => {
+    const pool = poolRef.current;
+    const queue = queueRef.current;
+    if (!seasonActive || !pool || !queue || !sceneReady || !place || units.count === 0) return;
+    const start = currentMonth >= 0 ? currentMonth : Number(date.slice(5, 7)) - 1;
+    const m = monthComputeOrder(start).find((i) => !months[i]);
+    if (m === undefined) return;
+    const mDate = monthDate(year, m);
+    const cacheKey = [sceneHash, place.lat.toFixed(5), place.lng.toFixed(5), mDate, stepMinutes, critKey].join('|');
+
+    const summarize = (outcome: SunlightOutcome) => {
+      const steps = computeSunSteps(place.lat, place.lng, mDate, stepMinutes);
+      const irradiance = unitDailyIrradiance(
+        outcome.mask,
+        outcome.unitCount,
+        steps.directions,
+        steps.count,
+        stepMinutes,
+        units.normals,
+        dayOfYear(mDate),
+        seasonSvf,
+      );
+      const stats = mainFaceStats(outcome.windowTotalMinutes, units.isMainFace);
+      putMonth(sceneHash, m, { date: mDate, windowTotal: outcome.windowTotalMinutes, irradiance, ...stats });
+    };
+
+    const cached = cacheRef.current.get(cacheKey);
+    if (cached) {
+      summarize(cached);
+      return;
+    }
+    const jobId = ++jobIdRef.current;
+    const ready = ensureSceneRef.current(pool, queue);
+    const criteria = criteriaRef.current;
+    let alive = true;
+    queue
+      .submit('season', () =>
+        startSunlightJob(pool, ready, {
+          jobId,
+          sceneHash,
+          place,
+          date: mDate,
+          stepMinutes,
+          criteria,
+          unitCount: units.count,
+        }),
+      )
+      .then(
+        (outcome) => {
+          cacheRef.current.set(cacheKey, outcome);
+          if (alive) summarize(outcome);
+        },
+        () => undefined, // 취소·실패는 다음 effect가 다시 시도
+      );
+    return () => {
+      alive = false;
+      queue.cancel('season');
+    };
+  }, [
+    seasonActive,
+    sceneReady,
+    sceneHash,
+    units,
+    place,
+    months,
+    currentMonth,
+    date,
+    year,
+    stepMinutes,
+    critKey,
+    seasonSvf,
+    putMonth,
+  ]);
 
   return { workers: sizeRef.current };
 }

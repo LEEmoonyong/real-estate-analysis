@@ -4,6 +4,7 @@ import { FavoritesProvider } from './FavoritesContext';
 import { HeatmapProvider } from './HeatmapContext';
 import { PlaybackProvider } from './PlaybackContext';
 import { SceneDataProvider } from './SceneDataContext';
+import { SeasonProvider } from './SeasonContext';
 import { SettingsProvider } from './SettingsContext';
 import { SimulationProvider } from './SimulationContext';
 import { TimeProvider } from './TimeContext';
@@ -17,9 +18,11 @@ export function AppProviders({ children }: { children: ReactNode }) {
           <FavoritesProvider>
             <TimeProvider>
               <PlaybackProvider>
-                <SimulationProvider>
-                  <HeatmapProvider>{children}</HeatmapProvider>
-                </SimulationProvider>
+                <SeasonProvider>
+                  <SimulationProvider>
+                    <HeatmapProvider>{children}</HeatmapProvider>
+                  </SimulationProvider>
+                </SeasonProvider>
               </PlaybackProvider>
             </TimeProvider>
           </FavoritesProvider>
