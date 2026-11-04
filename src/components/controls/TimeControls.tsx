@@ -4,6 +4,7 @@ import { useEffect, useMemo } from 'react';
 import { DEFAULT_LOCATION } from '../../config/constants';
 import { useSceneData } from '../../contexts/SceneDataContext';
 import { useTime, useTimeActions } from '../../contexts/TimeContext';
+import { compass8 } from '../../domain/geo/compass';
 import { clampMinute, daylightRange } from '../../domain/time/seasons';
 import { useSunEvents, useSunPosition } from '../../hooks/useSunPosition';
 import { useTimePlayback } from '../../hooks/useTimePlayback';
@@ -11,13 +12,6 @@ import { DateControls } from './DateControls';
 import { PlaybackButton } from './PlaybackButton';
 import { TimeSlider } from './TimeSlider';
 import styles from './Controls.module.css';
-
-const COMPASS_8 = ['북', '북동', '동', '남동', '남', '남서', '서', '북서'] as const;
-
-/** 방위각 → 8방위 이름 */
-function compass8(azimuthDeg: number): string {
-  return COMPASS_8[Math.round(azimuthDeg / 45) % 8]!;
-}
 
 export function TimeControls() {
   const { scene } = useSceneData();

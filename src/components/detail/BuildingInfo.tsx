@@ -16,7 +16,11 @@ export function BuildingInfo() {
   const building = useMemo(() => buildings.find((b) => b.id === selectedBuildingId), [buildings, selectedBuildingId]);
 
   if (!building) {
-    return <p className={styles.empty}>3D 장면에서 건물을 클릭하면 정보가 표시됩니다.</p>;
+    return (
+      <p className={styles.empty}>
+        3D 장면에서 건물 벽을 클릭하면 그 위치의 세대 일조 정보가, 지붕을 클릭하면 건물 정보만 표시됩니다.
+      </p>
+    );
   }
 
   const title = building.dongNumber ? `${building.dongNumber}동` : (building.name ?? '이름 없는 건물');

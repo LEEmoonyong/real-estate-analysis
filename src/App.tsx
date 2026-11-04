@@ -5,8 +5,10 @@ import { CalculationStatus } from './components/common/CalculationStatus';
 import { DataSourceBadge } from './components/common/DataSourceBadge';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { StatusBanner } from './components/common/StatusBanner';
+import { LayerSelector } from './components/controls/LayerSelector';
 import { TimeControls } from './components/controls/TimeControls';
 import { BuildingInfo } from './components/detail/BuildingInfo';
+import { UnitDetailPanel } from './components/detail/UnitDetailPanel';
 import { AppLayout } from './components/layout/AppLayout';
 import { Panel } from './components/layout/Panel';
 import { SampleChips } from './components/search/SampleChips';
@@ -16,7 +18,7 @@ import { AppProviders } from './contexts/AppProviders';
 import { useSceneData } from './contexts/SceneDataContext';
 import { useSettings } from './contexts/SettingsContext';
 import type { GeoResult } from './data/geocode/geocodeClient';
-import { loadSampleIndex, nearestSample } from './data/samples/sampleClient';
+import { loadSampleIndex, nearestSample, prefetchSamples } from './data/samples/sampleClient';
 import type { SampleIndexEntry } from './data/samples/sampleSchema';
 import { useApiHealth } from './hooks/useApiHealth';
 import { useBuildings, type BuildingsRequest } from './hooks/useBuildings';
@@ -84,6 +86,12 @@ function Shell() {
     };
   }, [health.mode, health.reason]);
 
+  // 첫 화면이 뜬 뒤 나머지 샘플을 미리 받아 둔다 → 이후 네트워크가 끊겨도 샘플 지역 전환이 동작
+  useEffect(() => {
+    const timer = window.setTimeout(() => void prefetchSamples().catch(() => undefined), 3000);
+    return () => window.clearTimeout(timer);
+  }, []);
+
   // [요구사항: Hooks] useCallback — 자식에게 넘기는 이벤트 핸들러 참조 고정
   const handlePickPlace = useCallback((result: GeoResult) => {
     setRequest({
@@ -148,7 +156,7 @@ function Shell() {
       }
       analysis={
         <Panel title="분석 레이어" tourId="layers">
-          <Placeholder text="일조 / 천공률 / 일사량 / 지면 그림자 (7·12일차)" />
+          <LayerSelector />
         </Panel>
       }
       secondary={
@@ -157,8 +165,12 @@ function Shell() {
         </Panel>
       }
       detail={
-        <Panel title="건물 정보" tourId="detail">
-          <BuildingInfo />
+        <Panel title="세대·건물 정보" tourId="detail">
+          {/* 상세 패널 오류가 3D 장면·컨트롤까지 멈추지 않도록 따로 감싼다. 선택이 바뀌면 다시 그린다 */}
+          <ErrorBoundary scope="세대 정보" resetKey={selectedUnitId ?? selectedBuildingId}>
+            <UnitDetailPanel />
+            <BuildingInfo />
+          </ErrorBoundary>
         </Panel>
       }
     />
@@ -167,9 +179,11 @@ function Shell() {
 
 export default function App() {
   return (
-    <AppProviders>
-      <ThemeSync />
-      <Shell />
-    </AppProviders>
+    <ErrorBoundary scope="앱">
+      <AppProviders>
+        <ThemeSync />
+        <Shell />
+      </AppProviders>
+    </ErrorBoundary>
   );
 }

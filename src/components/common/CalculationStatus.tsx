@@ -1,22 +1,35 @@
-// [요구사항: 컴포넌트] 일조 계산 진행률·결과 요약 (3D 장면 위 오버레이)
+// [요구사항: 컴포넌트] 일조 계산 진행률·결과 요약·히트맵 범례 (3D 장면 위 오버레이)
 // [요구사항: Hooks] useSunlightWorker(커스텀 훅)를 여기서 실행한다.
 //   이 훅은 TimeContext를 구독하므로, 앱 최상위가 아닌 작은 컴포넌트에 두어 시각 재생 중 리렌더 범위를 좁힌다.
+import { useMemo } from 'react';
+import { useSceneData } from '../../contexts/SceneDataContext';
+import { useSettings } from '../../contexts/SettingsContext';
 import { useSimulation } from '../../contexts/SimulationContext';
 import { useSunlightWorker } from '../../hooks/useSunlightWorker';
 import type { SunlightOutcome } from '../../workers/sceneTransfer';
+import { Legend } from '../analysis/Legend';
 import styles from './CalculationStatus.module.css';
-
-function countMeets(meets: Uint8Array): number {
-  let n = 0;
-  for (let i = 0; i < meets.length; i++) n += meets[i]!;
-  return n;
-}
 
 export function CalculationStatus() {
   const { workers } = useSunlightWorker();
   const { phase, progress, results } = useSimulation();
+  const { units } = useSceneData();
+  const { heatmapVisible } = useSettings();
   const running = progress.sunlight;
   const outcome = results.sunlight as SunlightOutcome | undefined;
+
+  // 기준 충족 비율은 호수가 붙는 주향(거실) 면 세대로 센다 — 북향·측면 창까지 넣으면 의미가 흐려진다
+  const summary = useMemo(() => {
+    if (!outcome || outcome.unitCount !== units.count) return null;
+    let main = 0;
+    let meets = 0;
+    for (let i = 0; i < units.count; i++) {
+      if (!units.isMainFace[i]) continue;
+      main++;
+      meets += outcome.meets[i]!;
+    }
+    return { main, meets };
+  }, [outcome, units]);
 
   if (running) {
     const ratio = running.total > 0 ? running.done / running.total : 0;
@@ -37,9 +50,8 @@ export function CalculationStatus() {
     );
   }
 
-  if (phase === 'done' && outcome) {
-    const meets = countMeets(outcome.meets);
-    const ratio = outcome.unitCount > 0 ? meets / outcome.unitCount : 0;
+  if (phase === 'done' && outcome && summary) {
+    const ratio = summary.main > 0 ? summary.meets / summary.main : 0;
     return (
       <div
         className={styles.root}
@@ -48,14 +60,17 @@ export function CalculationStatus() {
         data-elapsed-ms={Math.round(outcome.elapsedMs)}
         data-unit-count={outcome.unitCount}
         data-rays={outcome.rays}
-        data-meets={meets}
+        data-main-units={summary.main}
+        data-main-meets={summary.meets}
         data-workers={outcome.workers || workers}
         role="status"
       >
+        {heatmapVisible && <Legend />}
         <span>
-          일조 계산 완료 · 세대 {outcome.unitCount.toLocaleString()}곳 · 기준 충족 {Math.round(ratio * 100)}%
+          남향 세대 {summary.main.toLocaleString()}곳 중 기준 충족 <strong>{Math.round(ratio * 100)}%</strong>
         </span>
         <span className={styles.muted}>
+          전체 {outcome.unitCount.toLocaleString()}곳 계산 ·{' '}
           {outcome.fromCache
             ? '저장된 결과'
             : `${(outcome.elapsedMs / 1000).toFixed(1)}초 · Worker ${outcome.workers}개`}

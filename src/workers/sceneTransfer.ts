@@ -30,6 +30,8 @@ export interface SunlightOutcome extends SunlightResult {
   elapsedMs: number;
   workers: number;
   fromCache: boolean;
+  /** 칸별로 해가 떠 있으면 1 (타임라인에서 그늘과 밤을 구분) */
+  sunUp: Uint8Array;
 }
 
 /** from 순서로 정렬된 부분 결과를 세대 순서 배열 하나로 이어 붙인다 */

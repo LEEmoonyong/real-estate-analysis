@@ -1,0 +1,76 @@
+.root {
+  margin: 0;
+  min-width: 200px;
+}
+
+.caption {
+  margin-bottom: 4px;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.scale {
+  position: relative;
+  height: 12px;
+}
+
+.bar {
+  height: 100%;
+  border-radius: 3px;
+}
+
+.criterion {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--color-text);
+}
+
+.ticks {
+  position: relative;
+  height: 16px;
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted);
+}
+
+.ticks span {
+  position: absolute;
+  top: 2px;
+  transform: translateX(-50%);
+}
+
+.ticks span:first-child {
+  transform: none;
+}
+
+.ticks span:last-child {
+  transform: translateX(-100%);
+}
+
+.note {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 2px 0 0;
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+}
+
+.criterionMark {
+  display: inline-block;
+  width: 2px;
+  height: 10px;
+  background: var(--color-text);
+}
+
+/* 모바일: 보이는 3D 영역이 좁으므로 눈금과 기준선만 남긴다 */
+:global([data-breakpoint='mobile']) .root {
+  min-width: 160px;
+}
+
+:global([data-breakpoint='mobile']) .note {
+  display: none;
+}

@@ -10,7 +10,8 @@ import { BUILDING_COLORS, createBuildingGeometry } from './buildingGeometry';
 interface BuildingMeshProps {
   building: Building;
   selected: boolean;
-  onSelect: (id: string) => void;
+  /** 클릭한 건물 id와 클릭 지점(월드 좌표) — 지점으로 가장 가까운 세대를 찾는다 */
+  onSelect: (id: string, point: [number, number, number]) => void;
 }
 
 function BuildingMeshImpl({ building, selected, onSelect }: BuildingMeshProps) {
@@ -38,7 +39,7 @@ function BuildingMeshImpl({ building, selected, onSelect }: BuildingMeshProps) {
 
   const handleClick = (event: ThreeEvent<MouseEvent>) => {
     event.stopPropagation(); // 뒤에 있는 건물이 함께 선택되지 않도록
-    onSelect(building.id);
+    onSelect(building.id, [event.point.x, event.point.y, event.point.z]);
   };
 
   return (

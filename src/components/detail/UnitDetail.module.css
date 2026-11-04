@@ -1,0 +1,164 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+}
+
+.tag {
+  padding: 1px var(--space-2);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-text-muted) 18%, transparent);
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.grid dt {
+  color: var(--color-text-muted);
+}
+
+.grid dd {
+  margin: 0;
+}
+
+/* ── 일조 수치 ─────────────────────────── */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.stats > div {
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-text-muted) 8%, transparent);
+}
+
+.stats dt {
+  color: var(--color-text-muted);
+  font-size: 0.6875rem;
+}
+
+.stats dd {
+  margin: 2px 0 0;
+  font-size: var(--font-size-md);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 기준 배지 ─────────────────────────── */
+.criteria {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.badge {
+  align-self: flex-start;
+  padding: 2px var(--space-3);
+  border-radius: 999px;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+.ok {
+  background: color-mix(in srgb, var(--color-ok) 18%, transparent);
+  color: var(--color-ok);
+}
+
+.ng {
+  background: color-mix(in srgb, var(--color-danger) 15%, transparent);
+  color: var(--color-danger);
+}
+
+.conditions {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--font-size-sm);
+}
+
+.conditions em {
+  color: var(--color-danger);
+  font-style: normal;
+}
+
+.notice {
+  margin: 0;
+  padding: var(--space-2);
+  border-left: 3px solid var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+  font-size: 0.75rem;
+}
+
+.disclaimer {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.6875rem;
+}
+
+/* ── 로딩 스켈레톤 ─────────────────────── */
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.skeleton > div {
+  height: 18px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-text-muted) 10%, transparent) 25%,
+    color-mix(in srgb, var(--color-text-muted) 22%, transparent) 50%,
+    color-mix(in srgb, var(--color-text-muted) 10%, transparent) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.2s linear infinite;
+}
+
+.skeleton > div:nth-child(2) {
+  width: 70%;
+}
+
+.skeleton p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton > div {
+    animation: none;
+  }
+}

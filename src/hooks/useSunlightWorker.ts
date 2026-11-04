@@ -122,6 +122,7 @@ export function useSunlightWorker(): SunlightWorkerInfo {
           elapsedMs: performance.now() - started,
           workers: pool.size,
           fromCache: false,
+          sunUp: Uint8Array.from({ length: steps.count }, (_, k) => (steps.directions[k * 3 + 1]! > 0 ? 1 : 0)),
         };
         return outcome;
       })();

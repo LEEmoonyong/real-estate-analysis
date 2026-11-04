@@ -44,12 +44,15 @@ function isSettings(x: unknown): x is Settings {
 interface SettingsState {
   settings: Settings;
   layer: AnalysisLayer;
+  /** 3D 장면의 세대 히트맵 표시 여부 */
+  heatmapVisible: boolean;
 }
 
 interface SettingsActions {
   updateSettings: (patch: Partial<Settings>) => void;
   resetSettings: () => void;
   setLayer: (layer: AnalysisLayer) => void;
+  setHeatmapVisible: (visible: boolean) => void;
 }
 
 const SettingsStateContext = createContext<SettingsState | null>(null);
@@ -61,16 +64,17 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     validate: isSettings,
   });
   const [layer, setLayer] = useState<AnalysisLayer>('sunlight');
+  const [heatmapVisible, setHeatmapVisible] = useState(true);
 
   const updateSettings = useCallback(
     (patch: Partial<Settings>) => setSettings((prev) => ({ ...prev, ...patch })),
     [setSettings],
   );
 
-  const state = useMemo(() => ({ settings, layer }), [settings, layer]);
+  const state = useMemo(() => ({ settings, layer, heatmapVisible }), [settings, layer, heatmapVisible]);
   // 동작만 쓰는 컴포넌트가 상태 변화로 다시 렌더링되지 않도록 actions를 분리한다
   const actions = useMemo(
-    () => ({ updateSettings, resetSettings: removeSettings, setLayer }),
+    () => ({ updateSettings, resetSettings: removeSettings, setLayer, setHeatmapVisible }),
     [updateSettings, removeSettings],
   );
 

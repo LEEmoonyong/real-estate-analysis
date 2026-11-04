@@ -10,7 +10,9 @@ import { Buildings } from './Buildings';
 import { defaultCameraPosition } from './buildingGeometry';
 import { CameraRig } from './CameraRig';
 import { Ground } from './Ground';
+import { SelectionHighlight } from './SelectionHighlight';
 import { SunLight } from './SunLight';
+import { UnitHeatmap } from './UnitHeatmap';
 import styles from './SceneCanvas.module.css';
 
 export function SceneCanvas() {
@@ -38,6 +40,8 @@ export function SceneCanvas() {
         <SunLight shadowMapSize={quality.shadowMapSize} />
         <Ground radiusM={radiusM} />
         <Buildings />
+        <UnitHeatmap />
+        <SelectionHighlight />
         <CameraRig
           radiusM={radiusM}
           sceneKey={sceneKey}

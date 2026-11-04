@@ -41,3 +41,7 @@
   background: var(--color-accent-strong);
   transition: width 0.15s linear;
 }
+
+:global([data-breakpoint='mobile']) .muted {
+  display: none;
+}

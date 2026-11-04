@@ -21,15 +21,42 @@ export function loadSampleIndex(): Promise<SampleIndexEntry[]> {
   return indexPromise;
 }
 
-export async function loadSample(
+/** 샘플 파일 캐시 — 한 번 받은 샘플은 네트워크가 끊겨도 다시 보여 줄 수 있다 */
+const sampleCache = new Map<string, Promise<{ sample: SampleFile; buildings: RawBuilding[] }>>();
+
+export function loadSample(
   entry: SampleIndexEntry,
   signal?: AbortSignal,
 ): Promise<{ sample: SampleFile; buildings: RawBuilding[] }> {
-  const res = await fetch(`${BASE}${entry.file}`, signal ? { signal } : {});
-  if (!res.ok) throw new Error(`샘플 파일을 불러오지 못했습니다 (${res.status}).`);
-  const body: unknown = await res.json();
-  if (!isSampleFile(body)) throw new Error('샘플 파일 형식이 올바르지 않습니다.');
-  return { sample: body, buildings: body.buildings };
+  let promise = sampleCache.get(entry.file);
+  if (!promise) {
+    // 캐시에 넣는 요청은 취소 신호와 묶지 않는다 (호출한 쪽이 취소되면 결과만 버린다)
+    promise = fetch(`${BASE}${entry.file}`)
+      .then((res) =>
+        res.ok ? res.json() : Promise.reject(new Error(`샘플 파일을 불러오지 못했습니다 (${res.status}).`)),
+      )
+      .then((body: unknown) => {
+        if (!isSampleFile(body)) throw new Error('샘플 파일 형식이 올바르지 않습니다.');
+        return { sample: body, buildings: body.buildings };
+      });
+    promise.catch(() => sampleCache.delete(entry.file)); // 실패하면 다음에 다시 시도
+    sampleCache.set(entry.file, promise);
+  }
+  if (!signal) return promise;
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) return reject(new DOMException('Aborted', 'AbortError'));
+    signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), { once: true });
+    promise.then(resolve, reject);
+  });
+}
+
+/**
+ * 모든 샘플을 미리 받아 둔다 — 나중에 네트워크가 끊겨도(오프라인) 샘플 지역은 계속 쓸 수 있게.
+ * 첫 화면 표시 뒤 여유 시간에 호출한다.
+ */
+export async function prefetchSamples(): Promise<void> {
+  const index = await loadSampleIndex();
+  await Promise.allSettled(index.map((e) => loadSample(e)));
 }
 
 /** 검색어가 샘플 별칭과 맞는 샘플 목록 (샘플 모드 검색) */
