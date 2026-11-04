@@ -45,6 +45,8 @@ export interface Building {
   isUserCorrected: boolean;
   /** 보정 전 데이터의 층수 */
   originalFloors: number;
+  /** 보정 전 데이터의 높이 출처 */
+  originalHeightSource: Exclude<HeightSource, 'user'>;
   dongNumber?: string;
   dongSource?: 'data' | 'user';
   name?: string;

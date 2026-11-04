@@ -19,6 +19,7 @@ function box(id: string, x0: number, z0: number, x1: number, z1: number, floors:
     isEstimated: false,
     isUserCorrected: false,
     originalFloors: floors,
+    originalHeightSource: 'floors',
     dongSource: 'data',
     name: id,
     usage: 'apartments',

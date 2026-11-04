@@ -55,6 +55,7 @@ export function buildBuildings(
       isEstimated: !isUserCorrected && raw.heightSource === 'default',
       isUserCorrected,
       originalFloors: raw.floors,
+      originalHeightSource: raw.heightSource,
       ...(userDong
         ? { dongNumber: userDong, dongSource: 'user' as const }
         : raw.dongNumber
