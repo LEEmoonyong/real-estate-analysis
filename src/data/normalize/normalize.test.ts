@@ -115,6 +115,17 @@ describe('normalizeOsm', () => {
     expect(buildings[1]!.dongNumber).toBeUndefined();
   });
 
+  it('건물번호(addr:housenumber)는 이름 없는 아파트에서만 동 번호로 쓴다', () => {
+    const { buildings } = normalizeOsm([
+      way(1, { building: 'apartments', 'addr:housenumber': '304' }),
+      way(2, { building: 'yes', name: '잠실지구대', 'addr:housenumber': '101' }),
+      way(3, { building: 'school', 'addr:housenumber': '29' }),
+      way(4, { building: 'apartments', name: 'Tower1', 'addr:housenumber': '38' }),
+      way(5, { building: 'apartments', name: '102동', 'addr:housenumber': '7' }),
+    ]);
+    expect(buildings.map((b) => b.dongNumber)).toEqual(['304', undefined, undefined, undefined, '102']);
+  });
+
   it('층수 없는 아파트는 지정한 대체 층수를 쓴다', () => {
     const { buildings } = normalizeOsm([way(1, { building: 'apartments' })], { apartmentFallbackFloors: 26 });
     expect(buildings[0]).toMatchObject({ floors: 26, heightSource: 'default' });

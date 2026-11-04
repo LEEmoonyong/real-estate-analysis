@@ -45,6 +45,22 @@ function outerRing(el: OverpassElement): [number, number][] | null {
   return cleanLngLatRing(pts.map((p) => [p.lon, p.lat]));
 }
 
+/** addr:housenumber를 동 번호로 볼 수 있는 building 값 (그 밖의 건물에서는 도로명 건물번호인 경우가 대부분) */
+const DONG_HOUSENUMBER_USAGES = new Set(['apartments', 'residential']);
+
+/**
+ * OSM 태그에서 동 번호 추출.
+ * - name이 "101", "101동", "A동"처럼 동 번호 형식이면 그대로 쓴다.
+ * - addr:housenumber는 이름이 없는 아파트에서만 쓴다. 지구대·학교·상가의 housenumber는 도로명 건물번호라
+ *   동 번호로 쓰면 "101동" 검색에 엉뚱한 건물이 나온다(8일차 확인: 잠실지구대 101, 참샘초등학교 29).
+ */
+export function osmDongNumber(tags: Record<string, string>): string | null {
+  const fromName = extractDongNumber(tags.name);
+  if (fromName) return fromName;
+  if (tags.name || !DONG_HOUSENUMBER_USAGES.has(tags.building ?? '')) return null;
+  return extractDongNumber(tags['addr:housenumber']);
+}
+
 export function normalizeOsm(
   elements: OverpassElement[],
   options: OsmNormalizeOptions = {},
@@ -79,7 +95,7 @@ export function normalizeOsm(
       approxAreaM2(footprint),
       isApartment ? options.apartmentFallbackFloors : undefined,
     );
-    const dong = extractDongNumber(tags.name) ?? extractDongNumber(tags['addr:housenumber']);
+    const dong = osmDongNumber(tags);
 
     buildings.push({
       id: `osm:${el.type}/${el.id}`,
