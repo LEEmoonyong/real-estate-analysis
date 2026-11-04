@@ -181,3 +181,9 @@
   background: var(--color-accent);
   color: #1b1f24;
 }
+
+.chartPlaceholder {
+  height: 96px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-text-muted) 10%, transparent);
+}

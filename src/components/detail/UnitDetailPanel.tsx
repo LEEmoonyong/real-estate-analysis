@@ -1,6 +1,6 @@
 // [요구사항: 컴포넌트] 선택한 세대의 상세 — 동·층·추정 호수·방위, 일조 시간, 기준 판정, 타임라인 (PLAN.md A6)
 // [요구사항: Hooks] useMemo(세대 찾기·판정), Context(SceneData·Simulation·Time·Settings)
-import { useMemo } from 'react';
+import { lazy, Suspense, useMemo } from 'react';
 import { FEATURES } from '../../config/features';
 import { useSceneData, useSceneDataActions } from '../../contexts/SceneDataContext';
 import { useHeatmap } from '../../contexts/HeatmapContext';
@@ -15,8 +15,11 @@ import { matchSeason } from '../../domain/time/seasons';
 import { findUnitIndex, unitAt } from '../../domain/units/generateUnits';
 import type { SunlightOutcome } from '../../workers/sceneTransfer';
 import { CriteriaBadge } from './CriteriaBadge';
-import { SunTimelineChart } from './SunTimelineChart';
+
 import styles from './UnitDetail.module.css';
+
+// 그래프 라이브러리(recharts)는 세대를 처음 고를 때 받는다
+const SunTimelineChart = lazy(() => import('./SunTimelineChart').then((m) => ({ default: m.SunTimelineChart })));
 
 const duration = (min: number) => {
   const h = Math.floor(min / 60);
@@ -136,16 +139,18 @@ export function UnitDetailPanel() {
           {matchSeason(date) !== 'winter' && (
             <p className={styles.notice}>참고 기준은 동지일 기준입니다. 현재 날짜({date}) 값은 참고용입니다.</p>
           )}
-          <SunTimelineChart
-            row={row}
-            sunUp={sunUp}
-            startMinute={outcome.startMinute}
-            stepMinutes={outcome.stepMinutes}
-            windowStart={criteria.continuousStartMin}
-            windowEnd={criteria.continuousEndMin}
-            currentMinute={minuteOfDay}
-            onPickMinute={setMinuteOfDay}
-          />
+          <Suspense fallback={<div className={styles.chartPlaceholder} aria-hidden="true" />}>
+            <SunTimelineChart
+              row={row}
+              sunUp={sunUp}
+              startMinute={outcome.startMinute}
+              stepMinutes={outcome.stepMinutes}
+              windowStart={criteria.continuousStartMin}
+              windowEnd={criteria.continuousEndMin}
+              currentMinute={minuteOfDay}
+              onPickMinute={setMinuteOfDay}
+            />
+          </Suspense>
           <p className={styles.disclaimer}>
             판례 등에서 자주 언급되는 기준을 참고로 표시하며, 법적 판단이 아닙니다. 주변 지형·나무·발코니 구조는
             반영하지 않았습니다.

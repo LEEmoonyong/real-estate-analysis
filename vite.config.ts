@@ -15,5 +15,9 @@ export default defineConfig(({ mode }) => {
       }),
     ],
     worker: { format: 'es' },
+    build: {
+      // 3D 장면 묶음(three.js 본체 ≈ 600KB)은 지연 로딩하는 별도 파일이라 첫 화면에는 영향이 없다 → 경고 기준을 그에 맞춘다
+      chunkSizeWarningLimit: 900,
+    },
   };
 });

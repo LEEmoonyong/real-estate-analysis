@@ -1,5 +1,5 @@
 // [요구사항: 컴포넌트] 최상위 조립 — Context 계층 + 반응형 레이아웃 + 검색·3D 장면
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { AppHeader } from './components/common/AppHeader';
 import { CalculationStatus } from './components/common/CalculationStatus';
 import { DataSourceBadge } from './components/common/DataSourceBadge';
@@ -15,11 +15,9 @@ import { UnitDetailPanel } from './components/detail/UnitDetailPanel';
 import { DongHoSearch } from './components/dongHo/DongHoSearch';
 import { FavoritesPanel, type NavigateTarget } from './components/favorites/FavoritesPanel';
 import { RecentSearches } from './components/favorites/RecentSearches';
-import { FloorCompareChart } from './components/floorCompare/FloorCompareChart';
 import { OnboardingTour } from './components/onboarding/OnboardingTour';
 import { useOnboarding } from './components/onboarding/useOnboarding';
 import { SolarPotentialCard } from './components/solar/SolarPotentialCard';
-import { MonthlySummaryChart } from './components/season/MonthlySummaryChart';
 import { SeasonTimelapseControls } from './components/season/SeasonTimelapseControls';
 import { SunInfoCard } from './components/sunPath/SunInfoCard';
 import { AppLayout } from './components/layout/AppLayout';
@@ -37,8 +35,17 @@ import { loadSampleIndex, nearestSample, prefetchSamples } from './data/samples/
 import type { SampleIndexEntry } from './data/samples/sampleSchema';
 import { useApiHealth } from './hooks/useApiHealth';
 import { useBuildings, type BuildingsRequest } from './hooks/useBuildings';
-import { SceneCanvas } from './scene/SceneCanvas';
 import styles from './App.module.css';
+
+// [요구사항: UI] 코드 분할 — three.js·R3F(3D 장면)와 recharts(그래프)는 처음 화면에 필요할 때 따로 받는다.
+// 검색창·컨트롤이 먼저 뜨고, 3D 엔진은 병렬로 내려받는다.
+const SceneCanvas = lazy(() => import('./scene/SceneCanvas').then((m) => ({ default: m.SceneCanvas })));
+const FloorCompareChart = lazy(() =>
+  import('./components/floorCompare/FloorCompareChart').then((m) => ({ default: m.FloorCompareChart })),
+);
+const MonthlySummaryChart = lazy(() =>
+  import('./components/season/MonthlySummaryChart').then((m) => ({ default: m.MonthlySummaryChart })),
+);
 
 /** 설정의 테마를 <html data-theme>에 반영 */
 function ThemeSync() {
@@ -187,7 +194,9 @@ function Shell() {
               resetKey={scene}
               fallback={(error, reset) => <SceneFallback error={error} reset={reset} />}
             >
-              <SceneCanvas />
+              <Suspense fallback={<p className={styles.placeholder}>3D 장면을 불러오는 중…</p>}>
+                <SceneCanvas />
+              </Suspense>
             </ErrorBoundary>
             <StatusBanner
               notice={notice}
@@ -247,8 +256,10 @@ function Shell() {
             {/* 상세 패널 오류가 3D 장면·컨트롤까지 멈추지 않도록 따로 감싼다. 선택이 바뀌면 다시 그린다 */}
             <ErrorBoundary scope="세대 정보" resetKey={selectedUnitId ?? selectedBuildingId}>
               <UnitDetailPanel />
-              {FEATURES.floorCompare && <FloorCompareChart />}
-              {FEATURES.seasonTimelapse && <MonthlySummaryChart />}
+              <Suspense fallback={null}>
+                {FEATURES.floorCompare && <FloorCompareChart />}
+                {FEATURES.seasonTimelapse && <MonthlySummaryChart />}
+              </Suspense>
               <BuildingInfo />
               {FEATURES.irradiance && <SolarPotentialCard />}
             </ErrorBoundary>
