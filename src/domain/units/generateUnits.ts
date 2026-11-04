@@ -62,6 +62,12 @@ export interface UnitSet {
   hoLine: Uint16Array;
   /** 건물별 주향 면 라인 수 */
   mainLineCount: Uint16Array;
+  /** 건물 b의 세대는 [buildingStart[b], buildingStart[b+1]) — 길이 B + 1 (세대는 건물 순서로 연속 배치) */
+  buildingStart: Uint32Array;
+  /** 세대 라인 폭 [m] (면 길이 ÷ 라인 수) */
+  lineWidth: Float32Array;
+  /** 층고 [m] (건물 높이 ÷ 층수) */
+  floorHeight: Float32Array;
   /** (x, y, z) × count */
   positions: Float32Array;
   /** (nx, nz) × count — 수평 외향 단위 법선 */
@@ -162,6 +168,9 @@ export function generateUnits(buildings: readonly Building[], options: UnitOptio
     isMainFace: new Uint8Array(count),
     hoLine: new Uint16Array(count),
     mainLineCount: new Uint16Array(buildings.length),
+    buildingStart: new Uint32Array(buildings.length + 1),
+    lineWidth: new Float32Array(count),
+    floorHeight: new Float32Array(count),
     positions: new Float32Array(count * 3),
     normals: new Float32Array(count * 2),
   };
@@ -169,6 +178,7 @@ export function generateUnits(buildings: readonly Building[], options: UnitOptio
   let u = 0;
   buildings.forEach((b, bi) => {
     const { faces, main } = perBuilding[bi]!;
+    set.buildingStart[bi] = u;
 
     // 주향 면 라인 번호: 바깥에서 주향 면을 바라볼 때 왼쪽 → 오른쪽 순서.
     // 바라보는 사람의 오른쪽 방향 = 평균 법선 (nx, nz)를 (nz, −nx)로 돌린 벡터
@@ -213,11 +223,14 @@ export function generateUnits(buildings: readonly Building[], options: UnitOptio
           set.positions[u * 3 + 2] = pz;
           set.normals[u * 2] = f.nx;
           set.normals[u * 2 + 1] = f.nz;
+          set.lineWidth[u] = f.length / f.lines;
+          set.floorHeight[u] = floorHeight;
           u++;
         }
       }
     }
   });
+  set.buildingStart[buildings.length] = u;
   return set;
 }
 
@@ -246,4 +259,48 @@ export function unitAt(set: UnitSet, i: number, buildings: readonly Building[]):
     azimuthDeg: normalAzimuthDeg(nx, nz),
     hoNumber: hoLine > 0 ? formatHo(floor, hoLine, set.mainLineCount[bi]!) : undefined,
   };
+}
+
+/** 세대 id → 인덱스 (없으면 -1). 건물 id에 ':'가 들어갈 수 있어 뒤에서부터 나눈다 */
+export function findUnitIndex(set: UnitSet, buildings: readonly Building[], id: string): number {
+  const parts = id.split(':');
+  if (parts.length < 4) return -1;
+  const floor = Number(parts.at(-1));
+  const line = Number(parts.at(-2));
+  const face = Number(parts.at(-3));
+  const buildingId = parts.slice(0, -3).join(':');
+  const bi = buildings.findIndex((b) => b.id === buildingId);
+  if (bi < 0) return -1;
+  for (let i = set.buildingStart[bi]!; i < set.buildingStart[bi + 1]!; i++) {
+    if (set.faceIndex[i] === face && set.lineIndex[i] === line && set.floor[i] === floor) return i;
+  }
+  return -1;
+}
+
+/**
+ * 건물 표면의 한 점에서 가장 가까운 세대 (3D 클릭 → 세대 선택).
+ * 수만 개 창문 패치를 매번 광선 검사하는 대신, 건물 메시의 클릭 지점으로 그 건물 세대만 찾는다.
+ * 지붕을 클릭했으면(지붕 높이와 같으면) -1.
+ */
+export function nearestUnitOnBuilding(
+  set: UnitSet,
+  buildingIndex: number,
+  point: [number, number, number],
+  roofHeightM: number,
+): number {
+  if (point[1] >= roofHeightM - 0.05) return -1;
+  let best = -1;
+  let bestDist = Infinity;
+  for (let i = set.buildingStart[buildingIndex]!; i < set.buildingStart[buildingIndex + 1]!; i++) {
+    // 같은 층을 우선하도록 높이 차에 가중치
+    const dx = set.positions[i * 3]! - point[0];
+    const dy = (set.positions[i * 3 + 1]! - point[1]) * 1.5;
+    const dz = set.positions[i * 3 + 2]! - point[2];
+    const d = dx * dx + dy * dy + dz * dz;
+    if (d < bestDist) {
+      bestDist = d;
+      best = i;
+    }
+  }
+  return best;
 }
