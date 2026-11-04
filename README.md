@@ -1,28 +1,216 @@
 # ☀ 전국 단위 3D 아파트 단지 일조량 시뮬레이터
 
-> 개발 중 (1일차). 최종 README 구성은 [PLAN.md 17장](PLAN.md)을 따른다.
+아파트 단지를 검색하면 주변 건물을 3D로 세우고, **세대마다 창문에 해가 드는 시간**을 직접 계산해 보여 주는 웹 앱입니다.
+동지 기준 일조 참고 기준 충족 여부, 층별 비교, 천공률·일사량, 계절 변화까지 한 화면에서 볼 수 있습니다.
 
-## 빠른 실행 (API 키 없이)
+- **배포 주소**: https://sunlight-simulator-alpha.vercel.app
+- **기술**: Vite + React 18 + TypeScript(strict), three.js(@react-three/fiber), recharts, Web Worker
+- 상태 관리는 React 기본 기능(useState·useReducer·Context)만 사용합니다. 외부 상태 라이브러리는 쓰지 않습니다.
+- 태양 위치·광선 교차·일조·천공률·일사량 계산은 모두 직접 구현했습니다. suncalc는 테스트에서 비교용으로만 씁니다.
+
+![세종 한솔동 404동 12층 세대 선택 화면 — 세대 히트맵, 상세 패널, 층별 비교](docs/screenshot.jpg)
+
+---
+
+## 1. 빠른 실행 (API 키 없이)
 
 ```bash
 npm install
 npm run dev
 ```
 
-API 키가 없으면 앱이 자동으로 **샘플 모드**로 동작한다. Node.js 22.12 이상이 필요하다.
+- 브라우저에서 http://localhost:5173 을 엽니다.
+- API 키가 없으면 앱이 **샘플 모드**로 자동 시작합니다. 샘플 3곳(서울 잠실, 부산 마린시티, 세종 한솔동)으로 모든 기능을 쓸 수 있습니다.
+- **Node.js 22.12 이상**이 필요합니다(`.nvmrc` 참고).
 
-## 실데이터 실행 (선택)
+## 2. 실데이터 실행 (선택)
 
-`.env.example`을 `.env.local`로 복사해 카카오 REST API 키와 V-World 인증키를 넣는다.
-키는 서버 프록시(`server/`)에서만 읽으며 클라이언트 번들에는 포함되지 않는다.
+1. `.env.example`을 `.env.local`로 복사합니다.
+2. 아래 키를 채웁니다.
+   - `KAKAO_REST_API_KEY` — [카카오 developers](https://developers.kakao.com) › 내 애플리케이션 › 앱 키 › REST API 키 (주소·단지명 검색)
+   - `VWORLD_API_KEY` — [V-World 오픈API](https://www.vworld.kr/dev/v4dv_2ddataguide2_s001.do) 인증키 (건물 외곽선·층수)
+   - `VWORLD_DOMAIN` — V-World 키를 발급할 때 등록한 서비스 URL과 **정확히 같아야** 합니다(로컬은 `http://localhost:5173`).
+3. `npm run dev`를 다시 실행합니다.
 
-## 스크립트
+키는 서버 프록시(`server/`, 배포 시 `api/index.ts`)에서만 읽습니다. `VITE_` 접두사를 붙이지 않으므로 클라이언트 번들에 들어가지 않습니다.
+건물 데이터는 V-World → OpenStreetMap → 샘플 순서로 대체합니다. 하나가 실패해도 화면이 비지 않습니다.
 
-| 명령 | 설명 |
-|---|---|
-| `npm run dev` | 개발 서버 (`/api/*` 프록시 포함) |
-| `npm run build` | 타입 검사 + 프로덕션 빌드 |
-| `npm test` | 단위 테스트 |
-| `npm run test:tz` | 다른 시간대(뉴욕)에서 단위 테스트 — 계산이 실행 PC 시간대와 무관한지 확인 |
-| `npm run lint` | ESLint |
-| `npm run verify:api` | 외부 API 실측 검증 ([docs/api-verification.md](docs/api-verification.md)) |
+> **배포 시 주의**: V-World는 해외 IP 요청을 막습니다. 그래서 Vercel 함수 리전을 서울(`icn1`)로 고정했습니다(`vercel.json`). 배포 도메인도 V-World 키의 서비스 URL에 등록해야 합니다.
+
+## 3. 과제 필수 요구사항 충족 매핑표
+
+각 파일 상단에 `// [요구사항: …]` 주석 태그를 달아 두었습니다. 아래 명령 한 번으로 위치를 찾을 수 있습니다.
+
+```bash
+grep -rn "\[요구사항:" src server api
+```
+
+| #   | 항목                         | 충족 파일                                                                                                                                                                                                                                         | 컴포넌트 / 훅                                                                                                                                                                                                                                                                                                                    | 구체적 사용 예                                                                                                                                                                                                                                                                                                 |
+| --- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | 개발 프레임워크: React       | `src/main.tsx`, `src/App.tsx`, `vite.config.ts`                                                                                                                                                                                                   | `App`, `AppProviders`                                                                                                                                                                                                                                                                                                            | Vite + React 18 `createRoot`, StrictMode, `React.lazy` 코드 분할                                                                                                                                                                                                                                               |
+| 2   | 개발 언어: TypeScript        | `tsconfig*.json`(`strict`, `noUncheckedIndexedAccess`), 전체 `*.ts(x)`                                                                                                                                                                            | `src/domain/types.ts`, `src/workers/protocol.ts`                                                                                                                                                                                                                                                                                 | 모든 도메인 모델과 Worker 메시지를 판별 유니온 타입으로 정의                                                                                                                                                                                                                                                   |
+| 3   | 컴포넌트: 기능별 분리        | `src/components/<기능>/`, `src/scene/`                                                                                                                                                                                                            | `SearchBar`, `DongHoSearch`, `TimeControls`, `SceneCanvas`, `Buildings`, `UnitHeatmap`, `SunPathDome`, `GroundShadowLayer`, `UnitDetailPanel`, `FloorCompareChart`, `MonthlySummaryChart`, `FavoritesPanel`, `OnboardingTour`, `AppLayout` 등 약 50개                                                                            | 폴더: `search`, `dongHo`, `controls`, `detail`, `floorCompare`, `heightCorrection`, `favorites`, `season`, `solar`, `sunPath`, `onboarding`, `layout`, `analysis`, `common`                                                                                                                                    |
+| 4   | 상태관리: useState           | 모든 UI 컴포넌트, `src/contexts/*`, `src/reducers/*`                                                                                                                                                                                              | 지역: `SearchBar`(`query`, `isOpen`), `DongHoSearch`(`input`, `feedback`), `HeightCorrectionForm`(`floorsInput`, `formError`), `FavoritesPanel`(`editingId`, `draftName`), `MobileLayout`(`activeTab`) / 공유: `SceneData`·`Settings`·`Time`·`Favorites`·`Toast`·`Season` Context(useState), `Simulation`·`Playback`(useReducer) | **zustand·redux 등 외부 상태 라이브러리 0개**                                                                                                                                                                                                                                                                  |
+| 5   | 이벤트 처리                  | `SearchBar.tsx`, `TimeSlider.tsx`, `PlaybackButton.tsx`, `BuildingMesh.tsx`, `GroundShadowLayer.tsx`, `DongHoSearch.tsx`, `HeightCorrectionForm.tsx`, `FavoritesPanel.tsx`, `WindowViewCamera.tsx`, `useKeyboardShortcuts.ts`, `useBreakpoint.ts` | —                                                                                                                                                                                                                                                                                                                                | `onChange`/`onSubmit`(검색·동호수·층수 보정), `onKeyDown`(콤보박스 ↑↓·Enter·Esc, 이름 편집), R3F `onClick`/`onPointerMove`(건물·세대·지면 셀), 포인터 드래그(창문 시점 둘러보기), window `keydown`(단축키), `matchMedia change`(반응형), `storage`(다른 탭 동기화)                                             |
+| 6   | Hooks                        | `src/hooks/*`, `src/components/*/use*.ts`, `src/contexts/*`                                                                                                                                                                                       | 기본: `useState`, `useReducer`, `useEffect`, `useLayoutEffect`, `useMemo`, `useCallback`, `useRef`, `useContext`, `useId`, `useSyncExternalStore` / **커스텀 훅 20개 이상**                                                                                                                                                      | `useGeocode`(AbortController 정리), `useSunlightWorker`(Worker 풀 생성·terminate, 작업 취소), `useTimePlayback`(rAF 정리), `useLocalStorage`(storage 이벤트 동기화), `useCameraFlyTo`(useFrame 보간), `useKeyboardShortcuts`, `useUnitLookup`, `useFloorStats`, `useOnboarding`, `useBreakpoint`, `useQuality` |
+| 7   | 데이터 처리: 외부 API + 로컬 | `server/handlers/*`, `api/index.ts`, `src/data/**`, `public/samples/*.json`                                                                                                                                                                       | `useGeocode`, `useBuildings`, `useLocalStorage`                                                                                                                                                                                                                                                                                  | **외부 API**: 카카오 로컬(주소·키워드 검색), V-World 2D 데이터(건물), OSM Overpass(건물) / **로컬**: 샘플 JSON 3종, localStorage(즐겨찾기·최근 검색·층수 보정·동 번호·설정·온보딩 완료)                                                                                                                        |
+| 8   | UI: 반응형                   | `src/components/layout/*`, `src/styles/tokens.css`, `*.module.css`, `useBreakpoint.ts`, `src/config/quality.ts`                                                                                                                                   | `AppLayout` → `DesktopLayout` / `TabletLayout` / `MobileLayout`, `BottomSheet`                                                                                                                                                                                                                                                   | 3단계 브레이크포인트(<768 / 768~1199 / ≥1200), 모바일 하단 시트·탭, 터치 회전·핀치 줌, 기기별 그림자 해상도·Worker 수·천공률 샘플 수 자동 조정, 다크 모드                                                                                                                                                      |
+
+## 4. 주요 기능
+
+**기본 (MVP)**
+
+- 주소·단지명 검색(카카오) → 주변 건물 3D 생성(V-World / OSM / 샘플)
+- 날짜·절기 프리셋, 시각 슬라이더, 재생(×1·×2·×4). 그림자가 실제 태양 방향을 따라 움직입니다.
+- **세대 일조 히트맵**: 08~16시 총 일조 시간을 창문 패치 수만 개에 색으로 표시합니다(InstancedMesh, Web Worker 병렬 계산).
+- 세대 상세: 동·층·추정 호수·창 방향, 하루 총 일조, 08~16시 총 일조, 09~15시 최대 연속 일조, 참고 기준 배지, 하루 타임라인(막대를 누르면 그 시각으로 이동)
+
+**1차 추가 기능 (B)**
+
+- **동·호수 찾기**: "101동 1203호" → 카메라가 그 세대로 이동합니다. 같은 동 번호가 여러 곳이면 후보를 고릅니다. 동 번호 직접 지정도 됩니다.
+- **층별 비교 그래프**: "N층부터 기준 충족" 표시. 막대를 누르면 그 층 세대가 선택됩니다.
+- **3D 태양 경로**: 선택한 날짜·동지·하지·춘분 궤적과 현재 태양 위치
+- **층수 보정**: 보정하면 다시 계산되고, 새로 고침 후에도 유지되며, 되돌리면 저장된 결과로 즉시 복원됩니다.
+- **즐겨찾기·최근 검색**: 이름 변경, 삭제 실행 취소(5초), 다른 탭과 동기화
+- **온보딩 가이드** 4단계, 키보드 단축키, 시뮬레이션 한계 안내
+
+**2차 추가 기능 (C)**
+
+- **창문 시점**: 세대 창문 앞에서 바깥을 둘러봅니다. 해가 옆 동 뒤로 넘어가는 순간을 직접 볼 수 있습니다.
+- **지면 그림자 누적**: 놀이터·주차장이 하루에 얼마나 그늘지는지 셀 단위로 보여 줍니다.
+- **천공률**(하늘 개방도), **일사량**(맑은 날 추정 kWh/m²), **옥상 태양광** 하루·연간 발전량
+- **계절 타임랩스**: 매월 21일 12개월을 미리 계산해 재생합니다. 월별 요약 차트(이 세대, 단지 평균, 하위 10%)를 함께 보여 줍니다.
+
+**키보드 단축키**
+
+| 키                        | 동작                                         |
+| ------------------------- | -------------------------------------------- |
+| `Space`                   | 시각 재생 / 정지                             |
+| `←` `→` / `Shift`+`←` `→` | 10분 / 1시간 이동                            |
+| `1` `2` `3` `4`           | 레이어: 일조 / 천공률 / 일사량 / 지면 그림자 |
+| `H`                       | 3D 히트맵 켜기·끄기                          |
+| `F`                       | 선택한 세대·건물로 카메라 이동               |
+| `Esc`                     | 선택 해제(창문 시점이면 궤도 보기로)         |
+| `/`                       | 검색창                                       |
+| `?`                       | 단축키 도움말                                |
+
+## 5. 사용 방법
+
+1. 처음 열면 사용 가이드가 나옵니다. 헤더의 `?` 버튼으로 다시 볼 수 있습니다.
+2. 검색창에 단지명을 입력하거나 **샘플 지역** 버튼을 누릅니다.
+3. 날짜(기본: 동지)와 시각을 고르고 ▶ 로 재생해 그림자를 봅니다.
+4. 건물 **벽**을 클릭하면 그 위치 세대의 일조 정보가, **지붕**을 클릭하면 건물 정보(동 번호 지정, 층수 보정, 옥상 태양광)가 나옵니다.
+5. 분석 레이어에서 천공률·일사량·지면 그림자로 바꾸고, 계절 타임랩스를 켜 12개월 변화를 봅니다.
+
+| 샘플                                  | 특징                                                           |
+| ------------------------------------- | -------------------------------------------------------------- |
+| 서울 송파 잠실 (엘스·리센츠·트리지움) | 대단지 3곳, 건물 625개·세대 5만여 곳 — 성능 상한 확인용        |
+| 부산 해운대 마린시티                  | 초고층(최대 75층) — 긴 그림자, 같은 동 번호가 여러 단지에 있음 |
+| 세종 한솔동 첫마을                    | 판상형·탑상형 혼합, 동 번호 대부분 있음 — 동·호수 검색 시연용  |
+
+## 6. 알고리즘 요약
+
+자세한 수식과 근거는 [PLAN.md 9장](PLAN.md)에 있습니다.
+
+| 단계        | 방법                                                                                                                                                          |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 태양 위치   | NOAA Solar Calculator 식(Meeus) 직접 구현 — 적위·균시차 → 시간각 → 고도·방위. 일출·일몰은 −0.833° 기준                                                        |
+| 좌표 변환   | 위경도 → 장면 중심 기준 로컬 평면(m), x = 동, z = 남                                                                                                          |
+| 건물        | 외곽선 정리(중복점·자기교차 복구) → 돌출 프리즘. 높이 = 실측 높이, 없으면 층수 × 2.9m, 없으면 추정                                                            |
+| 세대        | 외벽을 6m 라인 × 층으로 나눈 창문 점. 주향 면을 정하고, 바깥에서 볼 때 왼쪽부터 라인 번호 → 추정 호수                                                         |
+| 가림 판정   | 창문 점에서 태양 쪽 반직선이 프리즘 벽과 교차하는지 2D 반직선–선분 교차로 판정. 균일 격자 + DDA(Amanatides–Woo)로 후보만 검사                                 |
+| 일조 집계   | 10분 칸 중점의 가시성 마스크 → 총 일조, 08~16시 총, 09~15시 최대 연속 → 참고 기준(연속 2시간 또는 총 4시간)                                                   |
+| 천공률      | 코사인 가중 피보나치 반구 샘플링(N = 256 등) → 하늘이 보이는 비율                                                                                             |
+| 일사량      | 청천 모델: Meinel DNI + Kasten–Young 대기 질량, 산란 = 0.1 DNI, F_sky = 천공률, 지면 반사 0.2                                                                 |
+| 지면 그림자 | 장면을 4m 셀로 나눠 셀 중심에서 같은 가림 판정 → 그늘 시간                                                                                                    |
+| 병렬화      | Worker 풀(코어 − 1, 최대 4개)이 세대·셀 범위를 나눠 계산, 512개 청크마다 취소 확인, 결과는 transferable로 전달. 작업 큐는 우선순위·최신 요청 유지·협조적 양보 |
+
+## 7. 검증 결과
+
+**태양 위치** (`src/domain/solar/solarPosition.test.ts`)
+
+- suncalc 대비 고도 2° 이상 구간에서 차이 0.2° 미만(굴절 보정을 맞춰 비교)
+- NASA/JPL Horizons(DE441) 고정밀 천체력 기준값과 비교 시 고도·방위 오차 0.02° 미만(실측 최대 0.007°), 일출·일몰 30초 이내
+- 서울 하지 남중 고도 76.9°(이론 77.0°)
+
+**천공률 수렴** — N = 16,384 기준값 대비 절대 오차 (`src/domain/sunlight/skyView.test.ts`)
+
+| 장면                                             | 기준 SVF | N = 64 | 128    | 256    | 1,024  |
+| ------------------------------------------------ | -------- | ------ | ------ | ------ | ------ |
+| 가림 없는 수직 벽 (이론 0.5)                     | 0.4999   | 0.0001 | 0.0078 | 0.0001 | 0.0001 |
+| 앞 20m에 높이 60m 탑                             | 0.2066   | 0.0121 | 0.0113 | 0.0035 | 0.0005 |
+| 협곡 바닥 W = H = 20m (이론 cos(atan 2) = 0.447) | 0.4478   | 0.0054 | 0.0054 | 0.0015 | 0.0015 |
+
+**일사량**: 서울 춘분 남중 수평면 GHI 700~900 W/m²(청천 문헌값 범위), 동지 남향 벽 > 북향 벽 × 3, 하지 지붕 > 동지 지붕 × 2
+
+**지면 그림자**: 정오 그림자 길이 = H / tan h, 셀 크기 2m ↔ 4m의 그림자 면적 차이 < 5%
+
+**성능** (브라우저, Worker 4개, 동지, 10분 간격)
+
+| 장면                   | 규모                     | 시간                                              |
+| ---------------------- | ------------------------ | ------------------------------------------------- |
+| 세종 한솔동 일조       | 세대 16,231 · 광선 46만  | 36ms                                              |
+| 잠실 일조              | 세대 52,361 · 광선 148만 | 154ms (배포 사이트 182ms)                         |
+| 지면 그림자 (세종, 4m) | 59,049셀                 | 0.29초                                            |
+| 계절 12개월 (세종)     | 일조 × 12                | 약 1초                                            |
+| 첫 화면 JS             | 코드 분할 후             | 약 270KB (gzip 약 90KB), 3D 엔진은 따로 지연 로딩 |
+
+## 8. 시뮬레이션 한계
+
+- 지형 고저차는 반영하지 않습니다. 모든 건물이 같은 평지에 있다고 가정합니다.
+- 건물 높이는 데이터의 높이 또는 층수 × 층고(2.9m)로 추정하며, 일부는 기본값입니다. 건물을 선택해 층수를 보정할 수 있습니다.
+- 발코니·돌출부·옥탑·나무·담장은 반영하지 않습니다. 건물은 바닥 모양을 그대로 세운 형태로 근사합니다.
+- 일조 판정에는 대기 굴절을 반영하지 않은 기하학적 태양 고도를 씁니다(보수적). 일출·일몰 시각만 표준 보정합니다.
+- 세대 위치와 호수는 외벽을 6m 간격으로 나눈 **추정값**이며 실제 평면·호수 체계와 다를 수 있습니다.
+- 일조 기준 판정은 판례 등에서 자주 언급되는 기준을 참고로 표시한 것이며 **법적 판단이 아닙니다**.
+- 일사량·태양광은 구름·미세먼지가 없는 **맑은 날 상한 추정치**입니다.
+- 데이터 출처(V-World / OpenStreetMap / 샘플)에 따라 건물 모양·높이 정확도가 다릅니다.
+
+## 9. 아키텍처·폴더 구조
+
+```mermaid
+flowchart LR
+  UI[React UI<br/>components/*] -->|Context| ST[(상태<br/>contexts/*)]
+  UI --> SC[3D 장면<br/>scene/* · R3F]
+  ST --> HK[useSunlightWorker]
+  HK -->|INIT_SCENE · RUN · CANCEL| WP[Worker 풀<br/>workers/*]
+  WP --> DM[도메인 계산<br/>domain/*]
+  UI -->|/api/*| SV[서버 프록시<br/>server/* · api/index.ts]
+  SV --> K[카카오] & V[V-World] & O[OSM Overpass]
+  UI --> SM[샘플 JSON<br/>public/samples]
+```
+
+```
+src/
+├─ domain/       순수 계산 (React·three.js 무관, 단위 테스트) — solar, geo, geometry, spatial, sunlight, units, ground, heatmap, time
+├─ workers/      Worker 프로토콜·런타임·풀·작업 큐·캐시
+├─ contexts/     SceneData, Settings, Time, Playback, Season, Simulation, Heatmap, Favorites, Toast
+├─ hooks/        커스텀 훅 (useSunlightWorker, useGeocode, useLocalStorage, useCameraFlyTo, …)
+├─ components/   기능별 UI (search, dongHo, controls, detail, floorCompare, season, solar, favorites, onboarding, layout, …)
+├─ scene/        R3F 3D 구성요소 (건물, 히트맵, 태양광, 태양 경로, 지면 그림자, 카메라)
+├─ data/         API 클라이언트, 응답 정규화, 샘플 로더, localStorage 스키마
+└─ config/       상수, 기능 플래그, 품질 프리셋
+server/          /api/* 라우터와 핸들러 (개발: Vite 미들웨어, 배포: Vercel 함수)
+scripts/         샘플 데이터 생성, API 실측 검증
+```
+
+## 10. 데이터 출처·라이선스
+
+- 주소·장소 검색: [카카오 로컬 API](https://developers.kakao.com/docs/latest/ko/local/dev-guide)
+- 건물: 국토교통부 [V-World](https://www.vworld.kr) 2D 데이터(LT_C_BLDGINFO)
+- 건물·샘플: © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, ODbL
+- 태양 위치 식: NOAA Global Monitoring Laboratory, _Solar Calculation Details_ (Meeus, _Astronomical Algorithms_ 기반)
+- 일사 모델: Meinel & Meinel(1976), Kasten & Young(1989), Liu & Jordan(1960)
+
+## 11. 테스트·스크립트
+
+| 명령                                 | 설명                                                                      |
+| ------------------------------------ | ------------------------------------------------------------------------- |
+| `npm run dev`                        | 개발 서버 (`/api/*` 프록시 포함)                                          |
+| `npm run build`                      | 타입 검사 + 프로덕션 빌드                                                 |
+| `npm test`                           | 단위 테스트 (Vitest, 389개)                                               |
+| `npm run test:tz`                    | 다른 시간대(뉴욕)에서 단위 테스트 — 계산이 실행 PC 시간대와 무관한지 확인 |
+| `npm run coverage`                   | 커버리지                                                                  |
+| `npm run lint` / `npm run typecheck` | ESLint / TypeScript 검사                                                  |
+| `npm run bench`                      | 광선 판정 성능 측정                                                       |
+| `npm run verify:api`                 | 외부 API 실측 검증 ([docs/api-verification.md](docs/api-verification.md)) |
