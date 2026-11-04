@@ -1,5 +1,5 @@
 // OSM Overpass 프록시 — 주 인스턴스 실패 시 미러로 대체 (키 불필요)
-import { ApiError, USER_AGENT, fetchWithRetry, json, parseCenter } from '../http';
+import { ApiError, USER_AGENT, fetchWithRetry, json, parseCenter } from '../http.js';
 
 export const OVERPASS_ENDPOINTS = [
   'https://overpass-api.de/api/interpreter',

@@ -1,6 +1,6 @@
 // V-World 2D 데이터 API 2.0 — 건축물정보(LT_C_BLDGINFO) 프록시
 // 원시 GeoJSON 피처를 그대로 넘기고, 정규화는 클라이언트(src/data/normalize)에서 한다.
-import { ApiError, fetchWithRetry, json, parseCenter, type ServerEnv } from '../http';
+import { ApiError, fetchWithRetry, json, parseCenter, type ServerEnv } from '../http.js';
 
 const PAGE_SIZE = 1000; // 문서상 최대값
 const MAX_PAGES = 5;

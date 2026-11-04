@@ -1,5 +1,5 @@
 // 지오코딩 프록시: 카카오(주소+키워드 병렬) → 실패·키 없음 시 V-World(지오코더+검색)
-import { ApiError, fetchWithRetry, json, type ServerEnv } from '../http';
+import { ApiError, fetchWithRetry, json, type ServerEnv } from '../http.js';
 
 export interface GeoResult {
   label: string; // 표시 이름 (장소명 또는 주소)

@@ -1,9 +1,9 @@
 // /api/* 라우터 — Vercel 함수(api/index.ts)와 Vite dev 미들웨어(devApiPlugin.ts)가 공유한다.
-import { handleGeocode } from './handlers/geocode';
-import { handleHealth } from './handlers/health';
-import { handleOverpassBuildings } from './handlers/overpassBuildings';
-import { handleVworldBuildings } from './handlers/vworldBuildings';
-import { ApiError, errorResponse, type ServerEnv } from './http';
+import { handleGeocode } from './handlers/geocode.js';
+import { handleHealth } from './handlers/health.js';
+import { handleOverpassBuildings } from './handlers/overpassBuildings.js';
+import { handleVworldBuildings } from './handlers/vworldBuildings.js';
+import { ApiError, errorResponse, type ServerEnv } from './http.js';
 
 export async function routeApi(request: Request, env: ServerEnv): Promise<Response> {
   try {

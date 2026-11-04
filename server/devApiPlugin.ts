@@ -2,8 +2,8 @@
 // Vercel 함수와 같은 router를 사용해 로컬과 배포 환경 동작을 일치시킨다.
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
-import type { ServerEnv } from './http';
-import { routeApi } from './router';
+import type { ServerEnv } from './http.js';
+import { routeApi } from './router.js';
 
 export function devApiPlugin(env: ServerEnv): Plugin {
   return {
