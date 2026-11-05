@@ -3,9 +3,15 @@ import { handleGeocode } from './handlers/geocode.js';
 import { handleHealth } from './handlers/health.js';
 import { handleOverpassBuildings } from './handlers/overpassBuildings.js';
 import { handleVworldBuildings } from './handlers/vworldBuildings.js';
+import { preflight, withCors } from './cors.js';
 import { ApiError, errorResponse, type ServerEnv } from './http.js';
 
 export async function routeApi(request: Request, env: ServerEnv): Promise<Response> {
+  if (request.method === 'OPTIONS') return preflight(request);
+  return withCors(request, await route(request, env));
+}
+
+async function route(request: Request, env: ServerEnv): Promise<Response> {
   try {
     if (request.method !== 'GET') throw new ApiError('BAD_REQUEST', 'GET만 지원합니다.', 405);
     const url = new URL(request.url);

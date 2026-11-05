@@ -150,9 +150,7 @@ async function geocodeVworld(query: string, env: ServerEnv): Promise<GeoResult[]
     vworldPlaceSearch(query, env).catch(() => [] as GeoResult[]),
   ]);
   const parcel = road ? null : await vworldGeocoder(query, 'PARCEL', env);
-  return [road, parcel, ...places.filter((p) => isRelevantPlace(p, query))].filter(
-    (g): g is GeoResult => g !== null,
-  );
+  return [road, parcel, ...places.filter((p) => isRelevantPlace(p, query))].filter((g): g is GeoResult => g !== null);
 }
 
 /**

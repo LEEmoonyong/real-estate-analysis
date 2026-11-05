@@ -43,7 +43,10 @@ export async function handleVworldBuildings(params: URLSearchParams, env: Server
       const code = r?.error?.code;
       if (code === 'OVER_REQUEST_LIMIT') throw new ApiError('QUOTA', 'V-World 일일 한도 초과', 503);
       const isKey = code === 'INVALID_KEY' || code === 'INCORRECT_KEY' || code === 'UNAVAILABLE_KEY';
-      throw new ApiError(isKey ? 'NO_KEY' : 'UPSTREAM', `V-World 오류: ${code ?? '응답 형식 불명'} ${r?.error?.text ?? ''}`.trim());
+      throw new ApiError(
+        isKey ? 'NO_KEY' : 'UPSTREAM',
+        `V-World 오류: ${code ?? '응답 형식 불명'} ${r?.error?.text ?? ''}`.trim(),
+      );
     }
     features.push(...(r.result?.featureCollection?.features ?? []));
     const totalPages = Number(r.page?.total ?? 1);

@@ -86,3 +86,29 @@ describe('buildOverpassQuery', () => {
     expect(new Set(order).size).toBe(OVERPASS_ENDPOINTS.length);
   });
 });
+
+describe('CORS (로컬 실행 앱이 배포 서버를 빌려 쓰기)', () => {
+  const withOrigin = (origin: string, method = 'GET') =>
+    routeApi(new Request('https://example.vercel.app/api/health', { method, headers: { Origin: origin } }), NO_KEYS);
+
+  it('내 컴퓨터 주소(localhost·127.0.0.1·[::1])만 허용', async () => {
+    for (const o of ['http://localhost:5173', 'http://127.0.0.1:4173', 'http://[::1]:5173', 'http://localhost']) {
+      expect((await withOrigin(o)).headers.get('Access-Control-Allow-Origin')).toBe(o);
+    }
+    for (const o of ['https://evil.example', 'http://localhost.evil.example', 'https://localhost:5173']) {
+      expect((await withOrigin(o)).headers.get('Access-Control-Allow-Origin')).toBeNull();
+    }
+  });
+
+  it('사전 요청(OPTIONS)은 204, 오류 응답에도 CORS 헤더', async () => {
+    const pre = await withOrigin('http://localhost:5173', 'OPTIONS');
+    expect(pre.status).toBe(204);
+    expect(pre.headers.get('Access-Control-Allow-Methods')).toContain('GET');
+    const err = await routeApi(
+      new Request('https://example.vercel.app/api/nope', { headers: { Origin: 'http://localhost:5173' } }),
+      NO_KEYS,
+    );
+    expect(err.status).toBe(404);
+    expect(err.headers.get('Access-Control-Allow-Origin')).toBe('http://localhost:5173');
+  });
+});
