@@ -11,6 +11,19 @@ export class ApiClientError extends Error {
   }
 }
 
+/**
+ * /api/* 요청을 보낼 서버. 기본은 같은 출처(''), 로컬에 키가 없으면 배포 서버 주소로 바꾼다(useApiHealth).
+ */
+let apiBase = '';
+
+export function setApiBase(base: string): void {
+  apiBase = base;
+}
+
+export function apiUrl(path: string): string {
+  return path.startsWith('/api/') ? apiBase + path : path;
+}
+
 export function isAbortError(err: unknown): boolean {
   return err instanceof DOMException && err.name === 'AbortError';
 }
@@ -18,7 +31,7 @@ export function isAbortError(err: unknown): boolean {
 export async function getJson<T>(url: string, signal?: AbortSignal): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(url, signal ? { signal } : {});
+    res = await fetch(apiUrl(url), signal ? { signal } : {});
   } catch (err) {
     if (isAbortError(err)) throw err;
     throw new ApiClientError('NETWORK', '데이터 서버에 연결할 수 없습니다.');

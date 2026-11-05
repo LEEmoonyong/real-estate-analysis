@@ -22,6 +22,16 @@ export function AppHeader({ health, onShowTour, onShowShortcuts, onShowLimitatio
           샘플 모드
         </span>
       )}
+      {health.mode === 'live' && health.route === 'remote' && (
+        <span
+          className={styles.badge}
+          title="이 컴퓨터에 API 키가 없어, 검색·건물 데이터를 배포 서버(키 보관)를 거쳐 받고 있습니다."
+          role="status"
+          data-api-route="remote"
+        >
+          배포 서버 경유
+        </span>
+      )}
       {health.mode === 'checking' && (
         <span className={styles.muted} role="status">
           연결 확인 중…

@@ -4,6 +4,14 @@
 // import.meta.env는 Vite 밖(Node 스크립트·테스트)에서 undefined일 수 있다
 export const FORCE_SAMPLE_MODE = import.meta.env?.VITE_FORCE_SAMPLE_MODE === 'true';
 
+/**
+ * 로컬 실행에 API 키가 없을 때 빌려 쓰는 배포 서버 (비밀 값 아님 — 키는 그 서버에만 있다).
+ * VITE_REMOTE_API_BASE로 바꿀 수 있고, 빈 값이면 빌려 쓰지 않고 바로 샘플 모드.
+ */
+export const REMOTE_API_BASE = (
+  import.meta.env?.VITE_REMOTE_API_BASE ?? 'https://sunlight-simulator-alpha.vercel.app'
+).replace(/\/+$/, '');
+
 /** 기본 층고 [m] */
 export const DEFAULT_FLOOR_HEIGHT_M = 2.9;
 /** 층수·높이 정보가 없을 때 사용하는 기본 층수 (추정값 표시). 1일차 실측: 누락 건물 대부분이 소형 부속 건물 */
