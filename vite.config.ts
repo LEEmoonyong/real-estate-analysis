@@ -12,6 +12,8 @@ export default defineConfig(({ mode }) => {
         KAKAO_REST_API_KEY: env.KAKAO_REST_API_KEY,
         VWORLD_API_KEY: env.VWORLD_API_KEY,
         VWORLD_DOMAIN: env.VWORLD_DOMAIN,
+        DATA_GO_KR_SERVICE_KEY: env.DATA_GO_KR_SERVICE_KEY,
+        FSS_FINLIFE_API_KEY: env.FSS_FINLIFE_API_KEY,
       }),
     ],
     worker: { format: 'es' },

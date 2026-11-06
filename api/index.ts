@@ -8,6 +8,8 @@ export default {
       KAKAO_REST_API_KEY: process.env.KAKAO_REST_API_KEY,
       VWORLD_API_KEY: process.env.VWORLD_API_KEY,
       VWORLD_DOMAIN: process.env.VWORLD_DOMAIN,
+      DATA_GO_KR_SERVICE_KEY: process.env.DATA_GO_KR_SERVICE_KEY,
+      FSS_FINLIFE_API_KEY: process.env.FSS_FINLIFE_API_KEY,
     });
   },
 };

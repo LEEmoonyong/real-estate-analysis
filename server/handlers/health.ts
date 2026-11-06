@@ -6,6 +6,8 @@ export function handleHealth(env: ServerEnv): Response {
     ok: true,
     kakao: Boolean(env.KAKAO_REST_API_KEY),
     vworld: Boolean(env.VWORLD_API_KEY),
+    realestate: Boolean(env.DATA_GO_KR_SERVICE_KEY),
+    finlife: Boolean(env.FSS_FINLIFE_API_KEY),
     time: new Date().toISOString(),
   });
 }

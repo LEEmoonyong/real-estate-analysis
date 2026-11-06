@@ -3,6 +3,14 @@ import { handleGeocode } from './handlers/geocode.js';
 import { handleHealth } from './handlers/health.js';
 import { handleOverpassBuildings } from './handlers/overpassBuildings.js';
 import { handleVworldBuildings } from './handlers/vworldBuildings.js';
+import {
+  handleTradeComplexes,
+  handleComplexInfo,
+  handleComplexes,
+  handleRegion,
+  handleRents,
+  handleTrades,
+} from './handlers/realestate.js';
 import { preflight, withCors } from './cors.js';
 import { ApiError, errorResponse, type ServerEnv } from './http.js';
 
@@ -23,6 +31,18 @@ async function route(request: Request, env: ServerEnv): Promise<Response> {
         return await handleGeocode(url.searchParams, env);
       case '/api/buildings/vworld':
         return await handleVworldBuildings(url.searchParams, env);
+      case '/api/region':
+        return await handleRegion(url.searchParams, env);
+      case '/api/realestate/trades':
+        return await handleTrades(url.searchParams, env);
+      case '/api/realestate/rents':
+        return await handleRents(url.searchParams, env);
+      case '/api/realestate/complexes':
+        return await handleComplexes(url.searchParams, env);
+      case '/api/realestate/trade-complexes':
+        return await handleTradeComplexes(url.searchParams, env);
+      case '/api/realestate/complex':
+        return await handleComplexInfo(url.searchParams, env);
       case '/api/buildings/osm':
         return await handleOverpassBuildings(url.searchParams);
       default:

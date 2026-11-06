@@ -18,6 +18,10 @@ export interface ServerEnv {
   KAKAO_REST_API_KEY?: string | undefined;
   VWORLD_API_KEY?: string | undefined;
   VWORLD_DOMAIN?: string | undefined;
+  /** 공공데이터포털 일반 인증키(Decoding) — 실거래가·단지 정보 */
+  DATA_GO_KR_SERVICE_KEY?: string | undefined;
+  /** 금감원 금융상품한눈에 오픈API */
+  FSS_FINLIFE_API_KEY?: string | undefined;
 }
 
 export const USER_AGENT = 'SunlightSimulator/0.1 (university React project)';
