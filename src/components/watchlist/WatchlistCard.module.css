@@ -65,7 +65,7 @@
 .badge {
   padding: 1px 6px;
   border-radius: 999px;
-  background: #d9512b;
+  background: #b5401f; /* 흰 글자 대비 4.5:1 이상 */
   color: #fff;
   font-size: 11px;
   font-weight: 700;

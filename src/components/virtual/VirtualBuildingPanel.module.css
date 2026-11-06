@@ -159,5 +159,5 @@
 }
 
 .bad {
-  color: #d9512b;
+  color: var(--color-danger);
 }

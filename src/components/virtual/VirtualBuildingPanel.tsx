@@ -18,7 +18,7 @@ const hm = (m: number) => {
 
 export function VirtualBuildingPanel() {
   const { scene, virtualBuildings, virtualEnabled, radiusM, units, buildings, selectedUnitId } = useSceneData();
-  const { updateVirtual, removeVirtual, clearVirtual, setVirtualEnabled } = useSceneDataActions();
+  const { addVirtual, updateVirtual, removeVirtual, clearVirtual, setVirtualEnabled } = useSceneDataActions();
   const { placing, activeId, showImpact, status, baseDate } = useVirtualUi();
   const { setPlacing, setActiveId, setShowImpact } = useVirtualUiActions();
   const { date } = useTime();
@@ -54,6 +54,10 @@ export function VirtualBuildingPanel() {
           onClick={() => setPlacing(!placing)}
         >
           {placing ? '지면을 눌러 위치 고르기 (취소)' : '＋ 가상 건물 놓기'}
+        </button>
+        {/* 키보드·화면 낭독기 사용자를 위해: 장면 가운데 남쪽에 놓고 슬라이더로 옮긴다 */}
+        <button type="button" className={styles.secondary} onClick={() => addVirtual(0, 60)}>
+          가운데에 놓기
         </button>
         {virtualBuildings.length > 0 && (
           <button type="button" className={styles.secondary} onClick={clearVirtual}>
