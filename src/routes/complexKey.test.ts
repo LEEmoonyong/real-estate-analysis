@@ -48,3 +48,22 @@ describe('단지 주소', () => {
     expect(isComplexTab('nope')).toBe(false);
   });
 });
+
+describe('실거래 단지 정보가 붙은 주소', () => {
+  it('seq·lawd 왕복, 형식이 틀리면 버린다', () => {
+    const t: ComplexTarget = {
+      kind: 'geo',
+      lat: 37.514135,
+      lng: 127.079325,
+      name: '잠실엘스',
+      aptSeq: '11710-6346',
+      lawd: '11710',
+    };
+    expect(parse(complexPath(t, 'price'))).toEqual(t);
+    expect(complexPath(t, 'price')).toContain('/price?');
+    const bad = new URLSearchParams({ name: 'x', seq: '../x', lawd: '11' });
+    expect(parseComplexKey('geo-37.5,127', bad)).toEqual({ kind: 'geo', lat: 37.5, lng: 127, name: 'x' });
+    expect(isComplexTab('price')).toBe(true);
+    expect(isComplexTab('info')).toBe(true);
+  });
+});
