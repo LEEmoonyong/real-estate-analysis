@@ -7,6 +7,7 @@
 - **기술**: Vite + React 18 + TypeScript(strict), three.js(@react-three/fiber), recharts, Web Worker
 - 상태 관리는 React 기본 기능(useState·useReducer·Context)만 사용합니다. 외부 상태 라이브러리는 쓰지 않습니다.
 - 태양 위치·광선 교차·일조·천공률·일사량 계산은 모두 직접 구현했습니다. suncalc는 테스트에서 비교용으로만 씁니다.
+- **진행 중인 확장**: 지도·실거래가·단지 정보·대출/세금 계산기를 더한 단지 탐색형 부동산 앱으로 넓히는 중입니다 → [PLAN_EXPANSION.md](PLAN_EXPANSION.md)
 
 ![세종 한솔동 404동 12층 세대 선택 화면 — 세대 히트맵, 상세 패널, 층별 비교](docs/screenshot.jpg)
 
