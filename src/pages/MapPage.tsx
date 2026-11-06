@@ -289,6 +289,9 @@ export function MapPage() {
             배포 서버 경유
           </span>
         )}
+        <Link to="/calc" className={styles.headerLink}>
+          계산기
+        </Link>
       </header>
 
       <main className={styles.mapArea} aria-label="지도">

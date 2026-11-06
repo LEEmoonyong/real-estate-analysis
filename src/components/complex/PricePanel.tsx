@@ -116,6 +116,20 @@ export function PricePanel({ market }: { market: Ready }) {
             <dd>{summary.ratio ? `${Math.round(summary.ratio * 100)}%` : '—'}</dd>
           </div>
         </dl>
+        {summary.tm && (
+          <Link
+            className={styles.chip}
+            to={`/calc?${new URLSearchParams({
+              price: String(Math.round(summary.tm)),
+              area: String(Math.round((trades.find((t) => !b || areaBandOf(t.area) === b)?.area ?? 84) * 10) / 10),
+              sido: region.sido,
+              sigungu: region.sigungu,
+              name: complex.aptName,
+            }).toString()}`}
+          >
+            이 가격({formatManwon(summary.tm)})으로 대출·세금 계산 →
+          </Link>
+        )}
         <div
           role="img"
           aria-label={`최근 ${months.length}달 달별 매매·전세 중앙값 선 그래프 (${band === 'all' ? '전체' : AREA_BANDS.find((x) => x.id === band)?.label})`}
