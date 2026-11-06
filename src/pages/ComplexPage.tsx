@@ -1,7 +1,11 @@
 // [요구사항: 컴포넌트] 단지 상세 — 주소(/complex/:key/:tab)에서 대상을 읽어 탭 화면을 보여 준다
-// 지금은 "일조·조망" 탭(기존 시뮬레이터). 시세·단지 정보 등은 확장 일정(PLAN_EXPANSION.md)에 따라 탭으로 추가된다.
+//   sun   일조·조망 (기존 일조 시뮬레이터 전체)
+//   price 시세·실거래 (최근 12달 매매·전세 추이, 거래 목록)
+//   info  단지 정보 (공동주택 기본정보)
 import { useMemo } from 'react';
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom';
+import { BackToMap, ComplexTabs } from '../components/complex/ComplexTabs';
+import { MarketTabs } from '../components/complex/MarketTabs';
 import { complexPath, isComplexTab, parseComplexKey } from '../routes/complexKey';
 import { SunlightWorkspace } from './SunlightWorkspace';
 import styles from './ComplexPage.module.css';
@@ -21,11 +25,13 @@ export function ComplexPage() {
   }
   // 탭이 없거나 모르는 탭이면 기본 탭(일조·조망)으로
   if (!isComplexTab(tab)) return <Navigate to={complexPath(target)} replace />;
+  if (tab !== 'sun') return <MarketTabs target={target} tab={tab} />;
 
   const nav = (
-    <Link to="/" className={styles.back} aria-label="지도로 돌아가기" title="지도로 돌아가기">
-      ←<span className={styles.backText}> 지도</span>
-    </Link>
+    <>
+      <BackToMap />
+      <ComplexTabs target={target} active="sun" />
+    </>
   );
   return <SunlightWorkspace target={target} nav={nav} />;
 }

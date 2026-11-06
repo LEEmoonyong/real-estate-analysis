@@ -1,8 +1,8 @@
 // [요구사항: 컴포넌트] 지도 홈 — 전국 지도에서 단지를 찾아 단지 상세로 들어가는 시작 화면
 // [요구사항: 상태관리] useState — 지도 상태(불러오는 중·준비·실패), 선택한 장소 카드
-// [요구사항: 이벤트 처리] 검색 결과 선택, 지도 위 샘플 표시 클릭, "단지 열기" 클릭
+// [요구사항: 이벤트 처리] 검색 결과 선택, 지도 위 샘플·시세 표시 클릭, 지도 이동(idle) → 그 시군구 시세 불러오기, "단지 열기" 클릭
 // [요구사항: Hooks] useEffect(SDK 로드·지도 생성·표시 정리), useRef(지도 컨테이너·지도 객체·표시 목록)
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { SearchBar } from '../components/search/SearchBar';
 import { SampleChips } from '../components/search/SampleChips';
@@ -15,7 +15,17 @@ import {
   type KakaoMap,
   type KakaoMapsApi,
 } from '../data/map/kakaoMaps';
+import { getRegion, getTradeComplexes, latestDealMonth } from '../data/realestate/realestateClient';
 import { loadSampleIndex } from '../data/samples/sampleClient';
+import {
+  classOf,
+  formatArea,
+  formatManwon,
+  formatManwonShort,
+  perPyeong,
+  quantileBreaks,
+} from '../domain/realestate/format';
+import type { Region, TradeComplex } from '../domain/realestate/types';
 import type { SampleIndexEntry } from '../data/samples/sampleSchema';
 import { useApiHealth } from '../hooks/useApiHealth';
 import { complexPath, type ComplexTarget } from '../routes/complexKey';
@@ -29,12 +39,42 @@ interface Picked {
   subtitle?: string;
   lat: number;
   lng: number;
+  /** 지도 위 표시를 눌러 고른 경우 — 확대 수준을 바꾸지 않는다 */
+  keepZoom?: boolean;
 }
 
 /** 첫 화면: 대한민국 전체가 보이는 중심·확대 수준 */
 const KOREA_CENTER = { lat: 36.35, lng: 127.8 };
 const KOREA_LEVEL = 13;
 const PLACE_LEVEL = 4;
+/** 이 확대 수준 이하(더 가까이)에서만 시군구 시세를 불러온다 — 전국 단위로는 너무 많다 */
+const MARKET_LEVEL = 6;
+/** 평당가 5등급 색 (싼 → 비싼) — 밝기가 단조로워 색각 이상에도 구분된다 */
+const PRICE_COLORS = ['#fde4b2', '#fbb469', '#f58141', '#d9512b', '#9e2716'] as const;
+
+type MarketState =
+  | { status: 'zoom-in' }
+  | { status: 'loading'; region: Region | null }
+  | { status: 'ready'; region: Region; items: TradeComplex[]; breaks: number[] }
+  | { status: 'error'; message: string };
+
+function priceChip(item: TradeComplex, cls: number, onClick: () => void): HTMLElement {
+  const el = document.createElement('button');
+  el.type = 'button';
+  el.className = styles.priceMarker ?? '';
+  el.style.background = PRICE_COLORS[cls] ?? PRICE_COLORS[0];
+  el.style.color = cls >= 3 ? '#fff' : '#1b1f24';
+  el.title = `${item.aptName} · 평당 ${formatManwon(perPyeong(item.medianPricePerM2))} · 최근 3달 ${item.count}건`;
+  el.setAttribute('aria-label', el.title);
+  const price = document.createElement('strong');
+  price.textContent = `평당 ${formatManwonShort(perPyeong(item.medianPricePerM2))}`;
+  const name = document.createElement('span');
+  name.className = styles.priceName ?? '';
+  name.textContent = item.aptName;
+  el.append(price, name);
+  el.addEventListener('click', onClick);
+  return el;
+}
 
 function overlayChip(label: string, variant: 'sample' | 'picked', onClick: () => void): HTMLElement {
   const el = document.createElement('button');
@@ -57,6 +97,32 @@ export function MapPage() {
     KAKAO_JS_KEY ? null : '카카오 JavaScript 키가 설정되지 않아 지도를 표시할 수 없습니다.',
   );
   const [picked, setPicked] = useState<Picked | null>(null);
+  // [요구사항: 상태관리] useState — 지금 보이는 시군구의 시세 상태
+  const [market, setMarket] = useState<MarketState>({ status: 'zoom-in' });
+  const marketLawdRef = useRef<string | null>(null);
+  const priceOverlaysRef = useRef<KakaoCustomOverlay[]>([]);
+
+  // 화면 중심 → 법정동 → 시군구가 바뀌었으면 그 시군구 최근 3달 거래 단지
+  const loadMarketAt = useCallback(async (lat: number, lng: number) => {
+    try {
+      const region = await getRegion(lat, lng);
+      if (region.lawdCode === marketLawdRef.current) return;
+      marketLawdRef.current = region.lawdCode;
+      setMarket({ status: 'loading', region });
+      const items = await getTradeComplexes(region, latestDealMonth());
+      if (marketLawdRef.current !== region.lawdCode) return; // 그사이 다른 곳으로 이동
+      const breaks = quantileBreaks(
+        items.map((i) => i.medianPricePerM2),
+        PRICE_COLORS.length,
+      );
+      setMarket({ status: 'ready', region, items, breaks });
+    } catch (e) {
+      marketLawdRef.current = null;
+      setMarket({ status: 'error', message: e instanceof Error ? e.message : String(e) });
+    }
+  }, []);
+  const loadMarketRef = useRef(loadMarketAt);
+  loadMarketRef.current = loadMarketAt;
 
   // 지도 만들기 + 샘플 지역 표시 (한 번)
   useEffect(() => {
@@ -72,6 +138,20 @@ export function MapPage() {
         });
         mapRef.current = { api, map };
         setStatus('ready');
+        // 지도를 움직이고 멈출 때마다: 충분히 확대했으면 화면 중심의 시군구 시세를 불러온다
+        let regionTimer = 0;
+        api.event.addListener(map, 'idle', () => {
+          window.clearTimeout(regionTimer);
+          if (map.getLevel() > MARKET_LEVEL) {
+            marketLawdRef.current = null;
+            setMarket({ status: 'zoom-in' });
+            return;
+          }
+          regionTimer = window.setTimeout(() => {
+            const c = map.getCenter();
+            void loadMarketRef.current(Math.round(c.getLat() * 1e3) / 1e3, Math.round(c.getLng() * 1e3) / 1e3);
+          }, 250);
+        });
         const samples = await loadSampleIndex().catch(() => [] as SampleIndexEntry[]);
         if (cancelled) return;
         for (const s of samples) {
@@ -93,6 +173,7 @@ export function MapPage() {
     return () => {
       cancelled = true;
       for (const o of overlays) o.setMap(null);
+      for (const o of priceOverlaysRef.current) o.setMap(null);
       pickedOverlayRef.current?.setMap(null);
       mapRef.current = null;
     };
@@ -106,9 +187,9 @@ export function MapPage() {
     pickedOverlayRef.current?.setMap(null);
     if (!m || !picked) return;
     const pos = new m.api.LatLng(picked.lat, picked.lng);
-    m.map.setLevel(PLACE_LEVEL, { animate: true });
+    if (!picked.keepZoom) m.map.setLevel(PLACE_LEVEL, { animate: true });
     m.map.panTo(pos);
-    if (picked.target.kind === 'geo') {
+    if (picked.target.kind === 'geo' && !picked.keepZoom) {
       const overlay = new m.api.CustomOverlay({
         position: pos,
         content: overlayChip(picked.title, 'picked', () => undefined),
@@ -119,6 +200,47 @@ export function MapPage() {
       pickedOverlayRef.current = overlay;
     }
   }, [picked, status]);
+
+  const pickTrade = useCallback((item: TradeComplex, region: Region) => {
+    if (item.lat === null || item.lng === null) return;
+    const built = item.buildYear ? ` · ${item.buildYear}년 준공` : '';
+    setPicked({
+      target: {
+        kind: 'geo',
+        lat: item.lat,
+        lng: item.lng,
+        name: item.aptName,
+        address: `${region.sido} ${region.sigungu} ${item.umdName} ${item.jibun}`,
+        aptSeq: item.aptSeq,
+        lawd: region.lawdCode,
+      },
+      title: item.aptName,
+      subtitle: `최근 거래 ${formatArea(item.lastArea)} ${formatManwon(item.lastPrice)} (${item.lastDate}) · 최근 3달 ${item.count}건 · 평당 ${formatManwon(perPyeong(item.medianPricePerM2))}${built}`,
+      lat: item.lat,
+      lng: item.lng,
+      keepZoom: true,
+    });
+  }, []);
+
+  // 시세 표시 그리기 (목록이 바뀔 때마다 지우고 다시)
+  useEffect(() => {
+    const m = mapRef.current;
+    for (const o of priceOverlaysRef.current) o.setMap(null);
+    priceOverlaysRef.current = [];
+    if (!m || market.status !== 'ready') return;
+    for (const item of market.items) {
+      if (item.lat === null || item.lng === null) continue;
+      const overlay = new m.api.CustomOverlay({
+        position: new m.api.LatLng(item.lat, item.lng),
+        content: priceChip(item, classOf(item.medianPricePerM2, market.breaks), () => pickTrade(item, market.region)),
+        yAnchor: 1.1,
+        clickable: true,
+        zIndex: 2,
+      });
+      overlay.setMap(m.map);
+      priceOverlaysRef.current.push(overlay);
+    }
+  }, [market, pickTrade]);
 
   const pickSample = useCallback((s: SampleIndexEntry) => {
     setPicked({
@@ -172,6 +294,7 @@ export function MapPage() {
       <main className={styles.mapArea} aria-label="지도">
         <div ref={containerRef} className={styles.map} />
         {status === 'loading' && <p className={styles.mapMessage}>지도를 불러오는 중…</p>}
+        {status === 'ready' && <MarketBadge market={market} />}
         {status === 'error' && (
           <div className={styles.mapMessage} role="status">
             <p>{error}</p>
@@ -208,6 +331,36 @@ export function MapPage() {
           </div>
         )}
       </aside>
+    </div>
+  );
+}
+
+/** 지도 위 시세 안내·범례 */
+function MarketBadge({ market }: { market: MarketState }) {
+  let body: ReactNode;
+  if (market.status === 'zoom-in') body = '지도를 확대하면 최근 3달 거래된 단지의 평당가가 보입니다.';
+  else if (market.status === 'loading')
+    body = `${market.region ? `${market.region.sigungu} ` : ''}실거래가를 불러오는 중…`;
+  else if (market.status === 'error') body = `시세를 불러오지 못했습니다: ${market.message}`;
+  else
+    body = (
+      <>
+        <span>
+          {market.region.sido} {market.region.sigungu} · 최근 3달 거래 단지 {market.items.length}곳 · 전용면적 기준
+          평당가
+        </span>
+        <span className={styles.legend} aria-hidden="true">
+          싸다
+          {PRICE_COLORS.map((c) => (
+            <i key={c} style={{ background: c }} />
+          ))}
+          비싸다
+        </span>
+      </>
+    );
+  return (
+    <div className={styles.marketBadge} role="status" data-market={market.status}>
+      {body}
     </div>
   );
 }

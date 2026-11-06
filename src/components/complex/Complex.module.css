@@ -1,0 +1,236 @@
+.tabs {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.tab:hover,
+.tab:focus-visible {
+  color: var(--color-text);
+  background: color-mix(in srgb, var(--color-text-muted) 12%, transparent);
+}
+
+.tab[aria-current='page'] {
+  color: var(--color-text);
+  background: color-mix(in srgb, var(--color-accent) 25%, transparent);
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.back:hover,
+.back:focus-visible {
+  border-color: var(--color-accent-strong);
+}
+
+/* ── 시세·단지 정보 탭 공통 화면 ── */
+.shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100vh;
+  height: 100dvh;
+  background: var(--color-bg);
+}
+
+.shellHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.shellTitle {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-size: var(--font-size-lg);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shellBody {
+  overflow-y: auto;
+  padding: var(--space-4);
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: var(--font-size-lg);
+}
+
+.muted {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.stats div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stats dt {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+}
+
+.stats dd {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.chip {
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.chip[aria-pressed='true'] {
+  border-color: var(--color-accent-strong);
+  background: color-mix(in srgb, var(--color-accent) 22%, transparent);
+  font-weight: 700;
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.table th,
+.table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--color-border);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.table th:first-child,
+.table td:first-child {
+  text-align: left;
+}
+
+.table th {
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.info {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.info dt {
+  color: var(--color-text-muted);
+}
+
+.info dd {
+  margin: 0;
+}
+
+.loading {
+  padding: var(--space-6, 48px) var(--space-4);
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 767px) {
+  .shellHeader {
+    padding: var(--space-2);
+  }
+
+  .shellBody {
+    padding: var(--space-2);
+  }
+
+  .back {
+    min-width: var(--touch-target);
+    min-height: var(--touch-target);
+  }
+
+  .backText {
+    display: none;
+  }
+
+  .tab {
+    min-height: var(--touch-target);
+  }
+}
