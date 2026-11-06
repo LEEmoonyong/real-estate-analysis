@@ -68,7 +68,8 @@ export function useComplexMarket(target: ComplexTarget, targetKey: string): Comp
         const near = nearbyTradeComplexes(list, at, NEARBY_RADIUS_M);
         const complex =
           (wanted ? list.find((c) => c.aptSeq === wanted) : undefined) ??
-          near.find((c) => c.distanceM <= MATCH_RADIUS_M) ??
+          // 샘플 지역은 중심이 단지 사이일 수 있어 주변 반경 안 가장 가까운 단지를 대표로 본다
+          near.find((c) => c.distanceM <= (target.kind === 'sample' ? NEARBY_RADIUS_M : MATCH_RADIUS_M)) ??
           null;
         const months = recentMonths(latest, MARKET_MONTHS);
         set({ status: 'loading', step: `최근 ${MARKET_MONTHS}달 실거래 불러오는 중` });
