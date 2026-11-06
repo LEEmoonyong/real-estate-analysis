@@ -17,6 +17,7 @@ import { GroundShadowLayer } from './GroundShadowLayer';
 import { WindowViewCamera } from './WindowViewCamera';
 import { FEATURES } from '../config/features';
 import { UnitHeatmap } from './UnitHeatmap';
+import { VirtualBuildings } from './VirtualBuildings';
 import styles from './SceneCanvas.module.css';
 
 export function SceneCanvas() {
@@ -44,6 +45,7 @@ export function SceneCanvas() {
         <SunLight shadowMapSize={quality.shadowMapSize} />
         <Ground radiusM={radiusM} />
         <Buildings />
+        {FEATURES.virtualBuilding && <VirtualBuildings />}
         <UnitHeatmap />
         <SelectionHighlight />
         {FEATURES.windowView && <WindowViewCamera />}

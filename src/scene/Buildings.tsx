@@ -22,14 +22,18 @@ export function Buildings() {
 
   return (
     <group name="buildings">
-      {buildings.map((b) => (
-        <BuildingMesh
-          key={b.id}
-          building={b} // 세대를 골랐으면 건물 전체 대신 세대 테두리(SelectionHighlight)만 강조
-          selected={b.id === selectedBuildingId && !selectedUnitId}
-          onSelect={handleSelect}
-        />
-      ))}
+      {/* 가상 건물은 VirtualBuildings가 따로 그린다 */}
+      {buildings.map(
+        (b) =>
+          !b.isVirtual && (
+            <BuildingMesh
+              key={b.id}
+              building={b} // 세대를 골랐으면 건물 전체 대신 세대 테두리(SelectionHighlight)만 강조
+              selected={b.id === selectedBuildingId && !selectedUnitId}
+              onSelect={handleSelect}
+            />
+          ),
+      )}
     </group>
   );
 }

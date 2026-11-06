@@ -11,6 +11,7 @@ export const FEATURES = {
   skyView: true, // C9
   irradiance: true, // C10
   seasonTimelapse: true, // C11
+  virtualBuilding: true, // X6 가상 건물 영향 분석
 } as const;
 
 export type FeatureKey = keyof typeof FEATURES;

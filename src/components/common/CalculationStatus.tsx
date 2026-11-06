@@ -6,6 +6,7 @@ import { useSceneData } from '../../contexts/SceneDataContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useSimulation } from '../../contexts/SimulationContext';
 import { saveSunSummary, summarize } from '../../data/storage/sunSummary';
+import { matchSeason } from '../../domain/time/seasons';
 import { useSunlightWorker } from '../../hooks/useSunlightWorker';
 import type { SunlightOutcome } from '../../workers/sceneTransfer';
 import { GroundLegend } from '../analysis/GroundLegend';
@@ -15,7 +16,7 @@ import styles from './CalculationStatus.module.css';
 export function CalculationStatus() {
   const { workers } = useSunlightWorker();
   const { phase, progress, results } = useSimulation();
-  const { units, scene, sceneHash } = useSceneData();
+  const { units, scene, sceneHash, baseSceneHash } = useSceneData();
   const { heatmapVisible } = useSettings();
   const running = progress.sunlight;
   const outcome = results.sunlight as SunlightOutcome | undefined;
@@ -35,7 +36,16 @@ export function CalculationStatus() {
 
   // 단지 일조 요약을 저장해 둔다 → 지도에서 "일조 기준 충족 X% 이상" 필터 (확장 X5)
   useEffect(() => {
-    if (!scene || !outcome || outcome.sceneHash !== sceneHash || outcome.unitCount !== units.count) return;
+    // 가상 건물이 들어간 장면, 동지가 아닌 날짜는 저장하지 않는다 (참고 기준이 동지 기준이라 비교 가능하게)
+    if (
+      !scene ||
+      !outcome ||
+      outcome.sceneHash !== sceneHash ||
+      sceneHash !== baseSceneHash ||
+      matchSeason(outcome.date) !== 'winter' ||
+      outcome.unitCount !== units.count
+    )
+      return;
     const main: { windowTotal: number; meets: boolean }[] = [];
     for (let i = 0; i < units.count; i++)
       if (units.isMainFace[i])
@@ -50,7 +60,7 @@ export function CalculationStatus() {
       ...s,
       at: Date.now(),
     });
-  }, [scene, outcome, sceneHash, units]);
+  }, [scene, outcome, sceneHash, baseSceneHash, units]);
 
   if (running) {
     const ratio = running.total > 0 ? running.done / running.total : 0;

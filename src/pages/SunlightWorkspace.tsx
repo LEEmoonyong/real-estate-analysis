@@ -27,6 +27,7 @@ import { AppLayout } from '../components/layout/AppLayout';
 import { Panel } from '../components/layout/Panel';
 import { SampleChips } from '../components/search/SampleChips';
 import { SearchBar } from '../components/search/SearchBar';
+import { VirtualBuildingPanel } from '../components/virtual/VirtualBuildingPanel';
 import { DEFAULT_SAMPLE_ID } from '../config/constants';
 import { FEATURES } from '../config/features';
 import { useFavoritesActions } from '../contexts/FavoritesContext';
@@ -246,6 +247,11 @@ export function SunlightWorkspace({ target, nav }: { target: ComplexTarget; nav?
             {FEATURES.seasonTimelapse && (
               <Panel title="계절 타임랩스" tourId="season">
                 <SeasonTimelapseControls />
+              </Panel>
+            )}
+            {FEATURES.virtualBuilding && (
+              <Panel title="가상 건물 영향" tourId="virtual">
+                <VirtualBuildingPanel />
               </Panel>
             )}
           </>

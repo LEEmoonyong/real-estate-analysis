@@ -15,6 +15,7 @@ import type { SkyViewOutcome, SunlightOutcome } from '../workers/sceneTransfer';
 import { useSceneData } from './SceneDataContext';
 import { useSettings } from './SettingsContext';
 import { useSimulation } from './SimulationContext';
+import { useVirtualUi } from './VirtualUiContext';
 
 export interface HeatmapLegendSpec {
   title: string;
@@ -43,6 +44,9 @@ interface HeatmapState {
   svf: Float32Array | null;
 }
 
+/** 변화량 색의 끝 — 3시간 이상 줄면 가장 어두운 색 */
+const IMPACT_MAX_LOSS_MIN = 180;
+
 const HeatmapContext = createContext<HeatmapState | null>(null);
 
 export function HeatmapProvider({ children }: { children: ReactNode }) {
@@ -52,6 +56,8 @@ export function HeatmapProvider({ children }: { children: ReactNode }) {
   const sunlight = results.sunlight as SunlightOutcome | undefined;
   const sky = results.skyView as SkyViewOutcome | undefined;
   const place = scene?.place ?? DEFAULT_LOCATION;
+  const { status: impactStatus, showImpact } = useVirtualUi();
+  const impact = showImpact && impactStatus.kind === 'ready' ? impactStatus.impact : null;
 
   const validSun = sunlight && sunlight.sceneHash === sceneHash && sunlight.unitCount === units.count ? sunlight : null;
   const validSky = sky && sky.sceneHash === sceneHash && sky.unitCount === units.count ? sky : null;
@@ -76,6 +82,23 @@ export function HeatmapProvider({ children }: { children: ReactNode }) {
 
   const { totalStartMin, totalEndMin, totalRequiredMin } = settings.criteria;
   const heatmap = useMemo<HeatmapData | null>(() => {
+    // 가상 건물 영향: 감소량이 클수록 어둡게 (3시간 이상 감소 = 가장 어두운 색, 변화 없음 = 가장 밝은 색)
+    if (paint === 'sunlight' && impact) {
+      const ratios = new Float32Array(units.count);
+      for (let i = 0; i < units.count; i++) ratios[i] = 1 - Math.min(1, impact.loss[i]! / IMPACT_MAX_LOSS_MIN);
+      return {
+        layer: paint,
+        ratios,
+        sceneHash,
+        legend: {
+          title: '가상 건물로 줄어든 일조 (08~16시)',
+          ticks: [3, 2, 1, 0].map((h) => ({
+            at: 1 - h / 3,
+            label: h === 0 ? '변화 없음' : `−${h}h${h === 3 ? '+' : ''}`,
+          })),
+        },
+      };
+    }
     if (paint === 'sunlight') {
       if (!validSun) return null;
       const ratios = new Float32Array(units.count);
@@ -121,7 +144,18 @@ export function HeatmapProvider({ children }: { children: ReactNode }) {
         ticks: [0, 0.5, 1].map((t) => ({ at: t, label: (max * t).toFixed(1) })),
       },
     };
-  }, [paint, validSun, validSky, irradiance, units.count, sceneHash, totalStartMin, totalEndMin, totalRequiredMin]);
+  }, [
+    paint,
+    impact,
+    validSun,
+    validSky,
+    irradiance,
+    units.count,
+    sceneHash,
+    totalStartMin,
+    totalEndMin,
+    totalRequiredMin,
+  ]);
 
   const value = useMemo<HeatmapState>(
     () => ({ heatmap, pending: heatmap === null, irradiance, svf: validSky?.svf ?? null }),
