@@ -1,6 +1,7 @@
 // /api/* 라우터 — Vercel 함수(api/index.ts)와 Vite dev 미들웨어(devApiPlugin.ts)가 공유한다.
 import { handleMortgageRates } from './handlers/finance.js';
 import { handleGeocode } from './handlers/geocode.js';
+import { handleNearby } from './handlers/nearby.js';
 import { handleHealth } from './handlers/health.js';
 import { handleOverpassBuildings } from './handlers/overpassBuildings.js';
 import { handleVworldBuildings } from './handlers/vworldBuildings.js';
@@ -34,6 +35,8 @@ async function route(request: Request, env: ServerEnv): Promise<Response> {
         return await handleVworldBuildings(url.searchParams, env);
       case '/api/finance/mortgage-rates':
         return await handleMortgageRates(env);
+      case '/api/nearby':
+        return await handleNearby(url.searchParams, env);
       case '/api/region':
         return await handleRegion(url.searchParams, env);
       case '/api/realestate/trades':

@@ -2,6 +2,7 @@
 // [요구사항: 데이터 처리] 외부 API(국토교통부 실거래가·공동주택, 카카오 좌표→법정동)
 // 같은 요청은 메모리에 한 번만 (지도 이동·탭 전환으로 같은 시군구·같은 달을 여러 번 부르지 않게)
 import { getJson } from '../apiClient';
+import type { NearbyResponse } from '../../domain/realestate/nearby';
 import type {
   AptComplex,
   AptComplexInfo,
@@ -83,4 +84,9 @@ export function latestDealMonth(now = new Date()): string {
   const kst = new Date(now.getTime() + 9 * 3600_000);
   const t = kst.getUTCFullYear() * 12 + kst.getUTCMonth() - 1;
   return `${Math.floor(t / 12)}${String((t % 12) + 1).padStart(2, '0')}`;
+}
+
+/** 주변 시설 (학교·지하철·마트·병원·어린이집) — 카카오 카테고리 검색 */
+export function getNearby(lat: number, lng: number, signal?: AbortSignal): Promise<NearbyResponse> {
+  return cached<NearbyResponse>(`/api/nearby?${q({ lat: lat.toFixed(5), lng: lng.toFixed(5) })}`, signal);
 }
