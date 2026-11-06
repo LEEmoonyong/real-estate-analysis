@@ -53,6 +53,8 @@ export interface Building {
   usage?: string;
   /** 자기교차 외곽선을 볼록 껍질로 복구함 */
   geometryRepaired: boolean;
+  /** 가상 건물 영향 분석에서 사용자가 놓은 상자 (확장 X6) — 세대 없음, 반투명 표시 */
+  isVirtual?: boolean;
 }
 
 export interface Place extends LatLng {

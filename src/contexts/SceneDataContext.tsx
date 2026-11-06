@@ -5,6 +5,7 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 import { STORAGE_KEYS, isRecord, isRecordOf } from '../data/storage/schema';
 import { buildBuildings, maxBuildingHeight, sceneRadius } from '../domain/scene/buildBuildings';
 import { sceneHash } from '../domain/scene/sceneHash';
+import { VIRTUAL_ID_PREFIX, virtualToBuilding, type VirtualBuilding } from '../domain/scene/virtualBuilding';
 import { DEFAULT_UNIT_OPTIONS, generateUnits, type UnitSet } from '../domain/units/generateUnits';
 import type { Building, BuildingSource, Place, RawBuilding } from '../domain/types';
 import { useLocalStorage } from '../hooks/useLocalStorage';
@@ -58,6 +59,12 @@ interface SceneDataState {
   units: UnitSet;
   /** 건물·세대 설정이 같으면 같은 값 — 계산 캐시·Worker 장면 식별 */
   sceneHash: string;
+  /** 가상 건물을 뺀 장면의 해시 — 가상 건물 영향 분석의 "전" 결과 식별 (확장 X6) */
+  baseSceneHash: string;
+  /** 사용자가 놓은 가상 건물 (새로 고침하면 사라짐) */
+  virtualBuildings: VirtualBuilding[];
+  /** 가상 건물을 계산에 넣을지 (끄면 "전" 장면으로 돌아감) */
+  virtualEnabled: boolean;
   corrections: Record<string, FloorCorrection>;
   dongAssignments: Record<string, DongAssignment>;
   selectedBuildingId: string | null;
@@ -78,6 +85,11 @@ interface SceneDataActions {
   resetFloors: (buildingId: string) => void;
   assignDong: (buildingId: string, dong: string) => void;
   unassignDong: (buildingId: string) => void;
+  addVirtual: (x: number, z: number) => void;
+  updateVirtual: (id: string, patch: Partial<Omit<VirtualBuilding, 'id'>>) => void;
+  removeVirtual: (id: string) => void;
+  clearVirtual: () => void;
+  setVirtualEnabled: (enabled: boolean) => void;
 }
 
 const SceneDataStateContext = createContext<SceneDataState | null>(null);
@@ -90,6 +102,8 @@ export function SceneDataProvider({ children }: { children: ReactNode }) {
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const [cameraMode, setCameraMode] = useState<CameraMode>('orbit');
   const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null);
+  const [virtualBuildings, setVirtualBuildings] = useState<VirtualBuilding[]>([]);
+  const [virtualEnabled, setVirtualEnabled] = useState(true);
 
   const [corrections, setCorrections] = useLocalStorage(STORAGE_KEYS.corrections, EMPTY_CORRECTIONS, {
     version: 1,
@@ -116,16 +130,29 @@ export function SceneDataProvider({ children }: { children: ReactNode }) {
     };
   }, [scene, corrections, dongAssignments, settings.floorHeightM]);
 
-  // 세대는 건물(높이·외곽선)이 바뀔 때만 다시 만든다 — 날짜·시각과는 무관
-  const unitData = useMemo(
+  // 세대는 실제 건물(높이·외곽선)이 바뀔 때만 다시 만든다 — 날짜·시각·가상 건물과는 무관
+  const baseUnits = useMemo(
     () => ({
       units: derived.buildings.length ? generateUnits(derived.buildings) : EMPTY_UNITS,
-      sceneHash: derived.buildings.length
+      baseSceneHash: derived.buildings.length
         ? sceneHash(derived.buildings, `unitWidth=${DEFAULT_UNIT_OPTIONS.unitWidthM}`)
         : 'empty',
     }),
     [derived.buildings],
   );
+
+  // 가상 건물은 실제 건물 뒤에 붙인다 → 세대의 건물 번호(buildingIndex)가 그대로 유지된다
+  const withVirtual = useMemo(() => {
+    const extra =
+      virtualEnabled && derived.buildings.length
+        ? virtualBuildings
+            .map((v, i) => virtualToBuilding(v, settings.floorHeightM, i))
+            .filter((b): b is Building => b !== null)
+        : [];
+    if (extra.length === 0) return { buildings: derived.buildings, sceneHash: baseUnits.baseSceneHash };
+    const buildings = [...derived.buildings, ...extra];
+    return { buildings, sceneHash: sceneHash(buildings, `unitWidth=${DEFAULT_UNIT_OPTIONS.unitWidthM}`) };
+  }, [derived.buildings, virtualBuildings, virtualEnabled, settings.floorHeightM, baseUnits.baseSceneHash]);
 
   const loadScene = useCallback((next: LoadedScene) => {
     setScene(next);
@@ -133,7 +160,32 @@ export function SceneDataProvider({ children }: { children: ReactNode }) {
     setSelectedUnitId(null);
     setCameraMode('orbit');
     setFocusRequest(null);
+    setVirtualBuildings([]);
+    setVirtualEnabled(true);
   }, []);
+
+  const addVirtual = useCallback((x: number, z: number) => {
+    setVirtualBuildings((prev) => [
+      ...prev,
+      {
+        id: `${VIRTUAL_ID_PREFIX}${Date.now().toString(36)}${prev.length}`,
+        x,
+        z,
+        widthM: 40,
+        depthM: 18,
+        floors: 25,
+        rotationDeg: 0,
+      },
+    ]);
+    setVirtualEnabled(true);
+  }, []);
+  const updateVirtual = useCallback(
+    (id: string, patch: Partial<Omit<VirtualBuilding, 'id'>>) =>
+      setVirtualBuildings((prev) => prev.map((v) => (v.id === id ? { ...v, ...patch } : v))),
+    [],
+  );
+  const removeVirtual = useCallback((id: string) => setVirtualBuildings((prev) => prev.filter((v) => v.id !== id)), []);
+  const clearVirtual = useCallback(() => setVirtualBuildings([]), []);
 
   const focusOn = useCallback((buildingId: string, unitId: string | null) => {
     setSelectedBuildingId(buildingId);
@@ -187,7 +239,12 @@ export function SceneDataProvider({ children }: { children: ReactNode }) {
     () => ({
       scene,
       ...derived,
-      ...unitData,
+      buildings: withVirtual.buildings,
+      units: baseUnits.units,
+      sceneHash: withVirtual.sceneHash,
+      baseSceneHash: baseUnits.baseSceneHash,
+      virtualBuildings,
+      virtualEnabled,
       corrections,
       dongAssignments,
       selectedBuildingId,
@@ -198,7 +255,10 @@ export function SceneDataProvider({ children }: { children: ReactNode }) {
     [
       scene,
       derived,
-      unitData,
+      baseUnits,
+      withVirtual,
+      virtualBuildings,
+      virtualEnabled,
       corrections,
       dongAssignments,
       selectedBuildingId,
@@ -220,6 +280,11 @@ export function SceneDataProvider({ children }: { children: ReactNode }) {
       resetFloors,
       assignDong,
       unassignDong,
+      addVirtual,
+      updateVirtual,
+      removeVirtual,
+      clearVirtual,
+      setVirtualEnabled,
     }),
     [
       loadScene,
@@ -231,6 +296,10 @@ export function SceneDataProvider({ children }: { children: ReactNode }) {
       resetFloors,
       assignDong,
       unassignDong,
+      addVirtual,
+      updateVirtual,
+      removeVirtual,
+      clearVirtual,
     ],
   );
 
