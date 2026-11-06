@@ -240,3 +240,49 @@
   text-decoration: none;
   white-space: nowrap;
 }
+
+/* 시세 표시 필터 (확장 X5) */
+.filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.filter label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.filter select {
+  min-height: 32px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 12px;
+}
+
+.filterReset {
+  min-height: 32px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.sunTag {
+  margin-top: 1px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: rgb(255 255 255 / 0.85);
+  color: #8a5a00;
+  font-size: 11px;
+  font-weight: 700;
+}

@@ -17,6 +17,7 @@ import {
 } from '../data/map/kakaoMaps';
 import { getRegion, getTradeComplexes, latestDealMonth } from '../data/realestate/realestateClient';
 import { loadSampleIndex } from '../data/samples/sampleClient';
+import { findSummary, readSunSummaries, type SunSummary } from '../data/storage/sunSummary';
 import {
   classOf,
   formatArea,
@@ -25,6 +26,7 @@ import {
   perPyeong,
   quantileBreaks,
 } from '../domain/realestate/format';
+import { DEFAULT_MAP_FILTER, isFilterActive, passesMapFilter, type MapFilter } from '../domain/realestate/mapFilter';
 import type { Region, TradeComplex } from '../domain/realestate/types';
 import type { SampleIndexEntry } from '../data/samples/sampleSchema';
 import { useApiHealth } from '../hooks/useApiHealth';
@@ -58,7 +60,7 @@ type MarketState =
   | { status: 'ready'; region: Region; items: TradeComplex[]; breaks: number[] }
   | { status: 'error'; message: string };
 
-function priceChip(item: TradeComplex, cls: number, onClick: () => void): HTMLElement {
+function priceChip(item: TradeComplex, cls: number, sun: SunSummary | null, onClick: () => void): HTMLElement {
   const el = document.createElement('button');
   el.type = 'button';
   el.className = styles.priceMarker ?? '';
@@ -72,6 +74,15 @@ function priceChip(item: TradeComplex, cls: number, onClick: () => void): HTMLEl
   name.className = styles.priceName ?? '';
   name.textContent = item.aptName;
   el.append(price, name);
+  if (sun) {
+    // 이 기기에서 일조를 계산한 단지 — 참고 기준 충족 세대 비율
+    const badge = document.createElement('span');
+    badge.className = styles.sunTag ?? '';
+    badge.textContent = `☀ ${sun.meetsPct}%`;
+    el.append(badge);
+    el.title += ` · 일조 기준 충족 ${sun.meetsPct}% (${sun.date} 분석)`;
+    el.setAttribute('aria-label', el.title);
+  }
   el.addEventListener('click', onClick);
   return el;
 }
@@ -101,6 +112,10 @@ export function MapPage() {
   const [market, setMarket] = useState<MarketState>({ status: 'zoom-in' });
   const marketLawdRef = useRef<string | null>(null);
   const priceOverlaysRef = useRef<KakaoCustomOverlay[]>([]);
+  // [요구사항: 상태관리] useState — 지도 필터(평당가·일조), 이 기기에 저장된 단지 일조 요약
+  const [filter, setFilter] = useState<MapFilter>(DEFAULT_MAP_FILTER);
+  const [summaries] = useState<SunSummary[]>(readSunSummaries);
+  const [shownCount, setShownCount] = useState(0);
 
   // 화면 중심 → 법정동 → 시군구가 바뀌었으면 그 시군구 최근 3달 거래 단지
   const loadMarketAt = useCallback(async (lat: number, lng: number) => {
@@ -228,11 +243,17 @@ export function MapPage() {
     for (const o of priceOverlaysRef.current) o.setMap(null);
     priceOverlaysRef.current = [];
     if (!m || market.status !== 'ready') return;
+    let shown = 0;
     for (const item of market.items) {
       if (item.lat === null || item.lng === null) continue;
+      const sun = findSummary(summaries, { lat: item.lat, lng: item.lng });
+      if (!passesMapFilter(perPyeong(item.medianPricePerM2), sun?.meetsPct ?? null, filter)) continue;
+      shown++;
       const overlay = new m.api.CustomOverlay({
         position: new m.api.LatLng(item.lat, item.lng),
-        content: priceChip(item, classOf(item.medianPricePerM2, market.breaks), () => pickTrade(item, market.region)),
+        content: priceChip(item, classOf(item.medianPricePerM2, market.breaks), sun, () =>
+          pickTrade(item, market.region),
+        ),
         yAnchor: 1.1,
         clickable: true,
         zIndex: 2,
@@ -240,7 +261,8 @@ export function MapPage() {
       overlay.setMap(m.map);
       priceOverlaysRef.current.push(overlay);
     }
-  }, [market, pickTrade]);
+    setShownCount(shown);
+  }, [market, pickTrade, filter, summaries]);
 
   const pickSample = useCallback((s: SampleIndexEntry) => {
     setPicked({
@@ -297,7 +319,15 @@ export function MapPage() {
       <main className={styles.mapArea} aria-label="지도">
         <div ref={containerRef} className={styles.map} />
         {status === 'loading' && <p className={styles.mapMessage}>지도를 불러오는 중…</p>}
-        {status === 'ready' && <MarketBadge market={market} />}
+        {status === 'ready' && (
+          <MarketBadge
+            market={market}
+            filter={filter}
+            onFilter={setFilter}
+            shown={shownCount}
+            sunCount={summaries.length}
+          />
+        )}
         {status === 'error' && (
           <div className={styles.mapMessage} role="status">
             <p>{error}</p>
@@ -339,7 +369,19 @@ export function MapPage() {
 }
 
 /** 지도 위 시세 안내·범례 */
-function MarketBadge({ market }: { market: MarketState }) {
+const PYEONG_STEPS = [2_000, 3_000, 4_000, 5_000, 6_000, 8_000, 10_000, 15_000];
+const SUN_STEPS = [50, 70, 90];
+
+interface BadgeProps {
+  market: MarketState;
+  filter: MapFilter;
+  onFilter: (f: MapFilter) => void;
+  shown: number;
+  sunCount: number;
+}
+
+function MarketBadge({ market, filter, onFilter, shown, sunCount }: BadgeProps) {
+  const num = (v: string) => (v === '' ? null : Number(v));
   let body: ReactNode;
   if (market.status === 'zoom-in') body = '지도를 확대하면 최근 3달 거래된 단지의 평당가가 보입니다.';
   else if (market.status === 'loading')
@@ -358,6 +400,60 @@ function MarketBadge({ market }: { market: MarketState }) {
             <i key={c} style={{ background: c }} />
           ))}
           비싸다
+        </span>
+        {/* [요구사항: 이벤트 처리] onChange — 필터를 바꾸면 표시를 다시 그린다 */}
+        <form className={styles.filter} aria-label="시세 표시 필터" onSubmit={(e) => e.preventDefault()}>
+          <label>
+            평당
+            <select
+              value={filter.minPyeong ?? ''}
+              onChange={(e) => onFilter({ ...filter, minPyeong: num(e.target.value) })}
+              aria-label="평당가 하한"
+            >
+              <option value="">하한 없음</option>
+              {PYEONG_STEPS.map((v) => (
+                <option key={v} value={v}>
+                  {formatManwonShort(v)} 이상
+                </option>
+              ))}
+            </select>
+            <select
+              value={filter.maxPyeong ?? ''}
+              onChange={(e) => onFilter({ ...filter, maxPyeong: num(e.target.value) })}
+              aria-label="평당가 상한"
+            >
+              <option value="">상한 없음</option>
+              {PYEONG_STEPS.map((v) => (
+                <option key={v} value={v}>
+                  {formatManwonShort(v)} 이하
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            일조
+            <select
+              value={filter.minSunPct}
+              onChange={(e) => onFilter({ ...filter, minSunPct: Number(e.target.value) })}
+              aria-label="일조 기준 충족 세대 비율 하한"
+            >
+              <option value={0}>조건 없음</option>
+              {SUN_STEPS.map((v) => (
+                <option key={v} value={v}>
+                  기준 충족 {v}% 이상
+                </option>
+              ))}
+            </select>
+          </label>
+          {isFilterActive(filter) && (
+            <button type="button" className={styles.filterReset} onClick={() => onFilter(DEFAULT_MAP_FILTER)}>
+              초기화
+            </button>
+          )}
+        </form>
+        <span className={styles.muted} data-shown={shown}>
+          표시 {shown}곳
+          {filter.minSunPct > 0 && ` · 일조는 이 기기에서 분석한 곳(${sunCount}곳) 주변 400m 단지만 알 수 있습니다`}
         </span>
       </>
     );
