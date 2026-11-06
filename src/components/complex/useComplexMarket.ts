@@ -11,6 +11,7 @@ import {
 } from '../../data/realestate/realestateClient';
 import { loadSampleIndex } from '../../data/samples/sampleClient';
 import { nearbyTradeComplexes, recentMonths } from '../../domain/realestate/aggregate';
+import { bestNamedNearby } from '../../domain/realestate/match';
 import type { AptRent, AptTrade, Region, TradeComplex } from '../../domain/realestate/types';
 import type { ComplexTarget } from '../../routes/complexKey';
 
@@ -68,6 +69,8 @@ export function useComplexMarket(target: ComplexTarget, targetKey: string): Comp
         const near = nearbyTradeComplexes(list, at, NEARBY_RADIUS_M);
         const complex =
           (wanted ? list.find((c) => c.aptSeq === wanted) : undefined) ??
+          // 검색으로 연 단지: 주변 600m 안에서 이름이 맞는 단지를 먼저 (큰 단지는 검색 좌표와 대표 지번이 멀 수 있다)
+          (target.kind === 'geo' ? bestNamedNearby(target.name, near, region.sigungu) : null) ??
           // 샘플 지역은 중심이 단지 사이일 수 있어 주변 반경 안 가장 가까운 단지를 대표로 본다
           near.find((c) => c.distanceM <= (target.kind === 'sample' ? NEARBY_RADIUS_M : MATCH_RADIUS_M)) ??
           null;

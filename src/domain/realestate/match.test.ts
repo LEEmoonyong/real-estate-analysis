@@ -5,6 +5,7 @@ import {
   jibunFromAddress,
   matchComplex,
   nameScore,
+  bestNamedNearby,
   normalizeJibun,
   type ComplexRef,
 } from './match';
@@ -73,5 +74,19 @@ describe('단지 매칭', () => {
 
   it('없는 단지는 null', () => {
     expect(matchComplex(T('전혀다른빌라', '풍납동'), complexes)).toBeNull();
+  });
+});
+
+describe('검색 이름으로 주변 거래 단지 찾기', () => {
+  const near = [
+    { aptName: '송파파밀리에더퍼스트', umdName: '가락동', distanceM: 446 },
+    { aptName: '헬리오시티', umdName: '가락동', distanceM: 467 },
+  ];
+  it('검색 결과 이름(“…아파트 상가”)이어도 같은 단지를 고른다', () => {
+    expect(bestNamedNearby('헬리오시티아파트 상가', near, '송파구')?.aptName).toBe('헬리오시티');
+    expect(bestNamedNearby('헬리오시티', near)?.distanceM).toBe(467);
+  });
+  it('맞는 이름이 없으면 null', () => {
+    expect(bestNamedNearby('잠실엘스', near)).toBeNull();
   });
 });

@@ -121,3 +121,27 @@ export function matchComplex(trade: TradeRef, complexes: readonly ComplexRef[], 
   }
   return best;
 }
+
+/**
+ * 검색 이름과 맞는 주변 거래 단지 (확장 X7) — 큰 단지는 검색 좌표(정문·상가 주소)와 실거래 좌표(대표 지번)가
+ * 수백 m 떨어질 수 있어, 거리만으로는 못 찾는다. 이름 점수 0.8 이상 중 가장 높은(같으면 가까운) 단지.
+ */
+export function bestNamedNearby<T extends { aptName: string; umdName: string; distanceM: number }>(
+  searchName: string,
+  near: readonly T[],
+  sigungu = '',
+): T | null {
+  let best: T | null = null;
+  let bestScore = 0.8;
+  for (const c of near) {
+    const score = nameScore(
+      { aptName: searchName, umdName: c.umdName, jibun: '' },
+      { kaptCode: '', name: c.aptName, dong: c.umdName, jibun: '', sigungu },
+    );
+    if (score > bestScore || (best && score === bestScore && c.distanceM < best.distanceM)) {
+      best = c;
+      bestScore = score;
+    }
+  }
+  return best;
+}
