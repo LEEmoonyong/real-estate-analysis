@@ -1,18 +1,22 @@
 // [요구사항: 컴포넌트] 앱 제목·데이터 모드 배지·도움말 버튼(가이드 다시 보기, 단축키, 시뮬레이션 한계)
 // [요구사항: 이벤트 처리] onClick(도움말 버튼)
+import type { ReactNode } from 'react';
 import type { ApiHealth } from '../../hooks/useApiHealth';
 import styles from './AppHeader.module.css';
 
 interface AppHeaderProps {
   health: ApiHealth;
+  /** 제목 앞 이동 요소 (예: 지도로 돌아가기) */
+  nav?: ReactNode;
   onShowTour?: () => void;
   onShowShortcuts?: () => void;
   onShowLimitations?: () => void;
 }
 
-export function AppHeader({ health, onShowTour, onShowShortcuts, onShowLimitations }: AppHeaderProps) {
+export function AppHeader({ health, nav, onShowTour, onShowShortcuts, onShowLimitations }: AppHeaderProps) {
   return (
     <div className={styles.header}>
+      {nav}
       <h1 className={styles.title}>
         <span aria-hidden="true">☀</span>
         <span className={styles.titleText}> 일조 시뮬레이터</span>

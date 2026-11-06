@@ -1,0 +1,165 @@
+.root {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--color-bg);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 56px;
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+  z-index: 20;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  white-space: nowrap;
+}
+
+.search {
+  flex: 1;
+  min-width: 0;
+  max-width: 560px;
+}
+
+.badge {
+  padding: 2px var(--space-2);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-accent) 22%, transparent);
+  color: var(--color-accent-strong);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.mapArea {
+  position: relative;
+  min-height: 0;
+}
+
+.map {
+  position: absolute;
+  inset: 0;
+}
+
+.mapMessage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  margin: 0;
+  padding: var(--space-4);
+  text-align: center;
+  color: var(--color-text);
+}
+
+.mapMessage p {
+  margin: 0;
+}
+
+.panel {
+  position: absolute;
+  top: calc(56px + var(--space-3));
+  left: var(--space-3);
+  z-index: 10;
+  width: min(360px, calc(100% - 32px));
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.15);
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+}
+
+.muted {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.primary,
+.secondary {
+  min-height: var(--touch-target);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.primary {
+  border-color: var(--color-accent-strong);
+  background: var(--color-accent);
+  color: #1b1f24;
+}
+
+/* 지도 위 표시 (카카오 CustomOverlay 안에 들어가는 DOM) */
+.marker {
+  padding: 4px 10px;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background: #1f252d;
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.3);
+  cursor: pointer;
+}
+
+.markerPicked {
+  background: var(--color-accent-strong);
+}
+
+/* 모바일: 검색창이 넓게, 카드는 아래쪽에 */
+@media (max-width: 767px) {
+  .header {
+    padding: var(--space-2);
+  }
+
+  .titleText {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .panel {
+    top: auto;
+    bottom: calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
