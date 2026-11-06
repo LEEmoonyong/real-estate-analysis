@@ -263,3 +263,24 @@
   background: color-mix(in srgb, var(--color-accent) 20%, transparent);
   font-size: 0.75rem;
 }
+
+/* 관심 단지 버튼 (확장 X6) */
+.watchButton {
+  min-height: 32px;
+  margin-left: var(--space-2);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+.watchButton[aria-pressed='true'] {
+  border-color: var(--color-accent-strong);
+  background: color-mix(in srgb, var(--color-accent) 25%, transparent);
+}

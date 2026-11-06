@@ -6,7 +6,9 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom';
 import { SearchBar } from '../components/search/SearchBar';
 import { SampleChips } from '../components/search/SampleChips';
+import { WatchlistCard } from '../components/watchlist/WatchlistCard';
 import { useFavoritesActions } from '../contexts/FavoritesContext';
+import { useWatchlist } from '../contexts/WatchlistContext';
 import type { GeoResult } from '../data/geocode/geocodeClient';
 import {
   KAKAO_JS_KEY,
@@ -30,6 +32,7 @@ import { DEFAULT_MAP_FILTER, isFilterActive, passesMapFilter, type MapFilter } f
 import type { Region, TradeComplex } from '../domain/realestate/types';
 import type { SampleIndexEntry } from '../data/samples/sampleSchema';
 import { useApiHealth } from '../hooks/useApiHealth';
+import { useNewDeals } from '../hooks/useNewDeals';
 import { complexPath, type ComplexTarget } from '../routes/complexKey';
 import styles from './MapPage.module.css';
 
@@ -100,6 +103,9 @@ export function MapPage() {
   const navigate = useNavigate();
   const health = useApiHealth();
   const { addRecent } = useFavoritesActions();
+  // 관심 단지의 새 거래 (확장 X6)
+  const { watched } = useWatchlist();
+  const newDeals = useNewDeals(watched);
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<{ api: KakaoMapsApi; map: KakaoMap } | null>(null);
   const pickedOverlayRef = useRef<KakaoCustomOverlay | null>(null);
@@ -311,6 +317,16 @@ export function MapPage() {
             배포 서버 경유
           </span>
         )}
+        {newDeals.status === 'ready' && newDeals.total > 0 && (
+          <button
+            type="button"
+            className={styles.alertButton}
+            onClick={() => setPicked(null)}
+            title="관심 단지 새 거래 보기"
+          >
+            🔔 새 거래 {newDeals.total}
+          </button>
+        )}
         <Link to="/calc" className={styles.headerLink}>
           계산기
         </Link>
@@ -352,6 +368,7 @@ export function MapPage() {
           </div>
         ) : (
           <div className={styles.card}>
+            <WatchlistCard deals={newDeals} />
             <p className={styles.cardTitle}>아파트 단지를 찾아보세요</p>
             <p className={styles.muted}>
               단지명·주소를 검색하거나 지도 위 샘플 지역을 누르면 일조·시세 분석을 열 수 있습니다.

@@ -13,6 +13,7 @@ export const STORAGE_KEYS = {
   dongAssignments: `${STORAGE_PREFIX}dongAssignments`,
   settings: `${STORAGE_PREFIX}settings`,
   onboarding: `${STORAGE_PREFIX}onboarding`,
+  watchlist: `${STORAGE_PREFIX}watchlist`,
 } as const;
 
 export type Migration = (oldData: unknown, fromVersion: number) => unknown;

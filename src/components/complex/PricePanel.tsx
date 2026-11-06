@@ -22,6 +22,7 @@ import {
 } from '../../domain/realestate/format';
 import { complexPath } from '../../routes/complexKey';
 import type { ComplexMarket } from './useComplexMarket';
+import { WatchButton } from './WatchButton';
 import styles from './Complex.module.css';
 
 type Ready = Extract<ComplexMarket, { status: 'ready' }>;
@@ -80,7 +81,8 @@ export function PricePanel({ market }: { market: Ready }) {
       <section className={styles.card} aria-label="시세 요약">
         <h2 className={styles.cardTitle}>
           {complex.aptName}{' '}
-          <small className={styles.muted}>{complex.buildYear ? `${complex.buildYear}년 준공` : ''}</small>
+          <small className={styles.muted}>{complex.buildYear ? `${complex.buildYear}년 준공` : ''}</small>{' '}
+          <WatchButton complex={complex} region={region} trades={trades} />
         </h2>
         <div className={styles.chips} role="group" aria-label="평형대">
           <button type="button" className={styles.chip} aria-pressed={band === 'all'} onClick={() => setBand('all')}>

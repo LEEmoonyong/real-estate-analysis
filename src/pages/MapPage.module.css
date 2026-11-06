@@ -286,3 +286,22 @@
   font-size: 11px;
   font-weight: 700;
 }
+
+/* 관심 단지 새 거래 알림 (확장 X6) */
+.alertButton {
+  margin-left: auto;
+  padding: 6px var(--space-2);
+  border: 1px solid #d9512b;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, #d9512b 14%, transparent);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.alertButton + .headerLink {
+  margin-left: var(--space-2);
+}
