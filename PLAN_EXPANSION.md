@@ -78,6 +78,19 @@
 4. 국토교통부_공동주택 기본 정보제공 서비스
 5. 국토교통부_건축HUB 건축물대장정보 서비스
 
+**발급·호출 확인 (키 발급 당일)** — 서버에서 직접 호출해 응답을 확인한 주소:
+
+| API                    | 요청 주소 (`https://apis.data.go.kr/1613000/…` 기준)                                          | 결과                                                                                            |
+| ---------------------- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| 아파트 매매 실거래가   | `RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev` (`LAWD_CD`, `DEAL_YMD`)                    | 정상(XML, `resultCode 000`)                                                                     |
+| 아파트 전월세 실거래가 | `RTMSDataSvcAptRent/getRTMSDataSvcAptRent`                                                    | 정상(XML)                                                                                       |
+| 공동주택 단지 목록     | `AptListService4/getSigunguAptList4` (`sigunguCode`)                                          | 정상(JSON). `AptListService3`은 폐기됨                                                          |
+| 공동주택 기본정보      | `AptBasisInfoServiceV5/getAphusBassInfoV5` (`kaptCode`)                                       | 정상(JSON). V4 이하는 폐기됨                                                                    |
+| 건축물대장 표제부      | `BldRgstHubService/getBrTitleInfo` (`sigunguCd`, `bjdongCd`)                                  | 정상(JSON, `_type=json`)                                                                        |
+| 금감원 주택담보대출    | `http://finlife.fss.or.kr/finlifeapi/mortgageLoanProductsSearch.json` (`auth`, `topFinGrpNo`) | **http만 정상**(https는 연결 끊김). 서버 간 호출이라 키가 평문 구간을 지나는 점은 한계로 적는다 |
+
+- 실거래가는 XML만 제공 → 서버에서 JSON으로 정규화. 실거래 `aptSeq`(예: `11710-6465`)와 단지 목록 `kaptCode`는 체계가 달라 법정동 코드 + 단지명으로 매칭한다.
+
 `.env.local`에 넣을 이름(값은 대화에 붙이지 말 것):
 
 ```
