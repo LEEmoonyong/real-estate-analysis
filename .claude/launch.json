@@ -12,6 +12,12 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["cross-env", "KAKAO_REST_API_KEY=", "VWORLD_API_KEY=", "vite", "--port", "5174", "--strictPort"],
       "port": 5174
+    },
+    {
+      "name": "dev-sample",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["cross-env", "VITE_FORCE_SAMPLE_MODE=true", "vite", "--port", "5175", "--strictPort"],
+      "port": 5175
     }
   ]
 }

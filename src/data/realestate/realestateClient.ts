@@ -2,6 +2,7 @@
 // [요구사항: 데이터 처리] 외부 API(국토교통부 실거래가·공동주택, 카카오 좌표→법정동)
 // 같은 요청은 메모리에 한 번만 (지도 이동·탭 전환으로 같은 시군구·같은 달을 여러 번 부르지 않게)
 import { getJson } from '../apiClient';
+import { snapshotBaseMonth } from '../marketSnapshot';
 import type { NearbyResponse } from '../../domain/realestate/nearby';
 import type {
   AptComplex,
@@ -80,7 +81,13 @@ export async function getComplexInfo(kaptCode: string, signal?: AbortSignal): Pr
  * 실거래 공개 최신 달 — 신고 기한(계약 후 30일) 때문에 이번 달 자료는 거의 비어 있어 지난달을 기준으로 한다.
  * @returns 'YYYYMM'
  */
-export function latestDealMonth(now = new Date()): string {
+export function latestDealMonth(now?: Date): string {
+  // 샘플 모드(스냅샷)에서는 받아 둔 달을 기준으로 한다 — 오늘 날짜로 만들면 저장된 주소와 맞지 않는다
+  if (!now) {
+    const base = snapshotBaseMonth();
+    if (base) return base;
+    now = new Date();
+  }
   const kst = new Date(now.getTime() + 9 * 3600_000);
   const t = kst.getUTCFullYear() * 12 + kst.getUTCMonth() - 1;
   return `${Math.floor(t / 12)}${String((t % 12) + 1).padStart(2, '0')}`;

@@ -19,7 +19,8 @@
     "test:tz": "cross-env TZ=America/New_York vitest run",
     "coverage": "vitest run --coverage",
     "bench": "tsx bench/raycast.ts",
-    "verify:api": "tsx scripts/verify-api.ts"
+    "verify:api": "tsx scripts/verify-api.ts",
+    "snapshot:market": "tsx scripts/capture-market-snapshot.ts"
   },
   "dependencies": {
     "@react-three/drei": "9.122.0",
