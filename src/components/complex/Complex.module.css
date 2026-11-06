@@ -234,3 +234,32 @@
     min-height: var(--touch-target);
   }
 }
+
+.subTitle {
+  margin: var(--space-2) 0 4px;
+  font-size: var(--font-size-sm);
+}
+
+.placeList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--font-size-sm);
+}
+
+.placeList li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px var(--space-2);
+}
+
+.lineTags {
+  padding: 0 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-accent) 20%, transparent);
+  font-size: 0.75rem;
+}

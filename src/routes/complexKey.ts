@@ -18,7 +18,7 @@ export type ComplexTarget =
       lawd?: string;
     };
 
-export const COMPLEX_TABS = ['sun', 'price', 'info'] as const;
+export const COMPLEX_TABS = ['sun', 'price', 'info', 'area'] as const;
 export type ComplexTab = (typeof COMPLEX_TABS)[number];
 
 const round = (v: number) => Math.round(v * 1e6) / 1e6;

@@ -7,6 +7,7 @@ const TAB_LABELS: Record<ComplexTab, string> = {
   sun: '일조·조망',
   price: '시세·실거래',
   info: '단지 정보',
+  area: '학군·교통',
 };
 
 export function ComplexTabs({ target, active }: { target: ComplexTarget; active: ComplexTab }) {
