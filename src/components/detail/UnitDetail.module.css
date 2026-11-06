@@ -187,3 +187,10 @@
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--color-text-muted) 10%, transparent);
 }
+
+/* 창문 보기·세대 리포트 버튼 줄 */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}

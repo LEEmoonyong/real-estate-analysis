@@ -41,7 +41,8 @@ export function useKeyboardShortcuts(map: ShortcutMap, enabled = true): void {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
       if (isTypingTarget(event.target as HTMLElement | null)) return;
-      if (document.querySelector('dialog[open]')) return;
+      // 모달(dialog, 포털 오버레이)이 열려 있으면 전역 단축키를 쉬게 한다
+      if (document.querySelector('dialog[open], [aria-modal="true"]')) return;
       const target = event.target as HTMLElement | null;
       // 슬라이더에서 화살표는 슬라이더가 처리, 버튼에서 Space는 버튼 클릭이 처리
       if (target instanceof HTMLInputElement && target.type === 'range' && event.key.startsWith('Arrow')) return;

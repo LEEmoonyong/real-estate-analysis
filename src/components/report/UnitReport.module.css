@@ -1,0 +1,216 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  overflow-y: auto;
+  padding: var(--space-4);
+  background: rgb(0 0 0 / 0.55);
+}
+
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.primary,
+.secondary {
+  min-height: var(--touch-target);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.primary {
+  border-color: var(--color-accent-strong);
+  background: var(--color-accent);
+  color: #1b1f24;
+}
+
+/* A4 한 장 느낌의 흰 종이 — 다크 모드에서도 인쇄물처럼 */
+.page {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 32px 40px;
+  border-radius: 8px;
+  background: #fff;
+  color: #1b1f24;
+  box-shadow: 0 16px 40px rgb(0 0 0 / 0.3);
+}
+
+.head {
+  padding-bottom: 12px;
+  border-bottom: 2px solid #1b1f24;
+}
+
+.kicker {
+  margin: 0;
+  color: #5b6573;
+  font-size: 12px;
+}
+
+.title {
+  margin: 4px 0;
+  font-size: 22px;
+}
+
+.muted {
+  margin: 4px 0 0;
+  color: #5b6573;
+  font-size: 12px;
+}
+
+.section {
+  padding: 14px 0;
+  border-bottom: 1px solid #d9dde3;
+}
+
+.section h2 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+.scoreRow {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+}
+
+.score {
+  margin: 0;
+  font-size: 44px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.score small {
+  font-size: 16px;
+  color: #5b6573;
+}
+
+.grade {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #c77d00;
+  color: #fff;
+  font-size: 18px;
+  vertical-align: middle;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table td {
+  padding: 3px 6px;
+  white-space: nowrap;
+}
+
+.meter {
+  display: inline-block;
+  width: 120px;
+  height: 8px;
+  border-radius: 4px;
+  background: #e8ebef;
+  overflow: hidden;
+  vertical-align: middle;
+}
+
+.meter span {
+  display: block;
+  height: 100%;
+  background: #c77d00;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.stats dt {
+  color: #5b6573;
+  font-size: 12px;
+}
+
+.stats dd {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.stats small {
+  font-size: 11px;
+  font-weight: 400;
+  color: #5b6573;
+}
+
+.list {
+  margin: 0;
+  padding-left: 1.2em;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.foot {
+  padding-top: 12px;
+  color: #5b6573;
+  font-size: 11px;
+}
+
+@media (max-width: 640px) {
+  .overlay {
+    padding: var(--space-2);
+  }
+
+  .page {
+    padding: 20px 16px;
+  }
+
+  .scoreRow {
+    grid-template-columns: 1fr;
+  }
+
+  .meter {
+    width: 70px;
+  }
+}
+
+/* 인쇄: 리포트 종이만 남긴다 */
+@media print {
+  :global(body > :not(.unit-report-root)) {
+    display: none !important;
+  }
+
+  .overlay {
+    position: static;
+    padding: 0;
+    background: none;
+    overflow: visible;
+  }
+
+  .toolbar {
+    display: none;
+  }
+
+  .page {
+    max-width: none;
+    padding: 0;
+    box-shadow: none;
+  }
+}

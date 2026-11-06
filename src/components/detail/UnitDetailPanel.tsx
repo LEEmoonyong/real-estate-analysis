@@ -1,6 +1,6 @@
 // [요구사항: 컴포넌트] 선택한 세대의 상세 — 동·층·추정 호수·방위, 일조 시간, 기준 판정, 타임라인 (PLAN.md A6)
 // [요구사항: Hooks] useMemo(세대 찾기·판정), Context(SceneData·Simulation·Time·Settings)
-import { lazy, Suspense, useMemo } from 'react';
+import { lazy, Suspense, useCallback, useMemo, useState } from 'react';
 import { FEATURES } from '../../config/features';
 import { useSceneData, useSceneDataActions } from '../../contexts/SceneDataContext';
 import { useHeatmap } from '../../contexts/HeatmapContext';
@@ -19,6 +19,8 @@ import { CriteriaBadge } from './CriteriaBadge';
 import styles from './UnitDetail.module.css';
 
 // 그래프 라이브러리(recharts)는 세대를 처음 고를 때 받는다
+// 세대 리포트(확장 X5)는 버튼을 누를 때 받는다
+const UnitReport = lazy(() => import('../report/UnitReport').then((m) => ({ default: m.UnitReport })));
 const SunTimelineChart = lazy(() => import('./SunTimelineChart').then((m) => ({ default: m.SunTimelineChart })));
 
 const duration = (min: number) => {
@@ -36,6 +38,8 @@ export function UnitDetailPanel() {
   const { setMinuteOfDay } = useTimeActions();
   const { cameraMode } = useSceneData();
   const { setCameraMode } = useSceneDataActions();
+  const [reportOpen, setReportOpen] = useState(false);
+  const closeReport = useCallback(() => setReportOpen(false), []);
 
   const index = useMemo(
     () => (selectedUnitId ? findUnitIndex(units, buildings, selectedUnitId) : -1),
@@ -90,15 +94,25 @@ export function UnitDetailPanel() {
           </>
         )}
       </dl>
-      {FEATURES.windowView && (
-        <button
-          type="button"
-          className={styles.windowButton}
-          aria-pressed={cameraMode === 'window'}
-          onClick={() => setCameraMode(cameraMode === 'window' ? 'orbit' : 'window')}
-        >
-          {cameraMode === 'window' ? '궤도 보기로 돌아가기' : '🪟 창문에서 보기'}
+      <div className={styles.actions}>
+        {FEATURES.windowView && (
+          <button
+            type="button"
+            className={styles.windowButton}
+            aria-pressed={cameraMode === 'window'}
+            onClick={() => setCameraMode(cameraMode === 'window' ? 'orbit' : 'window')}
+          >
+            {cameraMode === 'window' ? '궤도 보기로 돌아가기' : '🪟 창문에서 보기'}
+          </button>
+        )}
+        <button type="button" className={styles.windowButton} onClick={() => setReportOpen(true)}>
+          📄 세대 리포트
         </button>
+      </div>
+      {reportOpen && (
+        <Suspense fallback={null}>
+          <UnitReport onClose={closeReport} />
+        </Suspense>
       )}
 
       {!valid || !row ? (
