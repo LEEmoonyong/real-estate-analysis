@@ -30,6 +30,7 @@ import {
   type Boundary,
   type BoundaryQuery,
 } from '../data/boundary/boundaryClient';
+import { readMapView, saveMapView } from '../data/storage/mapView';
 import { findSummary, readSunSummaries, type SunSummary } from '../data/storage/sunSummary';
 import { classOf, quantileBreaks } from '../domain/realestate/format';
 import { DEFAULT_MAP_FILTER, isFilterActive, passesMapFilter, type MapFilter } from '../domain/realestate/mapFilter';
@@ -335,12 +336,16 @@ export function MapPage() {
     loadKakaoMaps()
       .then((api) => {
         if (cancelled || !containerRef.current) return;
+        // 단지 상세에서 돌아오면 보던 위치·확대 수준 그대로 (처음이면 전국 지도)
+        const start = readMapView() ?? { ...KOREA_CENTER, level: KOREA_LEVEL };
         const map = new api.Map(containerRef.current, {
-          center: new api.LatLng(KOREA_CENTER.lat, KOREA_CENTER.lng),
-          level: KOREA_LEVEL,
+          center: new api.LatLng(start.lat, start.lng),
+          level: start.level,
         });
         mapRef.current = { api, map };
         setStatus('ready');
+        // 돌아온 위치가 이미 확대돼 있으면 첫 idle을 기다리지 않고 바로 그 시군구 시세를 불러온다
+        if (start.level <= MARKET_LEVEL) reloadAtCenter();
         // 지도를 움직이고 멈출 때마다: 충분히 확대했으면 화면 중심의 시군구 시세를 불러온다
         let regionTimer = 0;
         // 지도를 직접 끌면 패널에서 고른 지역 고정을 풀고 화면 중심을 따라간다
@@ -352,6 +357,8 @@ export function MapPage() {
           lockedRegionRef.current = null;
         });
         api.event.addListener(map, 'idle', () => {
+          const c = map.getCenter();
+          saveMapView({ lat: c.getLat(), lng: c.getLng(), level: map.getLevel() });
           window.clearTimeout(regionTimer);
           regionTimer = window.setTimeout(reloadAtCenter, 250);
         });
