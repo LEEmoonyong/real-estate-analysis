@@ -269,6 +269,13 @@ export function LoanCalculator({ price, area, sido, sigungu }: LoanCalculatorPro
             {formatManwon(Math.round(loan.monthlyPayment))} (원리금 균등, {form.ratePct}%, {loan.termYears}년) · 필요한
             자기 자금 {formatManwon(loan.ownFunds)} + 세금·부대비용
           </p>
+          {loan.binding === 'priceCap' && (
+            // 왜 적게 나오는지: 10·15 대책(2025-10-16 시행) 수도권·규제지역 주택가격별 주담대 총액 한도
+            <p className={styles.muted}>
+              10·15 대책으로 수도권·규제지역 주택은 집값에 따라 주담대 총액이 묶입니다: 15억 이하 6억 · 15억 초과~25억
+              4억 · <strong>25억 초과 2억</strong>. LTV·DSR로 더 나와도 이 한도가 우선합니다.
+            </p>
+          )}
           <div className={styles.bars}>
             <Bar
               label={`LTV ${Math.round(loan.ltv * 100)}%`}

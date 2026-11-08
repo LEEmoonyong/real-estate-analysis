@@ -26,7 +26,7 @@ import {
   typeLabel,
   type MarketQuery,
 } from '../../domain/realestate/property';
-import { useFavorites } from '../../contexts/FavoritesContext';
+import { useFavorites, useFavoritesActions } from '../../contexts/FavoritesContext';
 import type { Favorite } from '../../domain/types';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import styles from './MarketPanel.module.css';
@@ -68,6 +68,8 @@ export function MarketPanel({
   onShowGuide,
 }: MarketPanelProps) {
   const { favorites } = useFavorites();
+  // 삭제하면 5초 동안 "실행 취소" 알림이 뜬다 (FavoritesContext)
+  const { removeFavorite } = useFavoritesActions();
   const id = useId();
   const isMobile = useMediaQuery('(max-width: 767px)');
   // 휴대폰은 지도를 가리지 않게 접힌 채로 시작
@@ -371,7 +373,7 @@ export function MarketPanel({
             ) : (
               <ul className={styles.favList}>
                 {favorites.map((f) => (
-                  <li key={f.id}>
+                  <li key={f.id} className={styles.favRow}>
                     <button
                       type="button"
                       className={styles.favItem}
@@ -379,6 +381,15 @@ export function MarketPanel({
                       title={`${f.name} 단지 분석 열기`}
                     >
                       <span aria-hidden="true">★</span> {f.name}
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.favRemove}
+                      onClick={() => removeFavorite(f.id)}
+                      aria-label={`즐겨찾기 '${f.name}' 삭제`}
+                      title="즐겨찾기 삭제"
+                    >
+                      ×
                     </button>
                   </li>
                 ))}

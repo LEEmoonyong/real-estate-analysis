@@ -199,3 +199,33 @@
 .favItem:focus-visible {
   background: color-mix(in srgb, var(--color-accent) 18%, transparent);
 }
+
+.favRow {
+  display: flex;
+  align-items: center;
+}
+
+.favRow .favItem {
+  flex: 1;
+  min-width: 0;
+}
+
+.favRemove {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.favRemove:hover,
+.favRemove:focus-visible {
+  background: var(--color-border);
+  color: var(--color-text);
+}
