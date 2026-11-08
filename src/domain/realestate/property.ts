@@ -45,13 +45,14 @@ export interface DealPlace {
   lng: number | null;
 }
 
+/** 지도 시세 조건 — 유형은 여러 개(체크), 거래 종류·방 구조는 하나 */
 export interface MarketQuery {
-  type: PropertyType;
+  types: PropertyType[];
   kind: DealKind;
   room: RoomFilter;
 }
 
-export const DEFAULT_MARKET_QUERY: MarketQuery = { type: 'apt', kind: 'trade', room: 'all' };
+export const DEFAULT_MARKET_QUERY: MarketQuery = { types: ['apt'], kind: 'trade', room: 'all' };
 
 export const PROPERTY_TYPE_OPTIONS: readonly { id: PropertyType; label: string; hint: string }[] = [
   { id: 'apt', label: '아파트', hint: '아파트 실거래' },
@@ -83,11 +84,41 @@ export function roomApplies(type: PropertyType): boolean {
   return type === 'offi' || type === 'rh' || type === 'sh';
 }
 
-/** 유형을 바꿀 때 거래 종류·방 구조를 그 유형에 맞게 고친다 */
+const TYPE_ORDER: readonly PropertyType[] = ['apt', 'offi', 'rh', 'sh', 'nrg'];
+
+/**
+ * 조건을 앞뒤가 맞게 고친다.
+ * - 유형은 하나 이상, 정해진 순서로 (중복 없음)
+ * - 고른 유형 중 그 거래 종류를 지원하는 것이 하나도 없으면 매매로 (예: 상가만 고르고 월세)
+ * - 방 구조는 원룸·투룸이 의미 있는 유형이 하나라도 있을 때만
+ */
 export function normalizeQuery(q: MarketQuery): MarketQuery {
-  const kind = kindsFor(q.type).includes(q.kind) ? q.kind : 'trade';
-  const room = roomApplies(q.type) ? q.room : 'all';
-  return { type: q.type, kind, room };
+  const picked = TYPE_ORDER.filter((t) => q.types.includes(t));
+  const types = picked.length > 0 ? picked : (['apt'] as PropertyType[]);
+  const kind = types.some((t) => kindsFor(t).includes(q.kind)) ? q.kind : 'trade';
+  const room = types.some(roomApplies) ? q.room : 'all';
+  return { types, kind, room };
+}
+
+/** 실제로 불러올 유형 — 고른 유형 중 이 거래 종류 자료가 있는 것 (상가는 매매만) */
+export function activeTypes(q: MarketQuery): PropertyType[] {
+  return q.types.filter((t) => kindsFor(t).includes(q.kind));
+}
+
+/** 유형 체크를 켜고 끈다 (마지막 하나는 끌 수 없다) */
+export function toggleType(q: MarketQuery, type: PropertyType): MarketQuery {
+  const on = q.types.includes(type);
+  if (on && q.types.length === 1) return q;
+  return normalizeQuery({ ...q, types: on ? q.types.filter((t) => t !== type) : [...q.types, type] });
+}
+
+/** 지도 표시에 붙이는 짧은 유형 이름 (여러 유형을 함께 볼 때) */
+export function typeShort(type: PropertyType): string {
+  return { apt: '아파트', offi: '오피', rh: '빌라', sh: '단독', nrg: '상가' }[type];
+}
+
+export function typesLabel(types: readonly PropertyType[]): string {
+  return types.map(typeLabel).join('·');
 }
 
 export function typeLabel(type: PropertyType): string {
@@ -141,9 +172,11 @@ export function stepLabel(kind: DealKind, v: number): string {
 }
 
 /** 지도 범례·안내 문구에 쓰는 기준 설명 */
-export function valueDescription(kind: DealKind, type: PropertyType): string {
-  if (kind === 'trade')
-    return `${type === 'sh' ? '연면적' : type === 'nrg' ? '건물면적' : '전용면적'} 기준 평당가 중앙값`;
+export function valueDescription(kind: DealKind, types: readonly PropertyType[]): string {
+  if (kind === 'trade') {
+    const only = types.length === 1 ? types[0] : null;
+    return `${only === 'sh' ? '연면적' : only === 'nrg' ? '건물면적' : only ? '전용면적' : '면적'} 기준 평당가 중앙값`;
+  }
   if (kind === 'jeonse') return '전세 보증금 중앙값';
   return '월세 중앙값 (보증금 중앙값 함께)';
 }

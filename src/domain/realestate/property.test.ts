@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { dealAmountText, filterValue, kindsFor, markerText, normalizeQuery, roomApplies } from './property';
+import {
+  activeTypes,
+  dealAmountText,
+  filterValue,
+  kindsFor,
+  markerText,
+  normalizeQuery,
+  roomApplies,
+  toggleType,
+} from './property';
 
 describe('주택 유형·거래 종류', () => {
   it('상가는 매매만, 원룸·투룸은 오피스텔·빌라·단독만', () => {
@@ -10,17 +19,30 @@ describe('주택 유형·거래 종류', () => {
     );
   });
 
-  it('유형을 바꾸면 맞지 않는 선택을 되돌린다', () => {
-    expect(normalizeQuery({ type: 'nrg', kind: 'wolse', room: 'one' })).toEqual({
-      type: 'nrg',
+  it('여러 유형을 고를 때 맞지 않는 선택을 되돌린다', () => {
+    // 상가만 고르고 월세 → 매매, 원룸은 의미 없음
+    expect(normalizeQuery({ types: ['nrg'], kind: 'wolse', room: 'one' })).toEqual({
+      types: ['nrg'],
       kind: 'trade',
       room: 'all',
     });
-    expect(normalizeQuery({ type: 'rh', kind: 'wolse', room: 'one' })).toEqual({
-      type: 'rh',
+    // 빌라가 있으면 월세·원룸 유지, 순서는 정해진 순서로
+    expect(normalizeQuery({ types: ['nrg', 'rh'], kind: 'wolse', room: 'one' })).toEqual({
+      types: ['rh', 'nrg'],
       kind: 'wolse',
       room: 'one',
     });
+    // 하나도 안 고르면 아파트
+    expect(normalizeQuery({ types: [], kind: 'trade', room: 'all' }).types).toEqual(['apt']);
+  });
+
+  it('월세면 상가는 불러오지 않고, 마지막 유형은 끌 수 없다', () => {
+    const q = { types: ['apt', 'nrg'] as const, kind: 'wolse', room: 'all' } as const;
+    expect(activeTypes({ ...q, types: [...q.types] })).toEqual(['apt']);
+    const one = { types: ['apt' as const], kind: 'trade' as const, room: 'all' as const };
+    expect(toggleType(one, 'apt')).toBe(one);
+    expect(toggleType(one, 'offi').types).toEqual(['apt', 'offi']);
+    expect(toggleType({ ...one, types: ['apt', 'offi'] }, 'apt').types).toEqual(['offi']);
   });
 
   it('표시 글자와 필터 값', () => {

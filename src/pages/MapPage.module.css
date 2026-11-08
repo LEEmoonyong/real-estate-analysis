@@ -69,12 +69,15 @@
   margin: 0;
 }
 
+/* 고른 장소·안내 카드: 데스크톱은 오른쪽 위 (왼쪽 위는 지역·조건 패널) */
 .panel {
   position: absolute;
   top: calc(56px + var(--space-3));
-  left: var(--space-3);
+  right: var(--space-3);
   z-index: 10;
   width: min(360px, calc(100% - 32px));
+  max-height: calc(100% - 56px - 2 * var(--space-3));
+  overflow-y: auto;
 }
 
 .card {
@@ -121,23 +124,6 @@
 .guideClose:focus-visible {
   background: var(--color-border);
   color: var(--color-text);
-}
-
-.guideOpen {
-  position: absolute;
-  top: var(--space-3);
-  right: var(--space-3);
-  z-index: 6;
-  min-height: var(--touch-target);
-  padding: 0 var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  background: var(--color-surface);
-  color: var(--color-text);
-  font: inherit;
-  font-weight: 700;
-  box-shadow: 0 4px 12px rgb(0 0 0 / 0.15);
-  cursor: pointer;
 }
 
 .muted {
@@ -205,8 +191,10 @@
 
   .panel {
     top: auto;
+    right: auto;
     bottom: calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
     left: 50%;
+    max-height: 45%;
     transform: translateX(-50%);
   }
 }
@@ -236,14 +224,9 @@
 }
 
 .marketBadge {
-  position: absolute;
-  right: var(--space-3);
-  bottom: var(--space-3);
-  z-index: 5;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  max-width: min(360px, calc(100% - 32px));
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-md);
   background: var(--color-surface);
@@ -266,20 +249,32 @@
   border-radius: 2px;
 }
 
-@media (max-width: 767px) {
-  .marketBadge {
-    top: var(--space-2);
-    bottom: auto;
-    right: var(--space-2);
-    left: var(--space-2);
-    max-width: none;
-  }
+/* 검색창 바로 아래 왼쪽: 지역·조건 패널 + 시세 안내를 위에서 아래로 쌓는다 (넘치면 이 안에서 스크롤) */
+.side {
+  position: absolute;
+  top: var(--space-3);
+  left: var(--space-3);
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: min(360px, calc(100% - 2 * var(--space-3)));
+  max-height: calc(100% - 2 * var(--space-3));
+  overflow-y: auto;
+  pointer-events: none; /* 빈 자리는 지도를 그대로 끌 수 있게 */
+}
 
-  /* 휴대폰: 위는 시세 안내, 아래는 유형 선택이 차지 → 유형 선택 바로 위 오른쪽 */
-  .guideOpen {
-    top: auto;
-    right: var(--space-2);
-    bottom: calc(120px + env(safe-area-inset-bottom, 0px));
+.side > * {
+  flex: none;
+  pointer-events: auto;
+}
+
+@media (max-width: 767px) {
+  .side {
+    top: var(--space-2);
+    left: var(--space-2);
+    width: calc(100% - 2 * var(--space-2));
+    max-height: 62%;
   }
 }
 

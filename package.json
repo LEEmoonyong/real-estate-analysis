@@ -20,7 +20,8 @@
     "coverage": "vitest run --coverage",
     "bench": "tsx bench/raycast.ts",
     "verify:api": "tsx scripts/verify-api.ts",
-    "snapshot:market": "tsx scripts/capture-market-snapshot.ts"
+    "snapshot:market": "tsx scripts/capture-market-snapshot.ts",
+    "build:regions": "tsx scripts/build-regions.ts"
   },
   "dependencies": {
     "@react-three/drei": "9.122.0",

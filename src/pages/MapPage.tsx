@@ -1,10 +1,10 @@
 // [요구사항: 컴포넌트] 지도 홈 — 전국 지도에서 단지·건물 시세를 보고 단지 상세로 들어가는 시작 화면
-// [요구사항: 상태관리] useState — 지도 상태(불러오는 중·준비·실패), 선택한 장소 카드, 시세 조건(유형·거래·방 구조)·필터
-// [요구사항: 이벤트 처리] 검색 결과 선택, 지도 위 샘플·시세 표시 클릭, 지도 이동(idle) → 그 시군구 시세 불러오기, 조건 칩, "단지 열기" 클릭
+// [요구사항: 상태관리] useState — 지도 상태(불러오는 중·준비·실패), 선택한 장소 카드, 시세 조건(지역·유형 여러 개·거래·방 구조)·세부 조건
+// [요구사항: 이벤트 처리] 검색 결과 선택, 지역·조건 패널(시·도·시·군·구·체크·세부 조건), 시세 표시 클릭, 지도 이동(idle·dragstart) → 그 시군구 시세 불러오기, "단지 열기" 클릭
 // [요구사항: Hooks] useEffect(SDK 로드·지도 생성·표시 정리·조건이 바뀌면 다시 불러오기), useRef(지도 컨테이너·지도 객체·표시 목록)
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { MarketControls } from '../components/map/MarketControls';
+import { MarketPanel } from '../components/map/MarketPanel';
 import { PlaceCard } from '../components/map/PlaceCard';
 import { SearchBar } from '../components/search/SearchBar';
 import { WatchlistCard } from '../components/watchlist/WatchlistCard';
@@ -19,21 +19,24 @@ import {
   type KakaoMapsApi,
 } from '../data/map/kakaoMaps';
 import { getDealPlaces, getRegion, latestDealMonth } from '../data/realestate/realestateClient';
+import { sidoCenter, type RegionEntry } from '../data/regions/regions';
 import { findSummary, readSunSummaries, type SunSummary } from '../data/storage/sunSummary';
 import { classOf, quantileBreaks } from '../domain/realestate/format';
 import { DEFAULT_MAP_FILTER, isFilterActive, passesMapFilter, type MapFilter } from '../domain/realestate/mapFilter';
 import {
   DEFAULT_MARKET_QUERY,
-  FILTER_STEPS,
+  activeTypes,
   filterValue,
   kindLabel,
   markerText,
-  stepLabel,
   typeLabel,
+  typeShort,
+  typesLabel,
   valueDescription,
   type DealKind,
   type DealPlace,
   type MarketQuery,
+  type PropertyType,
 } from '../domain/realestate/property';
 import type { Region } from '../domain/realestate/types';
 import type { SampleIndexEntry } from '../data/samples/sampleSchema';
@@ -79,16 +82,31 @@ type MarketState =
       total: number;
       truncated: boolean;
       breaks: number[];
+      /** 불러오지 못한 유형 (예: 활용신청이 반영되지 않은 API) */
+      failed: { type: PropertyType; message: string }[];
     }
   | { status: 'error'; message: string; query: MarketQuery };
 
-const queryKey = (lawd: string, q: MarketQuery) => `${lawd}|${q.type}|${q.kind}|${q.room}`;
+const queryKey = (lawd: string, q: MarketQuery) => `${lawd}|${q.types.join(',')}|${q.kind}|${q.room}`;
+
+/** 지역 목록 항목 → 실거래 조회에 쓰는 지역 (법정동은 모름) */
+const toRegion = (r: RegionEntry): Region => ({
+  bjdCode: `${r.lawdCode}00000`,
+  lawdCode: r.lawdCode,
+  sido: r.sido,
+  sigungu: r.sigungu,
+  dong: '',
+});
+/** 시·군·구 하나가 대략 보이는 확대 수준 (시세를 불러오는 가장 넓은 수준) */
+const SIGUNGU_LEVEL = 6;
 
 function placeChip(
   place: DealPlace,
   cls: number,
   kind: DealKind,
   sun: SunSummary | null,
+  /** 여러 유형을 함께 볼 때 이름 앞에 붙는 유형 (예: 빌라) */
+  typeTag: string | null,
   onClick: () => void,
 ): HTMLElement {
   const el = document.createElement('button');
@@ -97,7 +115,7 @@ function placeChip(
   el.style.background = PRICE_COLORS[cls] ?? PRICE_COLORS[0];
   el.style.color = cls >= 3 ? '#fff' : '#1b1f24';
   const text = markerText(place, kind);
-  el.title = `${place.name} · ${text.main}${text.sub ? ` (${text.sub})` : ''} · 최근 3달 ${kindLabel(kind)} ${place.count}건`;
+  el.title = `${typeTag ? `[${typeLabel(place.type)}] ` : ''}${place.name} · ${text.main}${text.sub ? ` (${text.sub})` : ''} · 최근 3달 ${kindLabel(kind)} ${place.count}건`;
   el.setAttribute('aria-label', el.title);
   const main = document.createElement('strong');
   main.textContent = text.main;
@@ -110,7 +128,7 @@ function placeChip(
   }
   const name = document.createElement('span');
   name.className = styles.priceName ?? '';
-  name.textContent = place.name;
+  name.textContent = typeTag ? `${typeTag} · ${place.name}` : place.name;
   el.append(name);
   if (sun) {
     // 이 기기에서 일조를 계산한 단지 — 참고 기준 충족 세대 비율
@@ -166,21 +184,43 @@ export function MapPage() {
   const [shownCount, setShownCount] = useState(0);
 
   // 화면 중심 → 법정동 → 시군구(또는 조건)가 바뀌었으면 그 시군구 최근 3달 거래를 건물별로
+  // 지역 패널에서 고른 시·군·구 — 지도를 끌어 옮기기 전까지는 화면 중심이 아니라 이 지역을 불러온다
+  const lockedRegionRef = useRef<Region | null>(null);
   const loadMarketAt = useCallback(async (lat: number, lng: number) => {
     const q = queryRef.current;
     try {
-      const region = await getRegion(lat, lng);
+      const region = lockedRegionRef.current ?? (await getRegion(lat, lng));
       const key = queryKey(region.lawdCode, q);
       if (key === marketKeyRef.current) return;
       marketKeyRef.current = key;
       setMarket({ status: 'loading', region, query: q });
-      const r = await getDealPlaces(region, q, latestDealMonth());
-      if (marketKeyRef.current !== key) return; // 그사이 다른 곳·다른 조건으로 바뀜
+      // 고른 유형마다 따로 불러와 합친다 (동시에 2개씩 — 서버가 유형마다 카카오 좌표를 붙인다)
+      const types = activeTypes(q);
+      const results: PromiseSettledResult<Awaited<ReturnType<typeof getDealPlaces>>>[] = [];
+      for (let i = 0; i < types.length; i += 2) {
+        const chunk = types.slice(i, i + 2);
+        results.push(...(await Promise.allSettled(chunk.map((t) => getDealPlaces(region, t, q, latestDealMonth())))));
+        if (marketKeyRef.current !== key) return; // 그사이 다른 곳·다른 조건으로 바뀜
+      }
+      const items: DealPlace[] = [];
+      const failed: { type: PropertyType; message: string }[] = [];
+      let total = 0;
+      let truncated = false;
+      results.forEach((r, i) => {
+        if (r.status === 'fulfilled') {
+          items.push(...r.value.items);
+          total += r.value.total;
+          truncated ||= r.value.truncated;
+        } else {
+          failed.push({ type: types[i]!, message: r.reason instanceof Error ? r.reason.message : String(r.reason) });
+        }
+      });
+      if (failed.length === types.length) throw new Error(failed[0]?.message ?? '불러올 유형이 없습니다.');
       const breaks = quantileBreaks(
-        r.items.map((i) => i.value),
+        items.map((i) => i.value),
         PRICE_COLORS.length,
       );
-      setMarket({ status: 'ready', region, query: q, items: r.items, total: r.total, truncated: r.truncated, breaks });
+      setMarket({ status: 'ready', region, query: q, items, total, truncated, breaks, failed });
     } catch (e) {
       marketKeyRef.current = null;
       setMarket({ status: 'error', message: e instanceof Error ? e.message : String(e), query: q });
@@ -217,6 +257,10 @@ export function MapPage() {
         setStatus('ready');
         // 지도를 움직이고 멈출 때마다: 충분히 확대했으면 화면 중심의 시군구 시세를 불러온다
         let regionTimer = 0;
+        // 지도를 직접 끌면 패널에서 고른 지역 고정을 풀고 화면 중심을 따라간다
+        api.event.addListener(map, 'dragstart', () => {
+          lockedRegionRef.current = null;
+        });
         api.event.addListener(map, 'idle', () => {
           window.clearTimeout(regionTimer);
           regionTimer = window.setTimeout(reloadAtCenter, 250);
@@ -238,17 +282,46 @@ export function MapPage() {
   }, []);
 
   // 조건(유형·거래 종류·방 구조)을 바꾸면 값 필터를 비우고 같은 시군구를 다시 불러온다
+  // 거래 종류가 바뀌면 값 범위(평당가 ↔ 보증금 ↔ 월세)는 뜻이 달라지므로 비우고, 면적·준공 조건은 그대로 둔다
   const handleQuery = useCallback(
     (next: MarketQuery) => {
+      const prev = queryRef.current;
       setQuery(next);
       queryRef.current = next;
-      setFilter(DEFAULT_MAP_FILTER);
+      setFilter((f) => ({
+        ...f,
+        ...(next.kind !== prev.kind ? { minValue: null, maxValue: null, maxDeposit: null } : {}),
+        ...(next.types.includes('apt') ? {} : { minSunPct: 0 }),
+      }));
       setPicked((p) => (p?.place ? null : p));
       marketKeyRef.current = null;
       reloadAtCenter();
     },
     [reloadAtCenter],
   );
+
+  /** 패널에서 시·군·구를 고름 → 그 지역으로 지도를 옮기고 바로 불러온다 */
+  const selectRegion = useCallback((r: RegionEntry) => {
+    const m = mapRef.current;
+    if (!m) return;
+    lockedRegionRef.current = toRegion(r);
+    setPicked(null);
+    m.map.setLevel(SIGUNGU_LEVEL);
+    m.map.setCenter(new m.api.LatLng(r.lat, r.lng));
+    marketKeyRef.current = null;
+    void loadMarketRef.current(r.lat, r.lng);
+  }, []);
+
+  /** 시·도만 고름 → 그 시·도가 보이게 옮긴다 (시·군·구를 고를 때까지 시세는 확대 안내) */
+  const selectSido = useCallback((sido: string) => {
+    const m = mapRef.current;
+    const c = sidoCenter(sido);
+    if (!m || !c) return;
+    lockedRegionRef.current = null;
+    setPicked(null);
+    m.map.setLevel(sido.endsWith('도') ? 11 : 9);
+    m.map.setCenter(new m.api.LatLng(c.lat, c.lng));
+  }, []);
 
   // 선택한 장소로 지도 이동 + 표시
   useEffect(() => {
@@ -301,17 +374,26 @@ export function MapPage() {
     for (const o of priceOverlaysRef.current) o.setMap(null);
     priceOverlaysRef.current = [];
     if (!m || market.status !== 'ready') return;
-    const { kind, type } = market.query;
+    const { kind } = market.query;
+    const multi = activeTypes(market.query).length > 1;
     let shown = 0;
     for (const item of market.items) {
       if (item.lat === null || item.lng === null) continue;
       // 일조 요약은 아파트 단지 분석에서만 나온다
-      const sun = type === 'apt' ? findSummary(summaries, { lat: item.lat, lng: item.lng }) : null;
-      if (!passesMapFilter(filterValue(item, kind), sun?.meetsPct ?? null, filter)) continue;
+      const sun = item.type === 'apt' ? findSummary(summaries, { lat: item.lat, lng: item.lng }) : null;
+      const subject = {
+        value: filterValue(item, kind),
+        deposit: item.depositMedian,
+        areaM2: item.areaMedian,
+        buildYear: item.buildYear,
+        sunPct: sun?.meetsPct ?? null,
+      };
+      if (!passesMapFilter(subject, filter)) continue;
       shown++;
+      const tag = multi ? typeShort(item.type) : null;
       const overlay = new m.api.CustomOverlay({
         position: new m.api.LatLng(item.lat, item.lng),
-        content: placeChip(item, classOf(item.value, market.breaks), kind, sun, () =>
+        content: placeChip(item, classOf(item.value, market.breaks), kind, sun, tag, () =>
           pickPlace(item, market.region, kind),
         ),
         yAnchor: 1.1,
@@ -405,30 +487,24 @@ export function MapPage() {
 
       <main className={styles.mapArea} aria-label="지도">
         <div ref={containerRef} className={styles.map} />
-        {guideHidden && !picked && (
-          // 접힌 안내는 유형 선택과 겹치지 않게 지도 오른쪽에 둔다
-          <button
-            type="button"
-            className={styles.guideOpen}
-            onClick={() => setGuideHidden(false)}
-            aria-label="지도 사용 안내 열기"
-          >
-            ? 안내
-          </button>
-        )}
         {status === 'loading' && <p className={styles.mapMessage}>지도를 불러오는 중…</p>}
         {status === 'ready' && (
-          <>
-            <MarketControls query={query} onChange={handleQuery} />
-            <MarketBadge
-              market={market}
+          // 검색창 바로 아래: 지역·조건 패널(접기/열기)과 그 결과 안내
+          <div className={styles.side}>
+            <MarketPanel
               query={query}
+              onQuery={handleQuery}
               filter={filter}
               onFilter={setFilter}
-              shown={shownCount}
-              sunCount={summaries.length}
+              regionLawd={
+                market.status === 'loading' || market.status === 'ready' ? (market.region?.lawdCode ?? null) : null
+              }
+              onRegion={selectRegion}
+              onSido={selectSido}
+              onShowGuide={guideHidden ? () => setGuideHidden(false) : null}
             />
-          </>
+            <MarketBadge market={market} query={query} shown={shownCount} filtered={isFilterActive(filter)} />
+          </div>
         )}
         {status === 'error' && (
           <div className={styles.mapMessage} role="status">
@@ -462,7 +538,7 @@ export function MapPage() {
               </button>
             </div>
           </div>
-        ) : guideHidden ? (
+        ) : guideHidden && status === 'ready' ? (
           <WatchlistCard deals={newDeals} />
         ) : (
           <div className={styles.card}>
@@ -478,8 +554,9 @@ export function MapPage() {
             <WatchlistCard deals={newDeals} />
             <p className={`${styles.cardTitle} ${styles.guideTitle}`}>아파트·오피스텔·빌라 시세를 찾아보세요</p>
             <p className={styles.muted}>
-              지도 왼쪽 위에서 유형(아파트·오피스텔·빌라·단독·상가)과 매매·전세·월세를 고르고 지도를 확대하면 최근 3달
-              실거래가 건물마다 표시됩니다. 단지명·주소를 검색하면 일조 분석을 열 수 있습니다.
+              검색창 아래 <strong>지역·조건</strong>에서 시·도와 시·군·구를 고르고, 유형(여러 개)과 매매·전세·월세, 세부
+              조건(가격·면적·준공 연도 등)을 정하면 그 지역의 최근 3달 실거래가 건물마다 표시됩니다. 지도를 직접 옮기고
+              확대해도 됩니다. 단지명·주소를 검색하면 일조 분석을 열 수 있습니다.
             </p>
           </div>
         )}
@@ -488,32 +565,29 @@ export function MapPage() {
   );
 }
 
-/** 지도 위 시세 안내·범례·필터 */
-const SUN_STEPS = [50, 70, 90];
-
+/** 지도 위 시세 안내·범례 (조건은 지역·조건 패널에서) */
 interface BadgeProps {
   market: MarketState;
   query: MarketQuery;
-  filter: MapFilter;
-  onFilter: (f: MapFilter) => void;
   shown: number;
-  sunCount: number;
+  filtered: boolean;
 }
 
-function MarketBadge({ market, query, filter, onFilter, shown, sunCount }: BadgeProps) {
-  const num = (v: string) => (v === '' ? null : Number(v));
-  const what = `${typeLabel(query.type)} ${kindLabel(query.kind)}`;
+const KEY_ERROR = /인증|서비스키|NO_KEY|키가/;
+
+function MarketBadge({ market, query, shown, filtered }: BadgeProps) {
+  const what = `${typesLabel(activeTypes(query))} ${kindLabel(query.kind)}`;
   let body: ReactNode;
-  if (market.status === 'zoom-in') body = `지도를 확대하면 최근 3달 ${what} 시세가 건물마다 보입니다.`;
+  if (market.status === 'zoom-in')
+    body = `지역·조건에서 시·군·구를 고르거나 지도를 확대하면 최근 3달 ${what} 시세가 건물마다 보입니다.`;
   else if (market.status === 'loading')
-    body = `${market.region ? `${market.region.sigungu} ` : ''}${what} 실거래가를 불러오는 중…`;
+    body = `${market.region ? `${market.region.sigungu || market.region.sido} ` : ''}${what} 실거래가를 불러오는 중…`;
   else if (market.status === 'error')
-    body = /인증|서비스키|NO_KEY|키가/.test(market.message)
+    body = KEY_ERROR.test(market.message)
       ? `${what} 자료를 불러오지 못했습니다: 공공데이터포털에서 이 유형의 실거래가 API 활용신청이 필요합니다. (${market.message})`
       : `${what} 시세를 불러오지 못했습니다: ${market.message}`;
   else {
-    const { kind, type } = market.query;
-    const steps = FILTER_STEPS[kind];
+    const { kind } = market.query;
     // 지번이 비공개인 거래(단독·다가구 전부, 상가 일반 건물)는 법정동 표시로 묶인다
     const dongCount = market.items.filter((i) => i.level === 'dong').length;
     const buildingCount = market.items.length - dongCount;
@@ -524,9 +598,17 @@ function MarketBadge({ market, query, filter, onFilter, shown, sunCount }: Badge
           {[buildingCount > 0 && `건물 ${buildingCount}곳`, dongCount > 0 && `법정동 ${dongCount}곳`]
             .filter(Boolean)
             .join(' · ')}{' '}
-          · {valueDescription(kind, type)}
+          · {valueDescription(kind, activeTypes(market.query))}
           {market.query.room !== 'all' && ` · ${market.query.room === 'one' ? '원룸' : '투룸'}(면적 추정)`}
         </span>
+        {market.failed.length > 0 && (
+          <span className={styles.muted}>
+            {market.failed.map((f) => typeLabel(f.type)).join('·')}{' '}
+            {KEY_ERROR.test(market.failed[0]!.message)
+              ? '자료는 공공데이터포털 API 승인이 반영되지 않아 빠졌습니다.'
+              : '자료를 불러오지 못해 빠졌습니다.'}
+          </span>
+        )}
         {dongCount > 0 && (
           <span className={styles.muted}>지번이 비공개인 거래는 법정동 위치에 묶어 점선 테두리로 표시합니다.</span>
         )}
@@ -537,61 +619,9 @@ function MarketBadge({ market, query, filter, onFilter, shown, sunCount }: Badge
           ))}
           비싸다
         </span>
-        {/* [요구사항: 이벤트 처리] onChange — 필터를 바꾸면 표시를 다시 그린다 */}
-        <form className={styles.filter} aria-label="시세 표시 필터" onSubmit={(e) => e.preventDefault()}>
-          <label>
-            {kind === 'trade' ? '평당' : kind === 'jeonse' ? '보증금' : '월세'}
-            <select
-              value={filter.minValue ?? ''}
-              onChange={(e) => onFilter({ ...filter, minValue: num(e.target.value) })}
-              aria-label="값 하한"
-            >
-              <option value="">하한 없음</option>
-              {steps.map((v) => (
-                <option key={v} value={v}>
-                  {stepLabel(kind, v)} 이상
-                </option>
-              ))}
-            </select>
-            <select
-              value={filter.maxValue ?? ''}
-              onChange={(e) => onFilter({ ...filter, maxValue: num(e.target.value) })}
-              aria-label="값 상한"
-            >
-              <option value="">상한 없음</option>
-              {steps.map((v) => (
-                <option key={v} value={v}>
-                  {stepLabel(kind, v)} 이하
-                </option>
-              ))}
-            </select>
-          </label>
-          {type === 'apt' && (
-            <label>
-              일조
-              <select
-                value={filter.minSunPct}
-                onChange={(e) => onFilter({ ...filter, minSunPct: Number(e.target.value) })}
-                aria-label="일조 기준 충족 세대 비율 하한"
-              >
-                <option value={0}>조건 없음</option>
-                {SUN_STEPS.map((v) => (
-                  <option key={v} value={v}>
-                    기준 충족 {v}% 이상
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-          {isFilterActive(filter) && (
-            <button type="button" className={styles.filterReset} onClick={() => onFilter(DEFAULT_MAP_FILTER)}>
-              초기화
-            </button>
-          )}
-        </form>
         <span className={styles.muted} data-shown={shown}>
-          표시 {shown}곳{market.truncated && ' · 거래가 많아 일부만 표시'}
-          {filter.minSunPct > 0 && ` · 일조는 이 기기에서 분석한 곳(${sunCount}곳) 주변 400m 단지만 알 수 있습니다`}
+          표시 {shown}곳{filtered && ' (세부 조건 적용)'}
+          {market.truncated && ' · 거래가 많아 일부만 표시'}
         </span>
       </>
     );
