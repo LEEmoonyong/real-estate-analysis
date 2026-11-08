@@ -305,3 +305,14 @@
 .alertButton + .headerLink {
   margin-left: var(--space-2);
 }
+
+/* 유형별 시세 표시 (확장 X8) */
+.priceSub {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* 지번이 비공개라 법정동에 묶은 표시 — 점선 테두리로 구분 */
+.dongMarker {
+  border: 2px dashed rgb(0 0 0 / 0.45);
+}

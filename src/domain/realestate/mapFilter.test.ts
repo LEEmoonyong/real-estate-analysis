@@ -8,7 +8,7 @@ describe('지도 시세 필터', () => {
   });
 
   it('평당가 범위', () => {
-    const f = { ...DEFAULT_MAP_FILTER, minPyeong: 3_000, maxPyeong: 6_000 };
+    const f = { ...DEFAULT_MAP_FILTER, minValue: 3_000, maxValue: 6_000 };
     expect(isFilterActive(f)).toBe(true);
     expect(passesMapFilter(2_999, null, f)).toBe(false);
     expect(passesMapFilter(4_000, null, f)).toBe(true);

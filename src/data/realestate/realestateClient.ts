@@ -4,6 +4,7 @@
 import { getJson } from '../apiClient';
 import { snapshotBaseMonth } from '../marketSnapshot';
 import type { NearbyResponse } from '../../domain/realestate/nearby';
+import type { DealPlace, MarketQuery } from '../../domain/realestate/property';
 import type {
   AptComplex,
   AptComplexInfo,
@@ -65,6 +66,20 @@ export async function getTradeComplexes(
     signal,
   );
   return r.items;
+}
+
+/** 지도 표시용 (확장 X8): 유형·거래 종류·방 구조별 최근 3달 거래를 건물(또는 동)별로 묶은 목록 + 좌표 */
+export async function getDealPlaces(
+  region: Pick<Region, 'lawdCode' | 'sido' | 'sigungu'>,
+  query: MarketQuery,
+  ym: string,
+  signal?: AbortSignal,
+): Promise<{ items: DealPlace[]; total: number; truncated: boolean }> {
+  const area = `${region.sido} ${region.sigungu}`;
+  return cached<{ items: DealPlace[]; total: number; truncated: boolean }>(
+    `/api/realestate/deal-places?${q({ type: query.type, kind: query.kind, room: query.room, lawd: region.lawdCode, ym, months: 3, area })}`,
+    signal,
+  );
 }
 
 export async function getComplexes(sigungu: string, signal?: AbortSignal): Promise<AptComplex[]> {
