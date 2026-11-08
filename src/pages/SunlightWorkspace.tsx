@@ -31,7 +31,7 @@ import { VirtualBuildingPanel } from '../components/virtual/VirtualBuildingPanel
 import { DEFAULT_SAMPLE_ID } from '../config/constants';
 import { FEATURES } from '../config/features';
 import { useFavoritesActions } from '../contexts/FavoritesContext';
-import { useSceneData } from '../contexts/SceneDataContext';
+import { useSceneData, useSceneDataActions } from '../contexts/SceneDataContext';
 import type { GeoResult } from '../data/geocode/geocodeClient';
 import { loadSampleIndex, nearestSample, prefetchSamples } from '../data/samples/sampleClient';
 import type { SampleIndexEntry } from '../data/samples/sampleSchema';
@@ -73,6 +73,7 @@ export function SunlightWorkspace({ target, nav, tabs }: SunlightWorkspaceProps)
   const location = useLocation();
   const health = useApiHealth();
   const { scene, selectedBuildingId, selectedUnitId } = useSceneData();
+  const { clearSelection } = useSceneDataActions();
 
   // [요구사항: 상태관리] useState — 현재 건물 데이터 요청 (검색·샘플 선택·재시도마다 새 객체)
   const [request, setRequest] = useState<BuildingsRequest | null>(null);
@@ -287,7 +288,13 @@ export function SunlightWorkspace({ target, nav, tabs }: SunlightWorkspaceProps)
           )
         }
         detail={
-          <Panel title="세대·건물 정보" tourId="detail">
+          <Panel
+            title="세대·건물 정보"
+            tourId="detail"
+            // 건물·세대를 골랐을 때만 × — 누르면 정보를 닫고 3D 장면의 선택 표시도 지운다
+            onClose={selectedBuildingId || selectedUnitId ? clearSelection : undefined}
+            closeLabel="선택 해제하고 정보 닫기"
+          >
             {/* 상세 패널 오류가 3D 장면·컨트롤까지 멈추지 않도록 따로 감싼다. 선택이 바뀌면 다시 그린다 */}
             <ErrorBoundary scope="세대 정보" resetKey={selectedUnitId ?? selectedBuildingId}>
               <UnitDetailPanel />

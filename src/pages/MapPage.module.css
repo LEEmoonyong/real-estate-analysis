@@ -365,3 +365,27 @@
 .dongMarker {
   border: 2px dashed rgb(0 0 0 / 0.45);
 }
+
+/* 즐겨찾기 표시 (★) — 누르면 단지 분석 */
+.favMarker {
+  max-width: 180px;
+  overflow: hidden;
+  padding: 4px 10px;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background: #f5b301;
+  color: #1b1f24;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.35);
+  cursor: pointer;
+}
+
+.favMarker:hover,
+.favMarker:focus-visible {
+  outline: 2px solid var(--color-accent-strong);
+  outline-offset: 1px;
+}

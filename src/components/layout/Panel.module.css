@@ -18,3 +18,24 @@
   color: var(--color-text-muted);
   letter-spacing: 0.02em;
 }
+
+/* 패널 머리 오른쪽 닫기(×) — 예: 세대·건물 정보에서 선택 해제 */
+.close {
+  width: var(--touch-target);
+  height: var(--touch-target);
+  margin: calc(var(--space-2) * -1) calc(var(--space-2) * -1) calc(var(--space-2) * -1) 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.close:hover,
+.close:focus-visible {
+  background: var(--color-border);
+  color: var(--color-text);
+}

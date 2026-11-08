@@ -8,7 +8,8 @@ import { MarketPanel } from '../components/map/MarketPanel';
 import { PlaceCard } from '../components/map/PlaceCard';
 import { SearchBar } from '../components/search/SearchBar';
 import { WatchlistCard } from '../components/watchlist/WatchlistCard';
-import { useFavoritesActions } from '../contexts/FavoritesContext';
+import { useFavorites, useFavoritesActions } from '../contexts/FavoritesContext';
+import type { Favorite } from '../domain/types';
 import { useWatchlist } from '../contexts/WatchlistContext';
 import type { GeoResult } from '../data/geocode/geocodeClient';
 import {
@@ -139,6 +140,25 @@ function placeChip(
   return el;
 }
 
+/** 즐겨찾기 표시 — 누르면 바로 단지 분석으로 */
+function favoriteChip(fav: Favorite, onClick: () => void): HTMLElement {
+  const el = document.createElement('button');
+  el.type = 'button';
+  el.className = styles.favMarker ?? '';
+  el.textContent = `★ ${fav.name}`;
+  el.title = `즐겨찾기: ${fav.name} — 눌러서 단지 분석 열기`;
+  el.setAttribute('aria-label', el.title);
+  el.addEventListener('click', onClick);
+  return el;
+}
+
+/** 즐겨찾기 → 단지 분석 주소의 대상 */
+function favoriteTarget(fav: Favorite): ComplexTarget {
+  return fav.sampleId
+    ? { kind: 'sample', sampleId: fav.sampleId }
+    : { kind: 'geo', name: fav.name, lat: fav.lat, lng: fav.lng, ...(fav.address ? { address: fav.address } : {}) };
+}
+
 function pickedChip(label: string): HTMLElement {
   const el = document.createElement('button');
   el.type = 'button';
@@ -151,6 +171,7 @@ export function MapPage() {
   const navigate = useNavigate();
   const health = useApiHealth();
   const { addRecent } = useFavoritesActions();
+  const { favorites } = useFavorites();
   // 관심 단지의 새 거래 (확장 X6)
   const { watched } = useWatchlist();
   const newDeals = useNewDeals(watched);
@@ -348,6 +369,26 @@ export function MapPage() {
       pickedOverlayRef.current = overlay;
     }
   }, [picked, status]);
+
+  // 즐겨찾기한 곳을 지도에 ★로 표시 — 누르면 바로 단지 분석(일조·조망 탭)으로
+  useEffect(() => {
+    const m = mapRef.current;
+    if (!m || status !== 'ready') return;
+    const overlays = favorites.map((fav) => {
+      const overlay = new m.api.CustomOverlay({
+        position: new m.api.LatLng(fav.lat, fav.lng),
+        content: favoriteChip(fav, () => navigate(complexPath(favoriteTarget(fav)))),
+        yAnchor: 1.3,
+        clickable: true,
+        zIndex: 6, // 시세 표시보다 위
+      });
+      overlay.setMap(m.map);
+      return overlay;
+    });
+    return () => {
+      for (const o of overlays) o.setMap(null);
+    };
+  }, [favorites, status, navigate]);
 
   /** 시세 표시를 눌렀을 때: 아파트는 단지 상세, 그 밖의 건물은 그 자리 일조 분석, 동 단위는 목록만 */
   const pickPlace = useCallback((place: DealPlace, region: Region, kind: DealKind) => {

@@ -1,7 +1,9 @@
 // [요구사항: 컴포넌트] 검색 — 주소·단지명 입력과 후보 목록 (WAI-ARIA combobox 패턴)
 // [요구사항: 상태관리] useState — 검색어, 목록 열림, 키보드 선택 위치
-// [요구사항: 이벤트 처리] onChange, onSubmit, onKeyDown(↑↓ Enter Esc), onBlur, onClick
-import { useId, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent } from 'react';
+// [요구사항: 이벤트 처리] onChange(입력하면 잠시 뒤 연관 검색어), onSubmit, onKeyDown(↑↓ Enter Esc), onBlur, onClick
+// [요구사항: Hooks] useEffect — 입력이 멈추면(디바운스) 검색, 타이머 정리
+// 후보를 고르면 검색어를 비운다(다음 검색을 바로 입력할 수 있게).
+import { useEffect, useId, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent } from 'react';
 import type { GeoResult } from '../../data/geocode/geocodeClient';
 import type { SampleIndexEntry } from '../../data/samples/sampleSchema';
 import type { DataMode } from '../../hooks/useApiHealth';
@@ -16,6 +18,10 @@ interface SearchBarProps {
   onPickSample: (sample: SampleIndexEntry, query?: string) => void;
 }
 
+/** 입력이 이만큼 멈추면 연관 검색어를 불러온다 [ms] — 글자마다 API를 부르지 않도록 */
+const SUGGEST_DELAY_MS = 300;
+const SUGGEST_MIN_CHARS = 2;
+
 const candidateLabel = (c: SearchCandidate) => (c.type === 'place' ? c.result.label : c.sample.name);
 
 export function SearchBar({ mode, onPickPlace, onPickSample }: SearchBarProps) {
@@ -25,24 +31,48 @@ export function SearchBar({ mode, onPickPlace, onPickSample }: SearchBarProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const listId = useId();
   const geo = useGeocode(mode);
+  const { search, reset } = geo;
+  // 사용자가 직접 입력한 경우에만 자동 검색 (후보를 골라 검색어를 비운 경우는 제외)
+  const typedRef = useRef(false);
+
+  // 타이핑만 해도 연관 검색어: 입력이 SUGGEST_DELAY_MS 동안 멈추면 검색하고 목록을 연다
+  useEffect(() => {
+    if (!typedRef.current) return;
+    const q = query.trim();
+    if (q.length < SUGGEST_MIN_CHARS) {
+      reset();
+      setIsOpen(false);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      void search(q);
+      setIsOpen(true);
+      setActiveIndex(-1);
+    }, SUGGEST_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [query, search, reset]);
 
   const pick = (candidate: SearchCandidate) => {
     if (candidate.type === 'place') {
       onPickPlace(candidate.result, query.trim(), geo.provider === 'vworld' ? 'vworld' : 'kakao');
     } else onPickSample(candidate.sample, query.trim());
+    // 검색이 끝났으면 검색어와 후보를 비운다
+    typedRef.current = false;
+    setQuery('');
+    reset();
     setIsOpen(false);
     setActiveIndex(-1);
     inputRef.current?.blur();
   };
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+    typedRef.current = true;
     setQuery(event.target.value);
-    setIsOpen(false);
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    void geo.search(query);
+    void search(query);
     setIsOpen(true);
     setActiveIndex(-1);
   };
@@ -91,7 +121,7 @@ export function SearchBar({ mode, onPickPlace, onPickSample }: SearchBarProps) {
           aria-activedescendant={activeIndex >= 0 ? `${listId}-opt-${activeIndex}` : undefined}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
-          onFocus={() => geo.candidates.length > 0 && setIsOpen(true)}
+          onFocus={() => query.trim() !== '' && geo.candidates.length > 0 && setIsOpen(true)}
           // 목록 클릭이 blur보다 늦게 처리되므로 닫기를 한 프레임 늦춘다
           onBlur={() => window.setTimeout(() => setIsOpen(false), 150)}
           data-shortcut="search"
