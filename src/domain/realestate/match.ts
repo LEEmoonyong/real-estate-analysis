@@ -60,6 +60,9 @@ export function canonicalName(name: string, places: readonly string[] = []): str
 
 const digits = (s: string) => (s.match(/\d+/g) ?? []).join(',');
 
+/** 단지를 가리키지 않는 옛 공공 분양 이름 — 단지 목록에서 자주 빠진다 */
+const GENERIC_PREFIX = /^(주공|시영)/;
+
 /** 글자 2-gram 다이스 계수 0~1 */
 export function bigramSimilarity(a: string, b: string): number {
   if (a === b) return 1;
@@ -86,6 +89,10 @@ export function nameScore(trade: TradeRef, complex: ComplexRef): number {
   const db = digits(b);
   if (da && db && !db.split(',').some((d) => da.split(',').includes(d))) return 0;
   if (a === b) return 1;
+  // "주공"·"시영"(옛 공공 분양 이름)만 다르고 번호가 같으면 같은 단지
+  // (2026-11 실측: 실거래 "주공아파트 5단지" ↔ 단지 목록 "잠실5단지아파트" — 지역명을 지우면 "주공5" ↔ "5")
+  const bare = (s: string) => s.replace(GENERIC_PREFIX, '');
+  if (da && bare(a) === bare(b)) return 0.95;
   // 한쪽이 다른 쪽을 포함하면 높은 점수 — 단 길이 차이가 크면(한신 ⊂ 한신잠실코아) 다른 단지일 가능성이 커 제외
   const [short, long] = a.length <= b.length ? [a, b] : [b, a];
   if (short.length >= 2 && long.includes(short) && short.length / long.length >= 0.5) return 0.9;

@@ -66,6 +66,13 @@ describe('단지 매칭', () => {
     expect(matchComplex(T('장미3', '신천동'), complexes)?.kaptCode).toBe('A6');
   });
 
+  it('"주공"만 다르고 번호가 같으면 같은 단지 (실제 단지 목록 이름 "잠실5단지아파트")', () => {
+    const real = [C('A13879102', '잠실5단지아파트', '잠실동'), C('A13811205', '거여5단지', '거여동')];
+    expect(matchComplex(T('주공아파트 5단지', '잠실동'), real)?.kaptCode).toBe('A13879102');
+    // 번호가 다르면 아님
+    expect(nameScore(T('주공아파트 4단지', '잠실동'), real[0]!)).toBe(0);
+  });
+
   it('숫자가 다르거나 길이 차이가 큰 포함 관계는 매칭하지 않는다', () => {
     expect(nameScore(T('현대(6차)', '가락동'), complexes[4]!)).toBe(0); // 6차 ≠ 5차
     expect(matchComplex(T('한신잠실코아', '가락동'), complexes)).toBeNull(); // 한신 ⊂ 한신잠실코아 — 다른 단지

@@ -73,7 +73,7 @@ export function InfoPanel({ market, target }: { market: Ready; target: ComplexTa
         <h2 className={styles.cardTitle}>단지 정보</h2>
         <p className={styles.muted}>
           {state.searched
-            ? `공동주택 단지 목록에서 "${state.searched}"을(를) 찾지 못했습니다. 의무관리 대상(대략 150세대 이상 등)이 아닌 소규모 단지는 목록에 없습니다.`
+            ? `공동주택 단지 목록에서 "${state.searched}"을(를) 찾지 못했습니다. 두 자료의 단지 이름이 많이 다르거나(예: 실거래 "주공아파트 5단지" ↔ 단지 목록 "잠실5단지아파트"), 의무관리 대상(대략 150세대 이상 등)이 아닌 소규모 단지라 목록에 없을 수 있습니다.`
             : '이 위치 가까이에서 최근 거래된 단지를 찾지 못해 단지 정보를 연결할 수 없습니다. 지도에서 단지 가격 표시를 눌러 여세요.'}
         </p>
       </section>
