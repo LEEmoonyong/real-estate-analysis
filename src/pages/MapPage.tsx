@@ -7,7 +7,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { MarketControls } from '../components/map/MarketControls';
 import { PlaceCard } from '../components/map/PlaceCard';
 import { SearchBar } from '../components/search/SearchBar';
-import { SampleChips } from '../components/search/SampleChips';
 import { WatchlistCard } from '../components/watchlist/WatchlistCard';
 import { useFavoritesActions } from '../contexts/FavoritesContext';
 import { useWatchlist } from '../contexts/WatchlistContext';
@@ -20,7 +19,6 @@ import {
   type KakaoMapsApi,
 } from '../data/map/kakaoMaps';
 import { getDealPlaces, getRegion, latestDealMonth } from '../data/realestate/realestateClient';
-import { loadSampleIndex } from '../data/samples/sampleClient';
 import { findSummary, readSunSummaries, type SunSummary } from '../data/storage/sunSummary';
 import { classOf, quantileBreaks } from '../domain/realestate/format';
 import { DEFAULT_MAP_FILTER, isFilterActive, passesMapFilter, type MapFilter } from '../domain/realestate/mapFilter';
@@ -127,12 +125,11 @@ function placeChip(
   return el;
 }
 
-function overlayChip(label: string, variant: 'sample' | 'picked', onClick: () => void): HTMLElement {
+function pickedChip(label: string): HTMLElement {
   const el = document.createElement('button');
   el.type = 'button';
-  el.className = `${styles.marker} ${variant === 'picked' ? styles.markerPicked : ''}`;
+  el.className = `${styles.marker} ${styles.markerPicked}`;
   el.textContent = label;
-  el.addEventListener('click', onClick);
   return el;
 }
 
@@ -205,13 +202,12 @@ export function MapPage() {
     void loadMarketRef.current(Math.round(c.getLat() * 1e3) / 1e3, Math.round(c.getLng() * 1e3) / 1e3);
   }, []);
 
-  // 지도 만들기 + 샘플 지역 표시 (한 번)
+  // 지도 만들기 (한 번)
   useEffect(() => {
     if (!KAKAO_JS_KEY) return;
     let cancelled = false;
-    const overlays: KakaoCustomOverlay[] = [];
     loadKakaoMaps()
-      .then(async (api) => {
+      .then((api) => {
         if (cancelled || !containerRef.current) return;
         const map = new api.Map(containerRef.current, {
           center: new api.LatLng(KOREA_CENTER.lat, KOREA_CENTER.lng),
@@ -225,18 +221,6 @@ export function MapPage() {
           window.clearTimeout(regionTimer);
           regionTimer = window.setTimeout(reloadAtCenter, 250);
         });
-        const samples = await loadSampleIndex().catch(() => [] as SampleIndexEntry[]);
-        if (cancelled) return;
-        for (const s of samples) {
-          const overlay = new api.CustomOverlay({
-            position: new api.LatLng(s.center.lat, s.center.lng),
-            content: overlayChip(s.name.split(' (')[0]!, 'sample', () => pickSample(s)),
-            yAnchor: 1.2,
-            clickable: true,
-          });
-          overlay.setMap(map);
-          overlays.push(overlay);
-        }
       })
       .catch((e: unknown) => {
         if (cancelled) return;
@@ -245,12 +229,11 @@ export function MapPage() {
       });
     return () => {
       cancelled = true;
-      for (const o of overlays) o.setMap(null);
       for (const o of priceOverlaysRef.current) o.setMap(null);
       pickedOverlayRef.current?.setMap(null);
       mapRef.current = null;
     };
-    // pickSample·reloadAtCenter는 안정적인 함수
+    // reloadAtCenter는 안정적인 함수
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -278,7 +261,7 @@ export function MapPage() {
     if (picked.target?.kind === 'geo' && !picked.keepZoom) {
       const overlay = new m.api.CustomOverlay({
         position: pos,
-        content: overlayChip(picked.title, 'picked', () => undefined),
+        content: pickedChip(picked.title),
         yAnchor: 1.2,
         zIndex: 5,
       });
@@ -450,7 +433,7 @@ export function MapPage() {
         {status === 'error' && (
           <div className={styles.mapMessage} role="status">
             <p>{error}</p>
-            <p className={styles.muted}>지도 없이도 검색·샘플 지역으로 단지 분석을 열 수 있습니다.</p>
+            <p className={styles.muted}>지도 없이도 위 검색으로 단지 분석을 열 수 있습니다.</p>
           </div>
         )}
       </main>
@@ -496,12 +479,7 @@ export function MapPage() {
             <p className={`${styles.cardTitle} ${styles.guideTitle}`}>아파트·오피스텔·빌라 시세를 찾아보세요</p>
             <p className={styles.muted}>
               지도 왼쪽 위에서 유형(아파트·오피스텔·빌라·단독·상가)과 매매·전세·월세를 고르고 지도를 확대하면 최근 3달
-              실거래가 건물마다 표시됩니다. 단지명·주소를 검색하거나 샘플 지역을 누르면 일조 분석을 열 수 있습니다.
-            </p>
-            <SampleChips activeId={null} onPick={pickSample} />
-            <p className={styles.muted}>
-              바로 보기:{' '}
-              <Link to={complexPath({ kind: 'sample', sampleId: 'sejong-hansol' })}>세종 한솔동 일조 분석</Link>
+              실거래가 건물마다 표시됩니다. 단지명·주소를 검색하면 일조 분석을 열 수 있습니다.
             </p>
           </div>
         )}
