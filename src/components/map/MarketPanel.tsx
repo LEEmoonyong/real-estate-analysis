@@ -1,5 +1,5 @@
-// [요구사항: 컴포넌트] 지도 검색창 아래 접기/열기 패널 — 지역(시·도 → 시·군·구), 주택 유형(여러 개 체크),
-//   거래 종류(매매·전세·월세), 방 구조, 세부 조건(가격·보증금·면적·준공·일조)
+// [요구사항: 컴포넌트] 지도 검색창 아래 접기/열기 패널 — 지역(시·도 → 시·군·구 → 동), 주택 유형(하나),
+//   거래 종류(매매·전세·월세 중 하나), 방 구조, 세부 조건(가격·보증금·면적·준공·일조)
 // [요구사항: 상태관리] useState — 패널 열림, 시·도만 고르고 시·군·구는 아직 안 고른 중간 상태
 // [요구사항: 이벤트 처리] onChange(select·체크·라디오) → 지역 이동·다시 불러오기·표시 거르기, onClick(접기/열기·초기화)
 import { useId, useState } from 'react';
@@ -23,8 +23,7 @@ import {
   normalizeQuery,
   roomApplies,
   stepLabel,
-  toggleType,
-  typesLabel,
+  typeLabel,
   type MarketQuery,
 } from '../../domain/realestate/property';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
@@ -39,6 +38,10 @@ interface MarketPanelProps {
   regionLawd: string | null;
   onRegion: (r: RegionEntry) => void;
   onSido: (sido: string) => void;
+  /** 불러온 시·군·구에서 거래가 있는 법정동 목록과 고른 동 ('' = 전체) */
+  dongs: readonly string[];
+  dong: string;
+  onDong: (dong: string) => void;
   /** 안내 카드를 닫아 두었으면 다시 여는 버튼을 패널 머리에 둔다 */
   onShowGuide: (() => void) | null;
 }
@@ -54,6 +57,9 @@ export function MarketPanel({
   regionLawd,
   onRegion,
   onSido,
+  dongs,
+  dong,
+  onDong,
   onShowGuide,
 }: MarketPanelProps) {
   const id = useId();
@@ -74,7 +80,7 @@ export function MarketPanel({
   const kind = query.kind;
   const steps = FILTER_STEPS[kind];
   const filterCount = activeFilterCount(filter);
-  const anyKind = (k: (typeof DEAL_KIND_OPTIONS)[number]['id']) => query.types.some((t) => kindsFor(t).includes(k));
+  const kinds = kindsFor(query.type);
 
   const pickSido = (next: string) => {
     if (!next) return;
@@ -97,8 +103,8 @@ export function MarketPanel({
   };
 
   const summary = [
-    current ? regionLabel(current) : sido || '지역 미선택',
-    typesLabel(query.types),
+    current ? `${regionLabel(current)}${dong ? ` ${dong}` : ''}` : sido || '지역 미선택',
+    typeLabel(query.type),
     kindLabel(kind),
     filterCount > 0 ? `세부 ${filterCount}` : '',
   ]
@@ -155,27 +161,42 @@ export function MarketPanel({
                   </option>
                 ))}
               </select>
+              <select
+                value={lawd ? dong : ''}
+                onChange={(e) => onDong(e.target.value)}
+                aria-label="동"
+                disabled={!lawd || dongs.length === 0}
+              >
+                <option value="">{lawd ? '동 전체' : '동'}</option>
+                {dongs.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </select>
             </div>
             {pickedSido && !lawd && <p className={styles.note}>시·군·구를 고르면 그 지역 건물이 표시됩니다.</p>}
+            {lawd && dongs.length > 0 && (
+              <p className={styles.note}>동 목록은 최근 3달 이 조건의 거래가 있는 법정동입니다.</p>
+            )}
           </fieldset>
 
           <fieldset className={styles.group}>
-            <legend>유형 (여러 개 선택)</legend>
+            <legend>유형</legend>
             <div className={styles.row}>
               {PROPERTY_TYPE_OPTIONS.map((o) => (
                 <label key={o.id} className={styles.check} title={o.hint}>
                   <input
-                    type="checkbox"
-                    checked={query.types.includes(o.id)}
-                    onChange={() => onQuery(toggleType(query, o.id))}
+                    type="radio"
+                    name={`${id}-type`}
+                    checked={query.type === o.id}
+                    onChange={() => set({ type: o.id })}
                   />
                   {o.label}
                 </label>
               ))}
             </div>
-            {query.types.includes('nrg') && kind !== 'trade' && (
-              <p className={styles.note}>상가는 국토교통부 공개 자료에 매매만 있어 전세·월세에서는 빠집니다.</p>
-            )}
+            {query.type === 'nrg' && <p className={styles.note}>상가는 국토교통부 공개 자료에 매매만 있습니다.</p>}
           </fieldset>
 
           <fieldset className={styles.group}>
@@ -187,7 +208,7 @@ export function MarketPanel({
                     type="radio"
                     name={`${id}-kind`}
                     checked={kind === o.id}
-                    disabled={!anyKind(o.id)}
+                    disabled={!kinds.includes(o.id)}
                     onChange={() => set({ kind: o.id })}
                   />
                   {o.label}
@@ -196,7 +217,7 @@ export function MarketPanel({
             </div>
           </fieldset>
 
-          {query.types.some(roomApplies) && (
+          {roomApplies(query.type) && (
             <fieldset className={styles.group}>
               <legend>방 구조 (면적으로 추정)</legend>
               <div className={styles.row}>
@@ -308,7 +329,7 @@ export function MarketPanel({
                 ))}
               </select>
 
-              {query.types.includes('apt') && (
+              {query.type === 'apt' && (
                 <>
                   <span className={styles.label}>일조</span>
                   <select

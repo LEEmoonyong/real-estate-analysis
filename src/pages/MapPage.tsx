@@ -25,18 +25,16 @@ import { classOf, quantileBreaks } from '../domain/realestate/format';
 import { DEFAULT_MAP_FILTER, isFilterActive, passesMapFilter, type MapFilter } from '../domain/realestate/mapFilter';
 import {
   DEFAULT_MARKET_QUERY,
-  activeTypes,
+  dongCenter,
+  dongNames,
   filterValue,
   kindLabel,
   markerText,
   typeLabel,
-  typeShort,
-  typesLabel,
   valueDescription,
   type DealKind,
   type DealPlace,
   type MarketQuery,
-  type PropertyType,
 } from '../domain/realestate/property';
 import type { Region } from '../domain/realestate/types';
 import type { SampleIndexEntry } from '../data/samples/sampleSchema';
@@ -82,12 +80,10 @@ type MarketState =
       total: number;
       truncated: boolean;
       breaks: number[];
-      /** 불러오지 못한 유형 (예: 활용신청이 반영되지 않은 API) */
-      failed: { type: PropertyType; message: string }[];
     }
   | { status: 'error'; message: string; query: MarketQuery };
 
-const queryKey = (lawd: string, q: MarketQuery) => `${lawd}|${q.types.join(',')}|${q.kind}|${q.room}`;
+const queryKey = (lawd: string, q: MarketQuery) => `${lawd}|${q.type}|${q.kind}|${q.room}`;
 
 /** 지역 목록 항목 → 실거래 조회에 쓰는 지역 (법정동은 모름) */
 const toRegion = (r: RegionEntry): Region => ({
@@ -99,14 +95,14 @@ const toRegion = (r: RegionEntry): Region => ({
 });
 /** 시·군·구 하나가 대략 보이는 확대 수준 (시세를 불러오는 가장 넓은 수준) */
 const SIGUNGU_LEVEL = 6;
+/** 법정동 하나가 보이는 확대 수준 */
+const DONG_LEVEL = 5;
 
 function placeChip(
   place: DealPlace,
   cls: number,
   kind: DealKind,
   sun: SunSummary | null,
-  /** 여러 유형을 함께 볼 때 이름 앞에 붙는 유형 (예: 빌라) */
-  typeTag: string | null,
   onClick: () => void,
 ): HTMLElement {
   const el = document.createElement('button');
@@ -115,7 +111,7 @@ function placeChip(
   el.style.background = PRICE_COLORS[cls] ?? PRICE_COLORS[0];
   el.style.color = cls >= 3 ? '#fff' : '#1b1f24';
   const text = markerText(place, kind);
-  el.title = `${typeTag ? `[${typeLabel(place.type)}] ` : ''}${place.name} · ${text.main}${text.sub ? ` (${text.sub})` : ''} · 최근 3달 ${kindLabel(kind)} ${place.count}건`;
+  el.title = `${place.name} · ${text.main}${text.sub ? ` (${text.sub})` : ''} · 최근 3달 ${kindLabel(kind)} ${place.count}건`;
   el.setAttribute('aria-label', el.title);
   const main = document.createElement('strong');
   main.textContent = text.main;
@@ -128,7 +124,7 @@ function placeChip(
   }
   const name = document.createElement('span');
   name.className = styles.priceName ?? '';
-  name.textContent = typeTag ? `${typeTag} · ${place.name}` : place.name;
+  name.textContent = place.name;
   el.append(name);
   if (sun) {
     // 이 기기에서 일조를 계산한 단지 — 참고 기준 충족 세대 비율
@@ -182,6 +178,16 @@ export function MapPage() {
   const [filter, setFilter] = useState<MapFilter>(DEFAULT_MAP_FILTER);
   const [summaries] = useState<SunSummary[]>(readSunSummaries);
   const [shownCount, setShownCount] = useState(0);
+  // [요구사항: 상태관리] useState — 고른 법정동 ('' = 시·군·구 전체). 불러온 시·군·구가 바뀌면 비운다
+  const [dong, setDong] = useState('');
+  const loadedLawd =
+    market.status === 'ready' || market.status === 'loading' ? (market.region?.lawdCode ?? null) : null;
+  const [dongLawd, setDongLawd] = useState<string | null>(null);
+  if (dong && dongLawd !== loadedLawd) {
+    // 렌더 중 상태 맞추기 (다른 시·군·구로 옮겨 가면 동 선택 해제)
+    setDong('');
+    setDongLawd(null);
+  }
 
   // 화면 중심 → 법정동 → 시군구(또는 조건)가 바뀌었으면 그 시군구 최근 3달 거래를 건물별로
   // 지역 패널에서 고른 시·군·구 — 지도를 끌어 옮기기 전까지는 화면 중심이 아니라 이 지역을 불러온다
@@ -194,33 +200,13 @@ export function MapPage() {
       if (key === marketKeyRef.current) return;
       marketKeyRef.current = key;
       setMarket({ status: 'loading', region, query: q });
-      // 고른 유형마다 따로 불러와 합친다 (동시에 2개씩 — 서버가 유형마다 카카오 좌표를 붙인다)
-      const types = activeTypes(q);
-      const results: PromiseSettledResult<Awaited<ReturnType<typeof getDealPlaces>>>[] = [];
-      for (let i = 0; i < types.length; i += 2) {
-        const chunk = types.slice(i, i + 2);
-        results.push(...(await Promise.allSettled(chunk.map((t) => getDealPlaces(region, t, q, latestDealMonth())))));
-        if (marketKeyRef.current !== key) return; // 그사이 다른 곳·다른 조건으로 바뀜
-      }
-      const items: DealPlace[] = [];
-      const failed: { type: PropertyType; message: string }[] = [];
-      let total = 0;
-      let truncated = false;
-      results.forEach((r, i) => {
-        if (r.status === 'fulfilled') {
-          items.push(...r.value.items);
-          total += r.value.total;
-          truncated ||= r.value.truncated;
-        } else {
-          failed.push({ type: types[i]!, message: r.reason instanceof Error ? r.reason.message : String(r.reason) });
-        }
-      });
-      if (failed.length === types.length) throw new Error(failed[0]?.message ?? '불러올 유형이 없습니다.');
+      const r = await getDealPlaces(region, q.type, q, latestDealMonth());
+      if (marketKeyRef.current !== key) return; // 그사이 다른 곳·다른 조건으로 바뀜
       const breaks = quantileBreaks(
-        items.map((i) => i.value),
+        r.items.map((i) => i.value),
         PRICE_COLORS.length,
       );
-      setMarket({ status: 'ready', region, query: q, items, total, truncated, breaks, failed });
+      setMarket({ status: 'ready', region, query: q, items: r.items, total: r.total, truncated: r.truncated, breaks });
     } catch (e) {
       marketKeyRef.current = null;
       setMarket({ status: 'error', message: e instanceof Error ? e.message : String(e), query: q });
@@ -291,7 +277,7 @@ export function MapPage() {
       setFilter((f) => ({
         ...f,
         ...(next.kind !== prev.kind ? { minValue: null, maxValue: null, maxDeposit: null } : {}),
-        ...(next.types.includes('apt') ? {} : { minSunPct: 0 }),
+        ...(next.type === 'apt' ? {} : { minSunPct: 0 }),
       }));
       setPicked((p) => (p?.place ? null : p));
       marketKeyRef.current = null;
@@ -311,6 +297,26 @@ export function MapPage() {
     marketKeyRef.current = null;
     void loadMarketRef.current(r.lat, r.lng);
   }, []);
+
+  /** 동을 고름 → 그 동 표시들의 가운데로 옮기고 그 동만 보여 준다 ('' = 전체로 되돌림) */
+  const selectDong = useCallback(
+    (next: string) => {
+      setDong(next);
+      setDongLawd(loadedLawd);
+      setPicked(null);
+      const m = mapRef.current;
+      if (!m || market.status !== 'ready') return;
+      if (!next) {
+        m.map.setLevel(SIGUNGU_LEVEL);
+        return;
+      }
+      const c = dongCenter(market.items, next);
+      if (!c) return;
+      m.map.setLevel(DONG_LEVEL);
+      m.map.panTo(new m.api.LatLng(c.lat, c.lng));
+    },
+    [loadedLawd, market],
+  );
 
   /** 시·도만 고름 → 그 시·도가 보이게 옮긴다 (시·군·구를 고를 때까지 시세는 확대 안내) */
   const selectSido = useCallback((sido: string) => {
@@ -375,10 +381,10 @@ export function MapPage() {
     priceOverlaysRef.current = [];
     if (!m || market.status !== 'ready') return;
     const { kind } = market.query;
-    const multi = activeTypes(market.query).length > 1;
     let shown = 0;
     for (const item of market.items) {
       if (item.lat === null || item.lng === null) continue;
+      if (dong && item.umdName !== dong) continue;
       // 일조 요약은 아파트 단지 분석에서만 나온다
       const sun = item.type === 'apt' ? findSummary(summaries, { lat: item.lat, lng: item.lng }) : null;
       const subject = {
@@ -390,10 +396,9 @@ export function MapPage() {
       };
       if (!passesMapFilter(subject, filter)) continue;
       shown++;
-      const tag = multi ? typeShort(item.type) : null;
       const overlay = new m.api.CustomOverlay({
         position: new m.api.LatLng(item.lat, item.lng),
-        content: placeChip(item, classOf(item.value, market.breaks), kind, sun, tag, () =>
+        content: placeChip(item, classOf(item.value, market.breaks), kind, sun, () =>
           pickPlace(item, market.region, kind),
         ),
         yAnchor: 1.1,
@@ -404,7 +409,7 @@ export function MapPage() {
       priceOverlaysRef.current.push(overlay);
     }
     setShownCount(shown);
-  }, [market, pickPlace, filter, summaries]);
+  }, [market, pickPlace, filter, summaries, dong]);
 
   const pickSample = useCallback((s: SampleIndexEntry) => {
     setPicked({
@@ -501,9 +506,18 @@ export function MapPage() {
               }
               onRegion={selectRegion}
               onSido={selectSido}
+              dongs={market.status === 'ready' ? dongNames(market.items) : []}
+              dong={dong}
+              onDong={selectDong}
               onShowGuide={guideHidden ? () => setGuideHidden(false) : null}
             />
-            <MarketBadge market={market} query={query} shown={shownCount} filtered={isFilterActive(filter)} />
+            <MarketBadge
+              market={market}
+              query={query}
+              shown={shownCount}
+              filtered={isFilterActive(filter)}
+              dong={dong}
+            />
           </div>
         )}
         {status === 'error' && (
@@ -571,12 +585,14 @@ interface BadgeProps {
   query: MarketQuery;
   shown: number;
   filtered: boolean;
+  /** 고른 법정동 ('' = 시·군·구 전체) */
+  dong: string;
 }
 
 const KEY_ERROR = /인증|서비스키|NO_KEY|키가/;
 
-function MarketBadge({ market, query, shown, filtered }: BadgeProps) {
-  const what = `${typesLabel(activeTypes(query))} ${kindLabel(query.kind)}`;
+function MarketBadge({ market, query, shown, filtered, dong }: BadgeProps) {
+  const what = `${typeLabel(query.type)} ${kindLabel(query.kind)}`;
   let body: ReactNode;
   if (market.status === 'zoom-in')
     body = `지역·조건에서 시·군·구를 고르거나 지도를 확대하면 최근 3달 ${what} 시세가 건물마다 보입니다.`;
@@ -594,21 +610,14 @@ function MarketBadge({ market, query, shown, filtered }: BadgeProps) {
     body = (
       <>
         <span>
-          {market.region.sido} {market.region.sigungu} · 최근 3달 {what} {market.total.toLocaleString()}건 ·{' '}
+          {market.region.sido} {market.region.sigungu}
+          {dong && ` ${dong}`} · 최근 3달 {what} {market.total.toLocaleString()}건 ·{' '}
           {[buildingCount > 0 && `건물 ${buildingCount}곳`, dongCount > 0 && `법정동 ${dongCount}곳`]
             .filter(Boolean)
             .join(' · ')}{' '}
-          · {valueDescription(kind, activeTypes(market.query))}
+          · {valueDescription(kind, market.query.type)}
           {market.query.room !== 'all' && ` · ${market.query.room === 'one' ? '원룸' : '투룸'}(면적 추정)`}
         </span>
-        {market.failed.length > 0 && (
-          <span className={styles.muted}>
-            {market.failed.map((f) => typeLabel(f.type)).join('·')}{' '}
-            {KEY_ERROR.test(market.failed[0]!.message)
-              ? '자료는 공공데이터포털 API 승인이 반영되지 않아 빠졌습니다.'
-              : '자료를 불러오지 못해 빠졌습니다.'}
-          </span>
-        )}
         {dongCount > 0 && (
           <span className={styles.muted}>지번이 비공개인 거래는 법정동 위치에 묶어 점선 테두리로 표시합니다.</span>
         )}

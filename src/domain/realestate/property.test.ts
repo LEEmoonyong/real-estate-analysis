@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
-  activeTypes,
   dealAmountText,
+  dongCenter,
+  dongNames,
   filterValue,
   kindsFor,
   markerText,
   normalizeQuery,
   roomApplies,
-  toggleType,
 } from './property';
 
 describe('주택 유형·거래 종류', () => {
@@ -19,30 +19,17 @@ describe('주택 유형·거래 종류', () => {
     );
   });
 
-  it('여러 유형을 고를 때 맞지 않는 선택을 되돌린다', () => {
-    // 상가만 고르고 월세 → 매매, 원룸은 의미 없음
-    expect(normalizeQuery({ types: ['nrg'], kind: 'wolse', room: 'one' })).toEqual({
-      types: ['nrg'],
+  it('유형을 바꾸면 맞지 않는 선택을 되돌린다', () => {
+    expect(normalizeQuery({ type: 'nrg', kind: 'wolse', room: 'one' })).toEqual({
+      type: 'nrg',
       kind: 'trade',
       room: 'all',
     });
-    // 빌라가 있으면 월세·원룸 유지, 순서는 정해진 순서로
-    expect(normalizeQuery({ types: ['nrg', 'rh'], kind: 'wolse', room: 'one' })).toEqual({
-      types: ['rh', 'nrg'],
+    expect(normalizeQuery({ type: 'rh', kind: 'wolse', room: 'one' })).toEqual({
+      type: 'rh',
       kind: 'wolse',
       room: 'one',
     });
-    // 하나도 안 고르면 아파트
-    expect(normalizeQuery({ types: [], kind: 'trade', room: 'all' }).types).toEqual(['apt']);
-  });
-
-  it('월세면 상가는 불러오지 않고, 마지막 유형은 끌 수 없다', () => {
-    const q = { types: ['apt', 'nrg'] as const, kind: 'wolse', room: 'all' } as const;
-    expect(activeTypes({ ...q, types: [...q.types] })).toEqual(['apt']);
-    const one = { types: ['apt' as const], kind: 'trade' as const, room: 'all' as const };
-    expect(toggleType(one, 'apt')).toBe(one);
-    expect(toggleType(one, 'offi').types).toEqual(['apt', 'offi']);
-    expect(toggleType({ ...one, types: ['apt', 'offi'] }, 'apt').types).toEqual(['offi']);
   });
 
   it('표시 글자와 필터 값', () => {
@@ -56,5 +43,19 @@ describe('주택 유형·거래 종류', () => {
   it('거래 한 건 금액', () => {
     expect(dealAmountText({ price: 0, deposit: 1000, monthlyRent: 65 }, 'wolse')).toBe('1,000만 / 월 65만');
     expect(dealAmountText({ price: 0, deposit: 25000, monthlyRent: 0 }, 'jeonse')).toBe('전세 2억 5,000만');
+  });
+
+  it('동 선택 목록과 동 가운데', () => {
+    const items = [
+      { umdName: '잠실동', lat: 37.5, lng: 127.08 },
+      { umdName: '가락동', lat: 37.49, lng: 127.12 },
+      { umdName: '잠실동', lat: 37.52, lng: 127.1 },
+      { umdName: '문정동', lat: null, lng: null },
+    ];
+    expect(dongNames(items)).toEqual(['가락동', '문정동', '잠실동']);
+    const c = dongCenter(items, '잠실동')!;
+    expect(c.lat).toBeCloseTo(37.51);
+    expect(c.lng).toBeCloseTo(127.09);
+    expect(dongCenter(items, '문정동')).toBeNull();
   });
 });
