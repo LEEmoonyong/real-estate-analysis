@@ -79,3 +79,15 @@ export function nearestSample(index: readonly SampleIndexEntry[], point: LatLng)
     Math.hypot(e.center.lat - point.lat, (e.center.lng - point.lng) * Math.cos((point.lat * Math.PI) / 180));
   return [...index].sort((a, b) => dist(a) - dist(b))[0];
 }
+
+/** 샘플 지역 반경 [m] — 이보다 먼 곳은 샘플로 대신 보여 주면 엉뚱한 단지가 되므로 쓰지 않는다 */
+export const SAMPLE_COVER_M = 1_500;
+
+/** 이 위치가 덮이는 샘플 (가장 가까운 샘플 중심이 SAMPLE_COVER_M 안일 때만) */
+export function coveringSample(index: readonly SampleIndexEntry[], point: LatLng): SampleIndexEntry | undefined {
+  const e = nearestSample(index, point);
+  if (!e) return undefined;
+  const dy = (e.center.lat - point.lat) * 111_320;
+  const dx = (e.center.lng - point.lng) * 111_320 * Math.cos((point.lat * Math.PI) / 180);
+  return Math.hypot(dx, dy) <= SAMPLE_COVER_M ? e : undefined;
+}

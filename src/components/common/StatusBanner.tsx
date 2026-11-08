@@ -22,7 +22,7 @@ export function StatusBanner({ notice, onDismissNotice, onRetry, onShowSample }:
         <span>
           {loadingSource ? `${SOURCE_LABELS[loadingSource]}에서 건물 데이터를 불러오는 중…` : '불러오는 중…'}
           {loadingSource === 'osm' && (
-            <small className={styles.sub}>OpenStreetMap은 응답에 최대 30초가 걸릴 수 있습니다.</small>
+            <small className={styles.sub}>OpenStreetMap은 응답에 최대 25초가 걸릴 수 있습니다.</small>
           )}
         </span>
       </div>

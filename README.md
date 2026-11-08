@@ -41,14 +41,14 @@ npm run dev
 2. 아래 키를 채웁니다.
    - `KAKAO_REST_API_KEY` — [카카오 developers](https://developers.kakao.com) › 내 애플리케이션 › 앱 키 › REST API 키 (주소·단지명 검색)
    - `VWORLD_API_KEY` — [V-World 오픈API](https://www.vworld.kr/dev/v4dv_2ddataguide2_s001.do) 인증키 (건물 외곽선·층수)
-   - `VWORLD_DOMAIN` — V-World 키를 발급할 때 등록한 서비스 URL과 **정확히 같아야** 합니다(로컬은 `http://localhost:5173`). V-World 키 하나에는 서비스 URL 하나만 등록되므로, 배포용 키와 로컬용 키를 따로 발급하는 것이 편합니다.
+   - `VWORLD_DOMAIN` — V-World 키를 발급할 때 등록한 서비스 URL과 **정확히 같아야** 합니다. 서버가 이 값을 `domain` 파라미터로 보내 인증하므로, 키에 배포 주소를 등록했다면 **로컬에서도 배포 주소**(`https://sunlight-simulator-alpha.vercel.app`)를 넣습니다. 다르면 V-World가 "인증키 정보가 올바르지 않습니다"로 거부해 건물을 느린 OpenStreetMap으로만 불러오게 됩니다(2026-11-08 확인).
    - `VITE_KAKAO_JS_KEY` — 같은 카카오 앱의 **JavaScript 키**(지도 표시). 카카오 콘솔 › 앱 › 플랫폼 키 › JavaScript SDK 도메인에 `http://localhost:5173`(과 배포 주소)을 등록해야 지도가 뜹니다. 이 키는 지도 SDK 구조상 브라우저에 노출되는 **공개 키**이고, 등록한 도메인에서만 동작해 보호됩니다. 없으면 지도 대신 안내 문구가 나오고 검색으로 단지를 열 수 있습니다.
    - `DATA_GO_KR_SERVICE_KEY` — [공공데이터포털](https://www.data.go.kr) 일반 인증키(Decoding). 키 하나로 "국토교통부_아파트 매매 실거래가 상세 자료", "아파트 전월세 실거래가 자료", "공동주택 단지 목록제공 서비스", 그리고 지도 유형 선택용 "오피스텔 매매·전월세", "연립다세대 매매·전월세", "단독/다가구 매매·전월세", "상업업무용 부동산 매매" 실거래가 자료, "공동주택 기본 정보제공 서비스", "건축HUB 건축물대장정보 서비스"를 각각 활용신청합니다(서버 전용).
    - `FSS_FINLIFE_API_KEY` — [금감원 금융상품한눈에](https://finlife.fss.or.kr) 오픈API 인증키(주택담보대출 금리, 서버 전용).
 3. `npm run dev`를 다시 실행합니다.
 
 서버 키(카카오 REST, V-World, 이후 공공데이터포털·금감원)는 서버 프록시(`server/`, 배포 시 `api/index.ts`)에서만 읽습니다. `VITE_` 접두사를 붙이지 않으므로 클라이언트 번들에 들어가지 않습니다(빌드 결과 검사로 매번 확인). `VITE_`가 붙은 것은 공개 값(카카오 JavaScript 키, 설정 플래그)뿐입니다.
-건물 데이터는 V-World → OpenStreetMap → 샘플 순서로 대체합니다. 하나가 실패해도 화면이 비지 않습니다.
+건물 데이터는 V-World → OpenStreetMap 순서로 대체합니다(OpenStreetMap은 공개 서버라 느려서 미러당 15초, 전체 25초까지만 기다림). 둘 다 실패하면 그 위치가 샘플 지역(중심 1.5km) 안일 때만 저장된 샘플 건물을 쓰고, 아니면 엉뚱한 단지를 보여 주지 않고 실패 안내와 **다시 시도** 버튼을 띄웁니다.
 
 > **배포 시 주의**: V-World는 해외 IP 요청을 막습니다. 그래서 Vercel 함수 리전을 서울(`icn1`)로 고정했습니다(`vercel.json`). 배포 도메인도 V-World 키의 서비스 URL에 등록해야 합니다.
 
@@ -293,7 +293,7 @@ scripts/         샘플 데이터 생성, 시세 스냅샷 받기, API 실측 �
 | ------------------------------------ | ------------------------------------------------------------------------------ |
 | `npm run dev`                        | 개발 서버 (`/api/*` 프록시 포함)                                               |
 | `npm run build`                      | 타입 검사 + 프로덕션 빌드                                                      |
-| `npm test`                           | 단위 테스트 (Vitest, 500개)                                                    |
+| `npm test`                           | 단위 테스트 (Vitest, 501개)                                                    |
 | `npm run test:tz`                    | 다른 시간대(뉴욕)에서 단위 테스트 — 계산이 실행 PC 시간대와 무관한지 확인      |
 | `npm run coverage`                   | 커버리지                                                                       |
 | `npm run lint` / `npm run typecheck` | ESLint / TypeScript 검사                                                       |

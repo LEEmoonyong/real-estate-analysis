@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { matchSamples, nearestSample } from './sampleClient';
+import { coveringSample, matchSamples, nearestSample } from './sampleClient';
 import type { SampleIndexEntry } from './sampleSchema';
 
 const entry = (id: string, name: string, lat: number, lng: number, aliases: string[]): SampleIndexEntry => ({
@@ -41,5 +41,13 @@ describe('nearestSample', () => {
   });
   it('울산 → 부산', () => {
     expect(nearestSample(INDEX, { lat: 35.54, lng: 129.31 })?.id).toBe('busan');
+  });
+});
+
+describe('coveringSample', () => {
+  it('샘플 중심 1.5km 안이면 그 샘플, 멀면 없음 (엉뚱한 단지로 대신하지 않는다)', () => {
+    const s = INDEX[0]!;
+    expect(coveringSample(INDEX, { lat: s.center.lat + 0.005, lng: s.center.lng })?.id).toBe(s.id); // 약 560m
+    expect(coveringSample(INDEX, { lat: s.center.lat + 0.03, lng: s.center.lng })).toBeUndefined(); // 약 3.3km
   });
 });

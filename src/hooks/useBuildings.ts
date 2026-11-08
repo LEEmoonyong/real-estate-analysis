@@ -1,14 +1,14 @@
 // [요구사항: Hooks] 커스텀 훅 — 데이터 소스 선택·대체·샘플 전환 (useEffect + AbortController + useRef 캐시)
 // [요구사항: 데이터 처리] 외부 API(V-World·OSM) → 실패 시 로컬 샘플 JSON
 //
-// 대체 순서: V-World(키 있을 때) → OpenStreetMap → 가장 가까운 샘플
+// 대체 순서: V-World(키 있을 때) → OpenStreetMap → 그 위치가 샘플 지역(1.5km) 안이면 샘플, 아니면 실패 안내(다시 시도)
 // - 소스가 "실패"하면 다음 소스로 넘어간다.
 // - 소스가 성공했는데 건물이 0개면 그 지역에 데이터가 없는 것이므로 NO_BUILDINGS (샘플로 바꾸지 않는다).
 import { useEffect, useRef, useState } from 'react';
 import { DEFAULT_RADIUS_M } from '../config/constants';
 import { isAbortError } from '../data/apiClient';
 import { osmProvider, vworldProvider, type BuildingProvider } from '../data/providers/BuildingProvider';
-import { loadSample, loadSampleIndex, nearestSample } from '../data/samples/sampleClient';
+import { coveringSample, loadSample, loadSampleIndex } from '../data/samples/sampleClient';
 import type { SampleIndexEntry } from '../data/samples/sampleSchema';
 import type { Place, RawBuilding } from '../domain/types';
 import { useSceneData, useSceneDataActions } from '../contexts/SceneDataContext';
@@ -92,14 +92,18 @@ export function useBuildings(request: BuildingsRequest | null, keys: { vworld: b
         }
       }
 
-      // 모든 실데이터 소스 실패 → 가장 가까운 샘플로 자동 전환
+      // 모든 실데이터 소스 실패 → 그 위치가 샘플 지역 안일 때만 샘플로 (먼 샘플은 엉뚱한 단지라 보여 주지 않는다)
+      const entry = coveringSample(await loadSampleIndex(), place);
+      if (!entry) {
+        throw new Error(
+          `건물 데이터를 불러오지 못했습니다(${failures.join(', ')}). 데이터 서버가 바쁠 수 있으니 잠시 후 다시 시도하세요.`,
+        );
+      }
       dispatch({ type: 'SOURCE_FALLBACK', source: 'sample' });
-      const entry = nearestSample(await loadSampleIndex(), place);
-      if (!entry) throw new Error('샘플 데이터를 찾을 수 없습니다.');
       await loadSampleScene(entry);
       setNotice({
         tone: 'warning',
-        message: `건물 데이터를 불러오지 못해(${failures.join(', ')}) 가장 가까운 샘플 지역 '${entry.name}'을 표시합니다.`,
+        message: `건물 데이터를 불러오지 못해(${failures.join(', ')}) 이 위치가 포함된 샘플 지역 '${entry.name}'의 저장된 건물을 표시합니다.`,
       });
     };
 
