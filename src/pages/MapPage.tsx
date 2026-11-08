@@ -507,15 +507,22 @@ function MarketBadge({ market, query, filter, onFilter, shown, sunCount }: Badge
   else {
     const { kind, type } = market.query;
     const steps = FILTER_STEPS[kind];
-    const dongLevel = type === 'sh' || type === 'nrg';
+    // 지번이 비공개인 거래(단독·다가구 전부, 상가 일반 건물)는 법정동 표시로 묶인다
+    const dongCount = market.items.filter((i) => i.level === 'dong').length;
+    const buildingCount = market.items.length - dongCount;
     body = (
       <>
         <span>
           {market.region.sido} {market.region.sigungu} · 최근 3달 {what} {market.total.toLocaleString()}건 ·{' '}
-          {dongLevel ? '법정동' : '건물'} {market.items.length}곳 · {valueDescription(kind, type)}
+          {[buildingCount > 0 && `건물 ${buildingCount}곳`, dongCount > 0 && `법정동 ${dongCount}곳`]
+            .filter(Boolean)
+            .join(' · ')}{' '}
+          · {valueDescription(kind, type)}
           {market.query.room !== 'all' && ` · ${market.query.room === 'one' ? '원룸' : '투룸'}(면적 추정)`}
         </span>
-        {dongLevel && <span className={styles.muted}>지번이 비공개라 법정동 위치에 묶어 표시합니다.</span>}
+        {dongCount > 0 && (
+          <span className={styles.muted}>지번이 비공개인 거래는 법정동 위치에 묶어 점선 테두리로 표시합니다.</span>
+        )}
         <span className={styles.legend} aria-hidden="true">
           싸다
           {PRICE_COLORS.map((c) => (
