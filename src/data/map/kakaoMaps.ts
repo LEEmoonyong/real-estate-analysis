@@ -15,10 +15,24 @@ export interface KakaoMap {
   getCenter(): KakaoLatLng;
   getBounds(): { getSouthWest(): KakaoLatLng; getNorthEast(): KakaoLatLng };
   relayout(): void;
+  setBounds(
+    bounds: KakaoLatLngBounds,
+    paddingTop?: number,
+    paddingRight?: number,
+    paddingBottom?: number,
+    paddingLeft?: number,
+  ): void;
 }
 export interface KakaoCustomOverlay {
   setMap(map: KakaoMap | null): void;
   setPosition(latlng: KakaoLatLng): void;
+}
+export interface KakaoPolyline {
+  setMap(map: KakaoMap | null): void;
+}
+/** 지도 범위 — 행정구역 테두리 전체가 보이게 맞출 때 */
+export interface KakaoLatLngBounds {
+  extend(latlng: KakaoLatLng): void;
 }
 export interface KakaoMapsApi {
   load(callback: () => void): void;
@@ -32,6 +46,15 @@ export interface KakaoMapsApi {
     zIndex?: number;
     clickable?: boolean;
   }) => KakaoCustomOverlay;
+  Polyline: new (options: {
+    path: KakaoLatLng[];
+    strokeWeight?: number;
+    strokeColor?: string;
+    strokeOpacity?: number;
+    strokeStyle?: string;
+    zIndex?: number;
+  }) => KakaoPolyline;
+  LatLngBounds: new () => KakaoLatLngBounds;
   event: {
     addListener(target: unknown, type: string, handler: (...args: unknown[]) => void): void;
     removeListener(target: unknown, type: string, handler: (...args: unknown[]) => void): void;

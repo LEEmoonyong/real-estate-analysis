@@ -8,6 +8,8 @@ export interface GeoResult {
   lng: number;
   kind: 'address' | 'place';
   category?: string;
+  /** 지역 이름 자체를 찾은 결과면 그 단계 (지도에 행정구역 테두리) */
+  region?: 'sido' | 'sigungu' | 'emd' | 'ri';
 }
 
 export interface GeocodeResponse {

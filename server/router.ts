@@ -6,6 +6,7 @@ import { handleNearby } from './handlers/nearby.js';
 import { handleHealth } from './handlers/health.js';
 import { handleOverpassBuildings } from './handlers/overpassBuildings.js';
 import { handleVworldBuildings } from './handlers/vworldBuildings.js';
+import { handleBoundary } from './handlers/boundary.js';
 import {
   handleTradeComplexes,
   handleComplexInfo,
@@ -52,6 +53,8 @@ async function route(request: Request, env: ServerEnv): Promise<Response> {
         return await handleDealPlaces(url.searchParams, env);
       case '/api/realestate/complex':
         return await handleComplexInfo(url.searchParams, env);
+      case '/api/boundary':
+        return await handleBoundary(url.searchParams, env);
       case '/api/buildings/osm':
         return await handleOverpassBuildings(url.searchParams);
       default:

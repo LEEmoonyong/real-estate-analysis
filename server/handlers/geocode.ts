@@ -8,6 +8,8 @@ export interface GeoResult {
   lng: number;
   kind: 'address' | 'place';
   category?: string;
+  /** 지역 이름 자체를 찾은 결과면 그 단계 (지도에 행정구역 테두리를 그린다) */
+  region?: 'sido' | 'sigungu' | 'emd' | 'ri';
 }
 
 const MAX_RESULTS = 10;
@@ -17,6 +19,8 @@ const DEDUPE_METERS = 10;
 
 interface KakaoAddressDoc {
   address_name: string;
+  address_type?: string;
+  address?: { region_2depth_name?: string; region_3depth_name?: string; region_3depth_h_name?: string } | null;
   x: string;
   y: string;
   road_address?: { address_name: string; building_name?: string } | null;
@@ -52,6 +56,7 @@ async function geocodeKakao(query: string, key: string): Promise<GeoResult[]> {
     lat: Number(d.y),
     lng: Number(d.x),
     kind: 'address',
+    ...(regionLevel(d) ? { region: regionLevel(d)! } : {}),
   }));
   // 아파트 카테고리를 앞에 둔다
   const sortedPlaces = [...places].sort(
@@ -66,6 +71,20 @@ async function geocodeKakao(query: string, key: string): Promise<GeoResult[]> {
     ...(d.category_name ? { category: d.category_name } : {}),
   }));
   return [...fromAddr, ...fromPlaces];
+}
+
+/**
+ * 카카오 주소 검색이 지역 이름 자체를 찾았으면(REGION) 그 단계.
+ * '남한산성면 산성리'처럼 3단계에 빈칸이 있으면 리, 3단계가 있으면 읍·면·동, 2단계만 있으면 시·군·구.
+ * 행정동(잠실본동 — 3단계 이름 없음, 행정동 이름만)은 경계 자료(법정동)와 맞지 않아 제외한다.
+ */
+export function regionLevel(d: KakaoAddressDoc): GeoResult['region'] | undefined {
+  if (d.address_type !== 'REGION' || !d.address) return undefined;
+  const r2 = d.address.region_2depth_name ?? '';
+  const r3 = d.address.region_3depth_name ?? '';
+  if (r3) return r3.includes(' ') ? 'ri' : 'emd';
+  if (d.address.region_3depth_h_name) return undefined; // 행정동
+  return r2 ? 'sigungu' : 'sido';
 }
 
 function isApartment(category?: string): boolean {

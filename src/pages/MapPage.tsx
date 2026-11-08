@@ -18,9 +18,11 @@ import {
   type KakaoCustomOverlay,
   type KakaoMap,
   type KakaoMapsApi,
+  type KakaoPolyline,
 } from '../data/map/kakaoMaps';
 import { getDealPlaces, getRegion, latestDealMonth } from '../data/realestate/realestateClient';
-import { sidoCenter, type RegionEntry } from '../data/regions/regions';
+import { findRegion, sigunguOf, type RegionEntry } from '../data/regions/regions';
+import { getBoundary, type BoundaryQuery } from '../data/boundary/boundaryClient';
 import { findSummary, readSunSummaries, type SunSummary } from '../data/storage/sunSummary';
 import { classOf, quantileBreaks } from '../domain/realestate/format';
 import { DEFAULT_MAP_FILTER, isFilterActive, passesMapFilter, type MapFilter } from '../domain/realestate/mapFilter';
@@ -140,6 +142,17 @@ function placeChip(
   return el;
 }
 
+/** 행정구역 테두리 색 (선만) */
+const BOUNDARY_COLOR = '#e4572e';
+
+/** 테두리 이름표 (예: 경기도 광주시 남한산성면) */
+function boundaryLabel(name: string): HTMLElement {
+  const el = document.createElement('div');
+  el.className = styles.boundaryLabel ?? '';
+  el.textContent = name;
+  return el;
+}
+
 /** 즐겨찾기 표시 — 누르면 바로 단지 분석으로 */
 function favoriteChip(fav: Favorite, onClick: () => void): HTMLElement {
   const el = document.createElement('button');
@@ -199,6 +212,8 @@ export function MapPage() {
   const [filter, setFilter] = useState<MapFilter>(DEFAULT_MAP_FILTER);
   const [summaries] = useState<SunSummary[]>(readSunSummaries);
   const [shownCount, setShownCount] = useState(0);
+  // [요구사항: 상태관리] useState — 지도에 테두리를 그릴 행정구역 (지역 선택·지역 검색). fit = 테두리 전체가 보이게 맞춤
+  const [boundaryQuery, setBoundaryQuery] = useState<(BoundaryQuery & { fit?: boolean }) | null>(null);
   // [요구사항: 상태관리] useState — 고른 법정동 ('' = 시·군·구 전체). 불러온 시·군·구가 바뀌면 비운다
   const [dong, setDong] = useState('');
   const loadedLawd =
@@ -313,6 +328,7 @@ export function MapPage() {
     if (!m) return;
     lockedRegionRef.current = toRegion(r);
     setPicked(null);
+    setBoundaryQuery({ level: 'sigungu', lat: r.lat, lng: r.lng });
     m.map.setLevel(SIGUNGU_LEVEL);
     m.map.setCenter(new m.api.LatLng(r.lat, r.lng));
     marketKeyRef.current = null;
@@ -328,11 +344,15 @@ export function MapPage() {
       const m = mapRef.current;
       if (!m || market.status !== 'ready') return;
       if (!next) {
+        const r = findRegion(market.region.lawdCode);
+        if (r) setBoundaryQuery({ level: 'sigungu', lat: r.lat, lng: r.lng });
         m.map.setLevel(SIGUNGU_LEVEL);
         return;
       }
       const c = dongCenter(market.items, next);
       if (!c) return;
+      // 법정동 테두리: 이름 + 시·군·구 코드로 찾고, 안 되면 거래 위치 가운데로
+      setBoundaryQuery({ level: 'emd', name: next, sig: market.region.lawdCode, lat: c.lat, lng: c.lng });
       m.map.setLevel(DONG_LEVEL);
       m.map.panTo(new m.api.LatLng(c.lat, c.lng));
     },
@@ -342,13 +362,57 @@ export function MapPage() {
   /** 시·도만 고름 → 그 시·도가 보이게 옮긴다 (시·군·구를 고를 때까지 시세는 확대 안내) */
   const selectSido = useCallback((sido: string) => {
     const m = mapRef.current;
-    const c = sidoCenter(sido);
-    if (!m || !c) return;
+    // 시·도 안에 있는 게 확실한 점(첫 시·군·구 대표 좌표)으로 테두리를 찾고, 테두리 전체가 보이게 맞춘다
+    const inside = sigunguOf(sido)[0];
+    if (!m || !inside) return;
     lockedRegionRef.current = null;
     setPicked(null);
-    m.map.setLevel(sido.endsWith('도') ? 11 : 9);
-    m.map.setCenter(new m.api.LatLng(c.lat, c.lng));
+    setBoundaryQuery({ level: 'sido', lat: inside.lat, lng: inside.lng, fit: true });
   }, []);
+
+  // 행정구역 테두리 그리기 — 색은 칠하지 않고 선만 (지도·시세 표시를 가리지 않게)
+  useEffect(() => {
+    const m = mapRef.current;
+    if (!m || status !== 'ready' || !boundaryQuery) return;
+    const controller = new AbortController();
+    const lines: KakaoPolyline[] = [];
+    let label: KakaoCustomOverlay | null = null;
+    getBoundary(boundaryQuery, controller.signal)
+      .then((b) => {
+        if (controller.signal.aborted) return;
+        const bounds = new m.api.LatLngBounds();
+        for (const ring of b.rings) {
+          const path = ring.map(([lng, lat]) => new m.api.LatLng(lat, lng));
+          path.forEach((p) => bounds.extend(p));
+          const line = new m.api.Polyline({
+            path,
+            strokeWeight: 3,
+            strokeColor: BOUNDARY_COLOR,
+            strokeOpacity: 0.9,
+            strokeStyle: 'solid',
+            zIndex: 3,
+          });
+          line.setMap(m.map);
+          lines.push(line);
+        }
+        label = new m.api.CustomOverlay({
+          position: new m.api.LatLng(boundaryQuery.lat, boundaryQuery.lng),
+          content: boundaryLabel(b.name),
+          yAnchor: 2.2,
+          zIndex: 4,
+        });
+        label.setMap(m.map);
+        if (boundaryQuery.fit) m.map.setBounds(bounds, 40, 40, 40, 40);
+      })
+      .catch(() => {
+        // 테두리는 보조 표시 — 못 불러와도 지도·시세는 그대로 쓴다
+      });
+    return () => {
+      controller.abort();
+      for (const l of lines) l.setMap(null);
+      label?.setMap(null);
+    };
+  }, [boundaryQuery, status]);
 
   // 선택한 장소로 지도 이동 + 표시
   useEffect(() => {
@@ -464,6 +528,22 @@ export function MapPage() {
 
   const handlePickPlace = useCallback(
     (result: GeoResult, q: string, provider: 'kakao' | 'vworld') => {
+      if (result.region) {
+        // 지역 이름을 검색 → 그 행정구역 테두리를 그리고 전체가 보이게 맞춘다 (단지가 아니므로 분석 버튼 없음)
+        lockedRegionRef.current = null;
+        setBoundaryQuery({ level: result.region, lat: result.lat, lng: result.lng, fit: true });
+        setPicked({
+          target: null,
+          title: result.label,
+          subtitle: '지역 테두리를 표시했습니다. 지도를 확대하면 실거래가가 보입니다.',
+          lat: result.lat,
+          lng: result.lng,
+          keepZoom: true,
+        });
+        addRecent({ query: q, label: result.label, lat: result.lat, lng: result.lng, provider });
+        return;
+      }
+      setBoundaryQuery(null);
       setPicked({
         target: { kind: 'geo', name: result.label, address: result.address, lat: result.lat, lng: result.lng },
         title: result.label,
