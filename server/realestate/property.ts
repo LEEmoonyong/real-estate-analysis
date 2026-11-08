@@ -2,7 +2,8 @@
 // [요구사항: 데이터 처리] 유형마다 다른 XML 필드를 하나의 거래 형식으로 맞춘다.
 // 서버 전용 코드(Vercel Node ESM) — 상대 경로 import에 .js 확장자.
 //
-// 주의: 단독/다가구·상업업무용은 개인정보 보호로 지번이 가려져(예: 1**) 나온다 → 건물이 아니라 법정동 단위로 묶는다.
+// 주의: 단독/다가구 매매는 지번이 가려져(예: 3*) 나오고 전월세는 지번 항목이 아예 없다. 상업업무용도 일반 건물은 가려지고
+// 집합 건물(상가·오피스 호실)은 지번이 나온다(2026-11 실측). 지번을 모르는 거래는 건물이 아니라 법정동 단위로 묶는다.
 // 원룸·투룸은 실거래 자료에 방 수가 없어 전용(계약)면적으로 추정한다.
 
 export const PROPERTY_TYPES = ['apt', 'offi', 'rh', 'sh', 'nrg'] as const;
@@ -101,16 +102,20 @@ export function normalizeDeal(type: PropertyType, rent: boolean, it: Record<stri
   const deposit = rent ? num(it.deposit) : 0;
   if (price === null || deposit === null) return null;
   const subType = first(it, SUBTYPE_FIELDS);
-  const name = first(it, NAME_FIELDS[type]) || subType || TYPE_LABEL[type];
   const umdName = text(it.umdNm);
   const jibun = text(it.jibun);
-  const masked = type === 'sh' || type === 'nrg' || isMaskedJibun(jibun);
+  const masked = isMaskedJibun(jibun);
+  let name = first(it, NAME_FIELDS[type]);
+  // 빌라는 이름이 없으면 '(127-25)'처럼 지번이 이름 자리에 온다 → '다세대 127-25'
+  if (!name || /^\(.*\)$/.test(name)) name = '';
+  if (!name) {
+    if (type === 'nrg') name = [text(it.buildingType), text(it.buildingUse)].filter(Boolean).join(' ');
+    else if (!masked) name = `${subType || TYPE_LABEL[type]} ${jibun}`;
+    name ||= subType || TYPE_LABEL[type];
+  }
+  // 같은 지번은 같은 건물로 본다 (아파트는 실거래 단지 식별자)
   const key =
-    type === 'apt' && text(it.aptSeq)
-      ? text(it.aptSeq)
-      : masked
-        ? `${type}|${umdName}`
-        : `${type}|${umdName}|${jibun}|${name}`;
+    type === 'apt' && text(it.aptSeq) ? text(it.aptSeq) : masked ? `${type}|${umdName}` : `${type}|${umdName}|${jibun}`;
   return {
     type,
     key,
@@ -197,7 +202,7 @@ export function groupDeals(deals: readonly PropertyDeal[], kind: DealKind): Omit
         key: last.key,
         type: last.type,
         level: last.masked ? ('dong' as const) : ('building' as const),
-        name: last.masked ? `${last.umdName} ${last.name}` : last.name,
+        name: last.masked ? `${last.umdName} ${TYPE_LABEL[last.type]}` : last.name,
         subType: last.subType,
         umdName: last.umdName,
         jibun: last.jibun,

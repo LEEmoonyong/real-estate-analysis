@@ -13,7 +13,7 @@ describe('유형별 실거래 정규화', () => {
       dealAmount: '25,000',
     })!;
     expect(d).toMatchObject({ name: '잠실아이스페이스', area: 29.5, price: 25000, masked: false, date: '2026-10-05' });
-    expect(d.key).toBe('offi|잠실동|7|잠실아이스페이스');
+    expect(d.key).toBe('offi|잠실동|7');
   });
 
   it('빌라 전월세: 보증금·월세, 세부 유형', () => {
@@ -40,11 +40,46 @@ describe('유형별 실거래 정규화', () => {
     expect(sh).toMatchObject({ masked: true, jibun: '', key: 'sh|잠실동', name: '다가구', area: 200 });
     const nrg = normalizeDeal('nrg', false, {
       ...base,
+      buildingType: '일반',
       buildingUse: '제2종근린생활',
+      jibun: '1**',
       buildingAr: '80',
       dealAmount: '90,000',
     })!;
-    expect(nrg).toMatchObject({ masked: true, name: '제2종근린생활', area: 80 });
+    expect(nrg).toMatchObject({ masked: true, name: '일반 제2종근린생활', area: 80 });
+    // 단독·다가구 전월세는 지번 항목이 없다
+    expect(
+      normalizeDeal('sh', true, {
+        ...base,
+        houseType: '다가구',
+        totalFloorAr: '19',
+        deposit: '6,000',
+        monthlyRent: '30',
+      }),
+    ).toMatchObject({ masked: true, key: 'sh|잠실동', area: 19, monthlyRent: 30 });
+  });
+
+  it('실측 응답 형식: 집합 상가는 지번 공개, 이름 없는 빌라는 유형+지번', () => {
+    const nrg = normalizeDeal('nrg', false, {
+      ...base,
+      buildingType: '집합',
+      buildingUse: '판매',
+      jibun: '634',
+      buildingAr: '22.68',
+      floor: ' ',
+      dealAmount: '8,500',
+    })!;
+    expect(nrg).toMatchObject({ masked: false, name: '집합 판매', key: 'nrg|잠실동|634', floor: null });
+    const rh = normalizeDeal('rh', true, {
+      ...base,
+      mhouseNm: '(127-25)',
+      houseType: '다세대',
+      jibun: '127-25',
+      excluUseAr: '37',
+      deposit: '19,950',
+      monthlyRent: '4',
+    })!;
+    expect(rh).toMatchObject({ name: '다세대 127-25', key: 'rh|잠실동|127-25' });
   });
 
   it('필수 값이 없으면 null', () => {
@@ -103,9 +138,9 @@ describe('거르기·묶기', () => {
 
   it('매매는 ㎡당 중앙값, 동 단위 이름', () => {
     const g = groupDeals(
-      [deal({ masked: true, key: 'sh|잠실동', name: '다가구', price: 100000, area: 200, monthlyRent: 0 })],
+      [deal({ type: 'sh', masked: true, key: 'sh|잠실동', name: '다가구', price: 100000, area: 200, monthlyRent: 0 })],
       'trade',
     );
-    expect(g[0]).toMatchObject({ value: 500, level: 'dong', name: '잠실동 다가구' });
+    expect(g[0]).toMatchObject({ value: 500, level: 'dong', name: '잠실동 단독·다가구' });
   });
 });
