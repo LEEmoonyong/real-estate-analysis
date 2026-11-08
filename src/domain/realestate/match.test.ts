@@ -66,6 +66,30 @@ describe('단지 매칭', () => {
     expect(matchComplex(T('장미3', '신천동'), complexes)?.kaptCode).toBe('A6');
   });
 
+  it('2026-11 9개 시·군·구 점검에서 찾은 표기 차이', () => {
+    const score = (trade: string, dong: string, kapt: string) => nameScore(T(trade, dong), C('K', kapt, dong));
+    // 괄호 안 이름(브랜드·옛 이름)
+    expect(score('봇들마을1단지(판교신미주)', '삼평동', '판교신미주')).toBeGreaterThanOrEqual(0.6);
+    expect(score('판교원마을11단지(힐스테이트)', '판교동', '판교원마을11단지현대힐스테이트')).toBeGreaterThanOrEqual(
+      0.8,
+    );
+    // 영문 표기
+    expect(score('해운대 I PARK', '우동', '해운대아이파크')).toBe(1);
+    expect(score('THESHARP판교퍼스트파크', '백현동', '더샵판교퍼스트파크')).toBe(1);
+    // "1차2차"가 "12"로 붙지 않게
+    expect(score('장미1', '신천동', '신천장미1차2차')).toBeGreaterThanOrEqual(0.6);
+  });
+
+  it('점검에서 걸러 낸 오연결', () => {
+    const score = (trade: string, dong: string, kapt: string) => nameScore(T(trade, dong), C('K', kapt, dong));
+    // 괄호 안 "주공"만 같고 단지 번호가 다름
+    expect(score('무지개(4단지)(주공)', '구미동', '백현마을5단지(주공)')).toBe(0);
+    // 괄호 안 짧은 지명 "재송"만 겹침
+    expect(score('서해재송', '재송동', '센텀(재송)삼익')).toBeLessThan(0.6);
+    // 괄호 안 지번은 단지 번호가 아님
+    expect(score('대우아이빌멤버스(891-26)', '대치동', '대우아이빌멤버스')).toBe(1);
+  });
+
   it('"주공"만 다르고 번호가 같으면 같은 단지 (실제 단지 목록 이름 "잠실5단지아파트")', () => {
     const real = [C('A13879102', '잠실5단지아파트', '잠실동'), C('A13811205', '거여5단지', '거여동')];
     expect(matchComplex(T('주공아파트 5단지', '잠실동'), real)?.kaptCode).toBe('A13879102');

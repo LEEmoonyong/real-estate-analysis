@@ -21,7 +21,8 @@
     "bench": "tsx bench/raycast.ts",
     "verify:api": "tsx scripts/verify-api.ts",
     "snapshot:market": "tsx scripts/capture-market-snapshot.ts",
-    "build:regions": "tsx scripts/build-regions.ts"
+    "build:regions": "tsx scripts/build-regions.ts",
+    "audit:match": "tsx scripts/audit-complex-match.ts"
   },
   "dependencies": {
     "@react-three/drei": "9.122.0",

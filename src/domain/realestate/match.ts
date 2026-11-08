@@ -54,14 +54,53 @@ export function canonicalName(name: string, places: readonly string[] = []): str
     if (stem.length >= 2 && s.startsWith(stem) && s.length > stem.length + 1) s = s.slice(stem.length);
     if (p.length >= 2 && s.startsWith(p) && s.length > p.length + 1) s = s.slice(p.length);
   }
-  s = s.replace(/제(\d)/g, '$1').replace(/(\d+)(차|단지)/g, '$1');
-  return s.toLowerCase();
+  // "1차2차"가 "12"로 붙지 않게 사이를 띄운다 (신천장미1차2차 → 장미1,2)
+  s = s
+    .replace(/제(\d)/g, '$1')
+    .replace(/(\d+)(차|단지)(?=\d)/g, '$1,')
+    .replace(/(\d+)(차|단지)/g, '$1')
+    .toLowerCase();
+  for (const [re, to] of TRANSLIT) s = s.replace(re, to);
+  return s;
+}
+
+/**
+ * 영문·옛 표기 → 한글 브랜드 (2026-11 9개 시·군·구 점검에서 확인한 표기 차이)
+ * 예: 실거래 "해운대 I PARK" ↔ 목록 "해운대아이파크", "THESHARP판교퍼스트파크" ↔ "더샵판교퍼스트파크"
+ */
+const TRANSLIT: readonly [RegExp, string][] = [
+  [/ipark/g, '아이파크'],
+  [/thesharp|더샾/g, '더샵'],
+  [/e편한세상/g, '이편한세상'],
+  [/hillstate/g, '힐스테이트'],
+  [/prugio/g, '푸르지오'],
+  [/raemian/g, '래미안'],
+  [/^lh/g, ''],
+];
+
+/**
+ * 비교할 이름 후보: 원래 이름, 괄호를 풀어 이은 이름, 괄호 안 이름(브랜드·옛 이름)
+ * 예: "봇들마을1단지(판교신미주)" → [원래, "봇들마을1단지 판교신미주", "판교신미주"]
+ */
+function nameVariants(name: string): { text: string; inner: boolean }[] {
+  const out = [
+    { text: name, inner: false },
+    { text: name.replace(/[()]/g, ' '), inner: false },
+  ];
+  for (const m of name.matchAll(/\(([^)]*)\)/g)) {
+    const inner = m[1]!.trim();
+    // 숫자로 시작하는 것(지번·동 번호)과 단지를 가리키지 않는 말(주공·임대 등)은 후보로 쓰지 않는다
+    if (inner.length >= 2 && !/^\d/.test(inner) && !GENERIC_INNER.test(inner)) out.push({ text: inner, inner: true });
+  }
+  return out;
 }
 
 const digits = (s: string) => (s.match(/\d+/g) ?? []).join(',');
 
 /** 단지를 가리키지 않는 옛 공공 분양 이름 — 단지 목록에서 자주 빠진다 */
 const GENERIC_PREFIX = /^(주공|시영)/;
+/** 괄호 안에 있어도 단지 이름이 아닌 말 */
+const GENERIC_INNER = /^(주공|시영|임대|분양|공무원|lh|sh|아파트|apt)$/i;
 
 /** 글자 2-gram 다이스 계수 0~1 */
 export function bigramSimilarity(a: string, b: string): number {
@@ -79,11 +118,47 @@ export function bigramSimilarity(a: string, b: string): number {
   return (2 * common) / (a.length - 1 + (b.length - 1));
 }
 
-/** 이름 점수 0~1 (숫자가 다르면 0 — "장미1"과 "장미2"는 다른 단지) */
+/**
+ * 이름 점수 0~1 (숫자가 다르면 0 — "장미1"과 "장미2"는 다른 단지).
+ * 양쪽 이름 후보(괄호 풀기·괄호 안 이름) 중 가장 높은 점수. 괄호 안 이름만으로 맞춘 점수는 0.85까지로 낮춘다.
+ */
 export function nameScore(trade: TradeRef, complex: ComplexRef): number {
   const places = [trade.umdName, complex.dong, complex.sigungu ?? ''];
-  const a = canonicalName(trade.aptName, places);
-  const b = canonicalName(complex.name, places);
+  // 단지 번호는 괄호 안까지 포함한 전체 이름으로 먼저 본다 — "무지개(4단지)(주공)"와 "백현마을5단지(주공)"는 다른 단지
+  // (괄호 안 지번 "891-26"·동 번호 "104동"은 단지 번호가 아니므로 뺀다)
+  const keyText = (n: string) =>
+    n.replace(/\(([^)]*)\)/g, (_, inner: string) => (/^[\d\s,-]+동?$/.test(inner.trim()) ? ' ' : ` ${inner} `));
+  const fa = digits(canonicalName(keyText(trade.aptName), places));
+  const fb = digits(canonicalName(keyText(complex.name), places));
+  if (fa && fb && !fb.split(',').some((d) => fa.split(',').includes(d))) return 0;
+  const va = nameVariants(trade.aptName);
+  const vb = nameVariants(complex.name);
+  // 원래 이름끼리는 글자 유사도까지 쓰고, 괄호를 푼·괄호 안 이름은 완전 일치·포함일 때만 인정한다
+  // (글자 일부만 겹치는 "센텀재송빌" ↔ "센텀(재송)삼익" 같은 오연결 방지 — 2026-11 점검)
+  let best = canonicalScore(canonicalName(va[0]!.text, places), canonicalName(vb[0]!.text, places));
+  for (const a of va) {
+    for (const b of vb) {
+      if (a === va[0] && b === vb[0]) continue;
+      const ca = canonicalName(a.text, places);
+      const cb = canonicalName(b.text, places);
+      const score = canonicalScore(ca, cb);
+      // 괄호를 푼 이름끼리는 아주 비슷하면(0.8 이상) 인정 — "판교원마을11단지(힐스테이트)" ↔ "판교원마을11단지현대힐스테이트"
+      if (!a.inner && !b.inner && score >= 0.8 && score < 0.9) {
+        best = Math.max(best, score);
+        continue;
+      }
+      if (score < 0.9) continue;
+      // 괄호 안 이름이 짧으면(예: "재송"·"대림" — 지명·회사 이름) 완전히 같을 때만
+      const innerLen = Math.min(a.inner ? ca.length : Infinity, b.inner ? cb.length : Infinity);
+      if (innerLen < 4 && score < 1) continue;
+      // 괄호 안 이름만으로 맞춘 경우는 0.8까지 — 같은 법정동 안에서만 연결되고(시·군·구 전체 재검색은 0.85 이상) 원래 이름이 맞는 단지가 우선
+      best = Math.max(best, a.inner || b.inner ? 0.8 : score);
+    }
+  }
+  return best;
+}
+
+function canonicalScore(a: string, b: string): number {
   if (!a || !b) return 0;
   const da = digits(a);
   const db = digits(b);
@@ -96,6 +171,7 @@ export function nameScore(trade: TradeRef, complex: ComplexRef): number {
   // 한쪽이 다른 쪽을 포함하면 높은 점수 — 단 길이 차이가 크면(한신 ⊂ 한신잠실코아) 다른 단지일 가능성이 커 제외
   const [short, long] = a.length <= b.length ? [a, b] : [b, a];
   if (short.length >= 2 && long.includes(short) && short.length / long.length >= 0.5) return 0.9;
+  // (한쪽에만 번호가 있어도 막지 않는다 — 단지 목록은 "타워팰리스"처럼 여러 차수를 한 이름으로 묶기도 한다. 2026-11 점검)
   return bigramSimilarity(a, b);
 }
 
