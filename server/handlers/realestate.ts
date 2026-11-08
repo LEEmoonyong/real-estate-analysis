@@ -25,7 +25,7 @@ const MAX_PAGES = 5;
 
 const DAY = 86_400;
 
-function requireKey(env: ServerEnv): string {
+export function requireKey(env: ServerEnv): string {
   const key = env.DATA_GO_KR_SERVICE_KEY;
   if (!key) throw new ApiError('NO_KEY', '공공데이터포털 키가 설정되지 않았습니다.', 503);
   return key;
@@ -64,7 +64,7 @@ async function fetchText(url: string): Promise<string> {
   return body;
 }
 
-async function fetchRtms<T>(
+export async function fetchRtms<T>(
   service: string,
   lawd: string,
   ym: string,
@@ -134,7 +134,7 @@ export async function handleComplexInfo(params: URLSearchParams, env: ServerEnv)
 }
 
 /** 동시에 보내는 업스트림 요청 수 제한 */
-async function mapLimit<T, R>(items: readonly T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+export async function mapLimit<T, R>(items: readonly T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
   const out: R[] = new Array(items.length);
   let next = 0;
   const worker = async () => {
