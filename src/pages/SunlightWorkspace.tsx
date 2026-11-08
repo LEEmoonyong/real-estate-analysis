@@ -1,7 +1,7 @@
 // [요구사항: 컴포넌트] 단지 상세 › 일조·조망 탭 — 기존 일조 시뮬레이터 전체 (반응형 레이아웃 + 검색·3D 장면)
 // 보고 있는 장소는 주소(URL)가 정한다: 검색·샘플·즐겨찾기 선택은 주소를 바꾸고, 주소가 바뀌면 데이터를 다시 불러온다.
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { complexPath, type ComplexTarget } from '../routes/complexKey';
 import { AppHeader } from '../components/common/AppHeader';
 import { CalculationStatus } from '../components/common/CalculationStatus';
@@ -61,8 +61,16 @@ function SceneFallback({ error, reset }: { error: Error; reset: () => void }) {
   );
 }
 
-export function SunlightWorkspace({ target, nav }: { target: ComplexTarget; nav?: ReactNode }) {
+interface SunlightWorkspaceProps {
+  target: ComplexTarget;
+  /** 머리글 앞 이동 요소(← 지도)와 제목 뒤 탭 — 다른 단지 탭과 같은 머리글 */
+  nav?: ReactNode;
+  tabs?: ReactNode;
+}
+
+export function SunlightWorkspace({ target, nav, tabs }: SunlightWorkspaceProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const health = useApiHealth();
   const { scene, selectedBuildingId, selectedUnitId } = useSceneData();
 
@@ -78,6 +86,18 @@ export function SunlightWorkspace({ target, nav }: { target: ComplexTarget; nav?
   const closeDialog = useCallback(() => setDialog(null), []);
   const openShortcuts = useCallback(() => setDialog('shortcuts'), []);
   const tour = useOnboarding(scene !== null);
+
+  // 다른 탭의 "?"(사용 가이드)로 들어오면 장면이 준비된 뒤 가이드를 시작하고, 주소의 표시는 지운다
+  const wantsTour = (location.state as { tour?: boolean } | null)?.tour === true;
+  const { restart: restartTour } = tour;
+  useEffect(() => {
+    if (!wantsTour || scene === null) return;
+    restartTour();
+    navigate(`${location.pathname}${location.search}`, { replace: true, state: null });
+  }, [wantsTour, scene, restartTour, navigate, location.pathname, location.search]);
+
+  // 머리글 제목: 불러온 장소 이름 → 주소의 이름 → 샘플
+  const title = scene?.place.name ?? (target.kind === 'geo' ? target.name : '샘플 지역');
 
   // 주소(URL)의 대상이 바뀌면 데이터를 불러온다. 연결 확인(키 유무·배포 서버 경유)이 끝난 뒤에 요청해야
   // 실데이터 요청이 올바른 서버로 간다.
@@ -189,6 +209,8 @@ export function SunlightWorkspace({ target, nav }: { target: ComplexTarget; nav?
           <AppHeader
             health={health}
             nav={nav}
+            title={title}
+            tabs={tabs}
             {...(FEATURES.onboarding ? { onShowTour: tour.restart } : {})}
             onShowShortcuts={openShortcuts}
             onShowLimitations={() => setDialog('limitations')}

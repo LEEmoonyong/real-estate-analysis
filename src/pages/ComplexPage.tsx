@@ -30,11 +30,5 @@ export function ComplexPage() {
   if (tab === 'area') return <AreaTab target={target} />;
   if (tab !== 'sun') return <MarketTabs target={target} tab={tab} />;
 
-  const nav = (
-    <>
-      <BackToMap />
-      <ComplexTabs target={target} active="sun" />
-    </>
-  );
-  return <SunlightWorkspace target={target} nav={nav} />;
+  return <SunlightWorkspace target={target} nav={<BackToMap />} tabs={<ComplexTabs target={target} active="sun" />} />;
 }
