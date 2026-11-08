@@ -1,6 +1,6 @@
 // [요구사항: 컴포넌트] 시세·실거래 탭 — 최근 12달 매매·전세 중앙값 추이(평형대별), 요약, 거래 목록, 주변 단지
 // [요구사항: 상태관리] useState — 평형대·매매/전월세 목록 선택
-// [요구사항: 이벤트 처리] onClick(평형대·목록 전환), 주변 단지 링크(주소 이동)
+// [요구사항: 이벤트 처리] onClick(평형대·목록 전환: 매매·전세·월세), 주변 단지 링크(주소 이동)
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -34,7 +34,7 @@ export function PricePanel({ market }: { market: Ready }) {
   const bands = useMemo(() => bandsWithTrades(trades), [trades]);
   // [요구사항: 상태관리] useState — 기본 평형대는 거래가 가장 많은 구간
   const [band, setBand] = useState<AreaBandId | 'all'>(bands[0]?.band ?? 'all');
-  const [list, setList] = useState<'trade' | 'rent'>('trade');
+  const [list, setList] = useState<'trade' | 'jeonse' | 'wolse'>('trade');
   const b = band === 'all' ? undefined : band;
 
   const series = useMemo(() => {
@@ -58,10 +58,18 @@ export function PricePanel({ market }: { market: Ready }) {
     const tm = median(tr.map((t) => t.price));
     const jm = median(js.map((r) => r.deposit));
     const perM2 = median(tr.map((t) => t.price / t.area));
-    return { count: tr.length, tm, jm, ratio: jeonseRatio(tm, jm), perM2 };
+    // 월세: 월세 중앙값과 보증금 중앙값 (확장 X8)
+    const ws = rents.filter((r) => r.monthlyRent > 0 && inBand(r));
+    const wm = median(ws.map((r) => r.monthlyRent));
+    const wd = median(ws.map((r) => r.deposit));
+    return { count: tr.length, tm, jm, ratio: jeonseRatio(tm, jm), perM2, wm, wd, wCount: ws.length };
   }, [trades, rents, months, b]);
 
-  const rows = (list === 'trade' ? trades : rents).filter((x) => !b || areaBandOf(x.area) === b).slice(0, LIST_LIMIT);
+  const jeonseList = useMemo(() => rents.filter((r) => r.monthlyRent === 0), [rents]);
+  const wolseList = useMemo(() => rents.filter((r) => r.monthlyRent > 0), [rents]);
+  const rows = (list === 'trade' ? trades : list === 'jeonse' ? jeonseList : wolseList)
+    .filter((x) => !b || areaBandOf(x.area) === b)
+    .slice(0, LIST_LIMIT);
 
   if (!complex) {
     return (
@@ -116,6 +124,18 @@ export function PricePanel({ market }: { market: Ready }) {
           <div>
             <dt>전세가율</dt>
             <dd>{summary.ratio ? `${Math.round(summary.ratio * 100)}%` : '—'}</dd>
+          </div>
+          <div>
+            <dt>최근 3달 월세 중앙값</dt>
+            <dd>
+              {summary.wm ? (
+                <>
+                  월 {Math.round(summary.wm)}만 <small>보증 {formatManwon(summary.wd ?? 0)}</small>
+                </>
+              ) : (
+                '계약 없음'
+              )}
+            </dd>
           </div>
         </dl>
         {summary.tm && (
@@ -186,8 +206,21 @@ export function PricePanel({ market }: { market: Ready }) {
           >
             매매 {trades.length}건
           </button>
-          <button type="button" className={styles.chip} aria-pressed={list === 'rent'} onClick={() => setList('rent')}>
-            전월세 {rents.length}건
+          <button
+            type="button"
+            className={styles.chip}
+            aria-pressed={list === 'jeonse'}
+            onClick={() => setList('jeonse')}
+          >
+            전세 {jeonseList.length}건
+          </button>
+          <button
+            type="button"
+            className={styles.chip}
+            aria-pressed={list === 'wolse'}
+            onClick={() => setList('wolse')}
+          >
+            월세 {wolseList.length}건
           </button>
         </div>
         <div className={styles.tableWrap}>
@@ -197,7 +230,7 @@ export function PricePanel({ market }: { market: Ready }) {
                 <th>계약일</th>
                 <th>전용면적</th>
                 <th>층</th>
-                <th>{list === 'trade' ? '거래금액' : '보증금 / 월세'}</th>
+                <th>{list === 'trade' ? '거래금액' : list === 'jeonse' ? '전세 보증금' : '보증금 / 월세'}</th>
                 <th>{list === 'trade' ? '비고' : '계약'}</th>
               </tr>
             </thead>
