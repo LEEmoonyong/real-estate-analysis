@@ -6,6 +6,7 @@
 //   GET /api/realestate/complex?kaptCode=     공동주택 기본정보
 // 키(DATA_GO_KR_SERVICE_KEY, KAKAO_REST_API_KEY)는 서버에서만 붙인다. 응답은 CDN 캐시(s-maxage)로 공공데이터 호출을 줄인다.
 import { ApiError, fetchWithRetry, json, type ServerEnv } from '../http.js';
+import { GEOCODE_CONCURRENCY, geocodeAddress } from '../kakaoGeocode.js';
 import {
   dataGoKrError,
   normalizeComplex,
@@ -227,29 +228,9 @@ export async function handleTradeComplexes(params: URLSearchParams, env: ServerE
   const groups = groupTradesByComplex(monthly.flatMap((r) => r.items));
 
   const kakao = env.KAKAO_REST_API_KEY;
-  const items: TradeComplex[] = await mapLimit(groups, 8, async (g) => {
-    let lat: number | null = null;
-    let lng: number | null = null;
-    if (kakao && g.jibun) {
-      try {
-        const query = encodeURIComponent(jibunAddress(area, g.umdName, g.jibun));
-        const res = await fetchWithRetry(
-          `https://dapi.kakao.com/v2/local/search/address.json?query=${query}&size=1`,
-          { headers: { Authorization: `KakaoAK ${kakao}` } },
-          { timeoutMs: 8000, retries: 1 },
-        );
-        const doc = res.ok
-          ? ((await res.json()) as { documents?: { x: string; y: string }[] }).documents?.[0]
-          : undefined;
-        if (doc) {
-          lat = Number(doc.y);
-          lng = Number(doc.x);
-        }
-      } catch {
-        /* 좌표 없이 둔다 (목록에는 나옴) */
-      }
-    }
-    return { ...g, lat, lng };
+  const items: TradeComplex[] = await mapLimit(groups, GEOCODE_CONCURRENCY, async (g) => {
+    const at = kakao && g.jibun ? await geocodeAddress(jibunAddress(area, g.umdName, g.jibun), kakao) : null;
+    return { ...g, lat: at?.lat ?? null, lng: at?.lng ?? null };
   });
   return json({ ok: true, lawd, ym, months: yms, items }, 200, tradeCacheSeconds(ym));
 }

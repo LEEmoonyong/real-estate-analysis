@@ -5,7 +5,8 @@
 //   room: all · one(원룸, 전용 33㎡ 이하 추정) · two(투룸, 33~60㎡ 추정)
 // 최근 N달(기본 3) 거래를 건물별(지번이 가려진 단독·상가는 법정동별)로 묶어 중앙값과 최근 거래를 붙이고,
 // 카카오 주소 검색으로 좌표를 단다. 키는 서버에서만 붙이고, 응답은 CDN 캐시로 공공데이터 호출을 줄인다.
-import { ApiError, fetchWithRetry, json, type ServerEnv } from '../http.js';
+import { ApiError, json, type ServerEnv } from '../http.js';
+import { GEOCODE_CONCURRENCY, geocodeAddress as geocode, type LatLng } from '../kakaoGeocode.js';
 import {
   DEAL_KINDS,
   PROPERTY_TYPES,
@@ -37,45 +38,6 @@ function oneOf<T extends string>(v: string | null, list: readonly T[], fallback:
   if (v === null || v === '') return fallback;
   if ((list as readonly string[]).includes(v)) return v as T;
   throw new ApiError('BAD_REQUEST', `${name}는 ${list.join('·')} 중 하나여야 합니다.`, 400);
-}
-
-type LatLng = { lat: number; lng: number };
-
-/**
- * 주소 → 좌표 캐시 (서버 인스턴스가 살아 있는 동안). 지번 좌표는 바뀌지 않으므로 성공한 결과만 기억한다.
- * 유형·거래 종류를 바꿔 다시 불러도 같은 건물은 카카오를 다시 부르지 않는다.
- */
-const GEO_CACHE_LIMIT = 20_000;
-const geoCache = new Map<string, LatLng>();
-
-/** 동시 요청 수 — 빌라 전월세처럼 건물이 수백 곳이면 카카오가 잠깐 429(요청 한도)를 돌려준다(2026-11 실측) */
-const GEOCODE_CONCURRENCY = 4;
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-async function geocode(query: string, kakao: string): Promise<LatLng | null> {
-  const hit = geoCache.get(query);
-  if (hit) return hit;
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      const res = await fetchWithRetry(
-        `https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(query)}&size=1`,
-        { headers: { Authorization: `KakaoAK ${kakao}` } },
-        { timeoutMs: 8000, retries: 1 },
-      );
-      if (!res.ok) return null;
-      const doc = ((await res.json()) as { documents?: { x: string; y: string }[] }).documents?.[0];
-      if (!doc) return null;
-      const at = { lat: Number(doc.y), lng: Number(doc.x) };
-      if (geoCache.size >= GEO_CACHE_LIMIT) geoCache.delete(geoCache.keys().next().value!);
-      geoCache.set(query, at);
-      return at;
-    } catch (e) {
-      // 요청 한도(429)면 잠깐 쉬었다가 다시 — 그 밖의 오류는 좌표 없이 둔다(목록에는 남음)
-      if (!(e instanceof ApiError && e.code === 'QUOTA')) return null;
-      await sleep(400 * (attempt + 1));
-    }
-  }
-  return null;
 }
 
 export async function handleDealPlaces(params: URLSearchParams, env: ServerEnv): Promise<Response> {

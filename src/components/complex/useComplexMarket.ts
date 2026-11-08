@@ -16,8 +16,8 @@ import type { AptRent, AptTrade, Region, TradeComplex } from '../../domain/reale
 import type { ComplexTarget } from '../../routes/complexKey';
 
 export const MARKET_MONTHS = 12;
-/** 주소에 실거래 단지가 없을 때 이 거리 안의 가장 가까운 거래 단지를 이 단지로 본다 */
-const MATCH_RADIUS_M = 250;
+/** 단지를 찾을 때 보는 최근 매매 기간 [달] (서버 상한 6) */
+const MATCH_MONTHS = 6;
 const NEARBY_RADIUS_M = 600;
 
 export type ComplexMarket =
@@ -64,15 +64,23 @@ export function useComplexMarket(target: ComplexTarget, targetKey: string): Comp
         const lawd = target.kind === 'geo' && target.lawd ? target.lawd : region.lawdCode;
         const latest = latestDealMonth();
         set({ status: 'loading', step: `${region.sigungu} 거래 단지 찾는 중` });
-        const list = await getTradeComplexes({ ...region, lawdCode: lawd }, latest, 3, signal);
+        // 단지 찾기는 최근 6달 거래로 (거래가 뜸한 단지도 찾도록 — 2026-11 위례 신안인스빌아스트로는 최근 3달 0건)
+        const list = await getTradeComplexes({ ...region, lawdCode: lawd }, latest, MATCH_MONTHS, signal);
         const wanted = target.kind === 'geo' ? target.aptSeq : undefined;
         const near = nearbyTradeComplexes(list, at, NEARBY_RADIUS_M);
+        // 좌표를 못 붙인 단지(주소 검색 실패)도 같은 법정동이면 이름으로는 찾는다
+        const noCoord = list
+          .filter((c) => (c.lat === null || c.lng === null) && c.umdName === region.dong)
+          .map((c) => ({ ...c, distanceM: Number.POSITIVE_INFINITY }));
         const complex =
           (wanted ? list.find((c) => c.aptSeq === wanted) : undefined) ??
-          // 검색으로 연 단지: 주변 600m 안에서 이름이 맞는 단지를 먼저 (큰 단지는 검색 좌표와 대표 지번이 멀 수 있다)
-          (target.kind === 'geo' ? bestNamedNearby(target.name, near, region.sigungu) : null) ??
-          // 샘플 지역은 중심이 단지 사이일 수 있어 주변 반경 안 가장 가까운 단지를 대표로 본다
-          near.find((c) => c.distanceM <= (target.kind === 'sample' ? NEARBY_RADIUS_M : MATCH_RADIUS_M)) ??
+          // 검색으로 연 단지: 이름이 맞는 단지만 (큰 단지는 검색 좌표와 대표 지번이 멀 수 있다).
+          // 이름이 맞는 단지가 없으면 가까운 다른 단지를 "이 단지"로 보지 않는다 — 엉뚱한 단지 정보가 나오므로
+          (target.kind === 'geo'
+            ? (bestNamedNearby(target.name, near, region.sigungu) ??
+              bestNamedNearby(target.name, noCoord, region.sigungu))
+            : // 샘플 지역은 중심이 단지 사이일 수 있어 주변 반경 안 가장 가까운 단지를 대표로 본다
+              near.find((c) => c.distanceM <= NEARBY_RADIUS_M)) ??
           null;
         const months = recentMonths(latest, MARKET_MONTHS);
         set({ status: 'loading', step: `최근 ${MARKET_MONTHS}달 실거래 불러오는 중` });
