@@ -39,19 +39,43 @@ function oneOf<T extends string>(v: string | null, list: readonly T[], fallback:
   throw new ApiError('BAD_REQUEST', `${name}는 ${list.join('·')} 중 하나여야 합니다.`, 400);
 }
 
-async function geocode(query: string, kakao: string): Promise<{ lat: number; lng: number } | null> {
-  try {
-    const res = await fetchWithRetry(
-      `https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(query)}&size=1`,
-      { headers: { Authorization: `KakaoAK ${kakao}` } },
-      { timeoutMs: 8000, retries: 1 },
-    );
-    if (!res.ok) return null;
-    const doc = ((await res.json()) as { documents?: { x: string; y: string }[] }).documents?.[0];
-    return doc ? { lat: Number(doc.y), lng: Number(doc.x) } : null;
-  } catch {
-    return null;
+type LatLng = { lat: number; lng: number };
+
+/**
+ * 주소 → 좌표 캐시 (서버 인스턴스가 살아 있는 동안). 지번 좌표는 바뀌지 않으므로 성공한 결과만 기억한다.
+ * 유형·거래 종류를 바꿔 다시 불러도 같은 건물은 카카오를 다시 부르지 않는다.
+ */
+const GEO_CACHE_LIMIT = 20_000;
+const geoCache = new Map<string, LatLng>();
+
+/** 동시 요청 수 — 빌라 전월세처럼 건물이 수백 곳이면 카카오가 잠깐 429(요청 한도)를 돌려준다(2026-11 실측) */
+const GEOCODE_CONCURRENCY = 4;
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+async function geocode(query: string, kakao: string): Promise<LatLng | null> {
+  const hit = geoCache.get(query);
+  if (hit) return hit;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetchWithRetry(
+        `https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(query)}&size=1`,
+        { headers: { Authorization: `KakaoAK ${kakao}` } },
+        { timeoutMs: 8000, retries: 1 },
+      );
+      if (!res.ok) return null;
+      const doc = ((await res.json()) as { documents?: { x: string; y: string }[] }).documents?.[0];
+      if (!doc) return null;
+      const at = { lat: Number(doc.y), lng: Number(doc.x) };
+      if (geoCache.size >= GEO_CACHE_LIMIT) geoCache.delete(geoCache.keys().next().value!);
+      geoCache.set(query, at);
+      return at;
+    } catch (e) {
+      // 요청 한도(429)면 잠깐 쉬었다가 다시 — 그 밖의 오류는 좌표 없이 둔다(목록에는 남음)
+      if (!(e instanceof ApiError && e.code === 'QUOTA')) return null;
+      await sleep(400 * (attempt + 1));
+    }
   }
+  return null;
 }
 
 export async function handleDealPlaces(params: URLSearchParams, env: ServerEnv): Promise<Response> {
@@ -84,8 +108,8 @@ export async function handleDealPlaces(params: URLSearchParams, env: ServerEnv):
 
   // 좌표: 건물은 지번 주소, 동 단위는 법정동 이름으로 (같은 주소는 한 번만)
   const kakao = env.KAKAO_REST_API_KEY;
-  const cache = new Map<string, Promise<{ lat: number; lng: number } | null>>();
-  const items: DealPlace[] = await mapLimit(groups, 8, async (g) => {
+  const cache = new Map<string, Promise<LatLng | null>>();
+  const items: DealPlace[] = await mapLimit(groups, GEOCODE_CONCURRENCY, async (g) => {
     const query = g.level === 'building' ? jibunAddress(area, g.umdName, g.jibun) : `${area} ${g.umdName}`;
     let p = cache.get(query);
     if (!p) {
