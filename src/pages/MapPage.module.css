@@ -93,6 +93,53 @@
   font-weight: 700;
 }
 
+/* 안내 카드 닫기·다시 열기 */
+.card {
+  position: relative;
+}
+
+.guideTitle {
+  padding-right: 36px; /* 닫기 버튼 자리 */
+}
+
+.guideClose {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  width: var(--touch-target);
+  height: var(--touch-target);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.guideClose:hover,
+.guideClose:focus-visible {
+  background: var(--color-border);
+  color: var(--color-text);
+}
+
+.guideOpen {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  z-index: 6;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.15);
+  cursor: pointer;
+}
+
 .muted {
   margin: 0;
   font-size: var(--font-size-sm);
@@ -226,6 +273,13 @@
     right: var(--space-2);
     left: var(--space-2);
     max-width: none;
+  }
+
+  /* 휴대폰: 위는 시세 안내, 아래는 유형 선택이 차지 → 유형 선택 바로 위 오른쪽 */
+  .guideOpen {
+    top: auto;
+    right: var(--space-2);
+    bottom: calc(120px + env(safe-area-inset-bottom, 0px));
   }
 }
 

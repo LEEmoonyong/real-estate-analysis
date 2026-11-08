@@ -14,6 +14,7 @@ export const STORAGE_KEYS = {
   settings: `${STORAGE_PREFIX}settings`,
   onboarding: `${STORAGE_PREFIX}onboarding`,
   watchlist: `${STORAGE_PREFIX}watchlist`,
+  mapGuideHidden: `${STORAGE_PREFIX}mapGuideHidden`,
 } as const;
 
 export type Migration = (oldData: unknown, fromVersion: number) => unknown;

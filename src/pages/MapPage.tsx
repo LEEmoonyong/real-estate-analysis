@@ -41,6 +41,8 @@ import type { Region } from '../domain/realestate/types';
 import type { SampleIndexEntry } from '../data/samples/sampleSchema';
 import { useApiHealth } from '../hooks/useApiHealth';
 import { useNewDeals } from '../hooks/useNewDeals';
+import { useLocalStorage } from '../hooks/useLocalStorage';
+import { STORAGE_KEYS } from '../data/storage/schema';
 import { complexPath, type ComplexTarget } from '../routes/complexKey';
 import styles from './MapPage.module.css';
 
@@ -141,6 +143,11 @@ export function MapPage() {
   // 관심 단지의 새 거래 (확장 X6)
   const { watched } = useWatchlist();
   const newDeals = useNewDeals(watched);
+  // 안내 카드 닫힘 여부 — 한 번 닫으면 다음 방문에도 접힌 채로(작은 "? 안내" 버튼으로 다시 열기)
+  const [guideHidden, setGuideHidden] = useLocalStorage(STORAGE_KEYS.mapGuideHidden, false, {
+    version: 1,
+    validate: (d): d is boolean => typeof d === 'boolean',
+  });
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<{ api: KakaoMapsApi; map: KakaoMap } | null>(null);
   const pickedOverlayRef = useRef<KakaoCustomOverlay | null>(null);
@@ -415,6 +422,17 @@ export function MapPage() {
 
       <main className={styles.mapArea} aria-label="지도">
         <div ref={containerRef} className={styles.map} />
+        {guideHidden && !picked && (
+          // 접힌 안내는 유형 선택과 겹치지 않게 지도 오른쪽에 둔다
+          <button
+            type="button"
+            className={styles.guideOpen}
+            onClick={() => setGuideHidden(false)}
+            aria-label="지도 사용 안내 열기"
+          >
+            ? 안내
+          </button>
+        )}
         {status === 'loading' && <p className={styles.mapMessage}>지도를 불러오는 중…</p>}
         {status === 'ready' && (
           <>
@@ -461,10 +479,21 @@ export function MapPage() {
               </button>
             </div>
           </div>
+        ) : guideHidden ? (
+          <WatchlistCard deals={newDeals} />
         ) : (
           <div className={styles.card}>
+            <button
+              type="button"
+              className={styles.guideClose}
+              onClick={() => setGuideHidden(true)}
+              aria-label="안내 닫기"
+              title="안내 닫기"
+            >
+              ×
+            </button>
             <WatchlistCard deals={newDeals} />
-            <p className={styles.cardTitle}>아파트·오피스텔·빌라 시세를 찾아보세요</p>
+            <p className={`${styles.cardTitle} ${styles.guideTitle}`}>아파트·오피스텔·빌라 시세를 찾아보세요</p>
             <p className={styles.muted}>
               지도 왼쪽 위에서 유형(아파트·오피스텔·빌라·단독·상가)과 매매·전세·월세를 고르고 지도를 확대하면 최근 3달
               실거래가 건물마다 표시됩니다. 단지명·주소를 검색하거나 샘플 지역을 누르면 일조 분석을 열 수 있습니다.
