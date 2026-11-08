@@ -17,7 +17,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     id: 'search',
     target: 'search',
     title: '1. 단지 찾기',
-    body: '아파트 단지명이나 주소를 검색하세요. API 키가 없어도 샘플 지역(잠실·마린시티·세종) 버튼으로 바로 볼 수 있습니다.',
+    body: '아파트 단지명이나 주소를 입력하면 바로 연관 검색어가 나옵니다. 검색창을 누르면 최근 검색 기록도 볼 수 있습니다.',
   },
   {
     id: 'time',

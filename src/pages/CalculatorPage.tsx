@@ -60,14 +60,46 @@ const num = (v: string | null, fallback: number) => {
   return v !== null && v !== '' && Number.isFinite(n) && n >= 0 ? n : fallback;
 };
 
+/** /calc 주소로 여는 계산기 — 주소 쿼리(price·area·sido·sigungu·name)로 시작 값을 받는다 */
 export function CalculatorPage() {
   const [params] = useSearchParams();
-  const sido = params.get('sido') ?? '';
-  const sigungu = params.get('sigungu') ?? '';
   const name = params.get('name') ?? '';
+  return (
+    <div className={styles.page}>
+      <header className={styles.header}>
+        <Link to="/" className={styles.back}>
+          ← 지도
+        </Link>
+        <h1 className={styles.title}>대출·세금 계산기</h1>
+        {name && <span className={styles.muted}>{name}</span>}
+      </header>
+      <main>
+        <LoanCalculator
+          price={num(params.get('price'), 100_000)}
+          area={num(params.get('area'), 84)}
+          sido={params.get('sido') ?? ''}
+          sigungu={params.get('sigungu') ?? ''}
+        />
+      </main>
+    </div>
+  );
+}
+
+export interface LoanCalculatorProps {
+  /** 시작 주택 가격 [만원] */
+  price: number;
+  /** 전용면적 [㎡] */
+  area: number;
+  /** 지역 (규제지역 판단) — 모르면 '' */
+  sido: string;
+  sigungu: string;
+}
+
+/** 계산기 본문 — /calc 화면과 단지 상세의 "대출 계산" 탭이 함께 쓴다 */
+export function LoanCalculator({ price, area, sido, sigungu }: LoanCalculatorProps) {
   const [form, dispatch] = useReducer(formReducer, undefined, () => ({
-    price: num(params.get('price'), 100_000),
-    area: num(params.get('area'), 84),
+    price,
+    area,
     areaClass: sido ? classifyArea(sido, sigungu) : 'regulated',
     buyer: 'none' as BuyerType,
     annualIncome: 8_000,
@@ -125,15 +157,8 @@ export function CalculatorPage() {
   const maxBar = Math.max(loan.byLtv, loan.byPriceCap ?? 0, loan.byDsr, 1);
 
   return (
-    <div className={styles.page}>
-      <header className={styles.header}>
-        <Link to="/" className={styles.back}>
-          ← 지도
-        </Link>
-        <h1 className={styles.title}>대출·세금 계산기</h1>
-        {name && <span className={styles.muted}>{name}</span>}
-      </header>
-      <main className={styles.main}>
+    <>
+      <div className={styles.main}>
         <form className={styles.form} onSubmit={(e) => e.preventDefault()} aria-label="계산 조건">
           <Field label="주택 가격 (만원)" hint={formatManwon(form.price)}>
             <input
@@ -339,8 +364,8 @@ export function CalculatorPage() {
             ))}
           </ul>
         </section>
-      </main>
-    </div>
+      </div>
+    </>
   );
 }
 

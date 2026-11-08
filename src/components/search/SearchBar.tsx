@@ -3,8 +3,12 @@
 // [요구사항: 이벤트 처리] onChange(입력하면 잠시 뒤 연관 검색어), onSubmit, onKeyDown(↑↓ Enter Esc), onBlur, onClick
 // [요구사항: Hooks] useEffect — 입력이 멈추면(디바운스) 검색, 타이머 정리
 // 후보를 고르면 검색어를 비운다(다음 검색을 바로 입력할 수 있게).
+// 검색어가 비어 있을 때 검색창을 누르면 최근 검색 목록 — 지도 화면과 단지 화면이 같은 기록(FavoritesContext)을 쓴다.
 import { useEffect, useId, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent } from 'react';
+import { useFavorites, useFavoritesActions } from '../../contexts/FavoritesContext';
 import type { GeoResult } from '../../data/geocode/geocodeClient';
+import { loadSampleIndex } from '../../data/samples/sampleClient';
+import type { RecentSearch } from '../../domain/types';
 import type { SampleIndexEntry } from '../../data/samples/sampleSchema';
 import type { DataMode } from '../../hooks/useApiHealth';
 import { useGeocode, type SearchCandidate } from '../../hooks/useGeocode';
@@ -31,6 +35,10 @@ export function SearchBar({ mode, onPickPlace, onPickSample }: SearchBarProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const listId = useId();
   const geo = useGeocode(mode);
+  const { recents } = useFavorites();
+  const { removeRecent, clearRecents } = useFavoritesActions();
+  // 검색창을 눌렀고 검색어가 비어 있으면 최근 검색 목록
+  const [recentOpen, setRecentOpen] = useState(false);
   const { search, reset } = geo;
   // 사용자가 직접 입력한 경우에만 자동 검색 (후보를 골라 검색어를 비운 경우는 제외)
   const typedRef = useRef(false);
@@ -58,6 +66,7 @@ export function SearchBar({ mode, onPickPlace, onPickSample }: SearchBarProps) {
     } else onPickSample(candidate.sample, query.trim());
     // 검색이 끝났으면 검색어와 후보를 비운다
     typedRef.current = false;
+    setRecentOpen(false);
     setQuery('');
     reset();
     setIsOpen(false);
@@ -65,7 +74,26 @@ export function SearchBar({ mode, onPickPlace, onPickSample }: SearchBarProps) {
     inputRef.current?.blur();
   };
 
+  /** 최근 검색 고르기 — 새로 검색한 것과 같은 경로로 연다 (기록도 맨 위로 올라간다) */
+  const pickRecent = (r: RecentSearch) => {
+    setRecentOpen(false);
+    inputRef.current?.blur();
+    if (r.sampleId) {
+      void loadSampleIndex().then((index) => {
+        const sample = index.find((e) => e.id === r.sampleId);
+        if (sample) onPickSample(sample, r.query);
+      });
+      return;
+    }
+    onPickPlace(
+      { label: r.label, address: r.label, lat: r.lat, lng: r.lng, kind: 'place' },
+      r.query,
+      r.provider === 'vworld' ? 'vworld' : 'kakao',
+    );
+  };
+
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setRecentOpen(event.target.value.trim() === '');
     typedRef.current = true;
     setQuery(event.target.value);
   };
@@ -81,6 +109,7 @@ export function SearchBar({ mode, onPickPlace, onPickSample }: SearchBarProps) {
     const count = geo.candidates.length;
     if (event.key === 'Escape') {
       setIsOpen(false);
+      setRecentOpen(false);
       return;
     }
     if (!isOpen || count === 0) return;
@@ -121,15 +150,69 @@ export function SearchBar({ mode, onPickPlace, onPickSample }: SearchBarProps) {
           aria-activedescendant={activeIndex >= 0 ? `${listId}-opt-${activeIndex}` : undefined}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
-          onFocus={() => query.trim() !== '' && geo.candidates.length > 0 && setIsOpen(true)}
+          onFocus={() => {
+            if (query.trim() === '') setRecentOpen(true);
+            else if (geo.candidates.length > 0) setIsOpen(true);
+          }}
+          onClick={() => query.trim() === '' && setRecentOpen(true)}
           // 목록 클릭이 blur보다 늦게 처리되므로 닫기를 한 프레임 늦춘다
-          onBlur={() => window.setTimeout(() => setIsOpen(false), 150)}
+          onBlur={() =>
+            window.setTimeout(() => {
+              setIsOpen(false);
+              setRecentOpen(false);
+            }, 150)
+          }
           data-shortcut="search"
         />
         <button type="submit" className={styles.submit} disabled={geo.status === 'loading'} aria-label="검색">
           {geo.status === 'loading' ? '…' : '검색'}
         </button>
       </form>
+
+      {recentOpen && !showList && query.trim() === '' && (
+        <div className={styles.dropdown} onMouseDown={(e) => e.preventDefault()}>
+          {recents.length === 0 ? (
+            <p className={styles.message}>최근 검색이 없습니다.</p>
+          ) : (
+            <>
+              <div className={styles.recentHead}>
+                <span>최근 검색</span>
+                <button type="button" className={styles.recentClear} onClick={clearRecents}>
+                  전체 삭제
+                </button>
+              </div>
+              <ul className={styles.list} aria-label="최근 검색">
+                {recents.map((r) => (
+                  <li key={r.at} className={styles.recentItem}>
+                    <button
+                      type="button"
+                      className={styles.recentPick}
+                      onClick={() => pickRecent(r)}
+                      title={`검색어: ${r.query}`}
+                    >
+                      <span className={styles.icon} aria-hidden="true">
+                        🕘
+                      </span>
+                      <span className={styles.optionText}>
+                        <span className={styles.optionLabel}>{r.label}</span>
+                        {r.query && r.query !== r.label && <span className={styles.optionSub}>{r.query}</span>}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.recentRemove}
+                      aria-label={`최근 검색 '${r.label}' 삭제`}
+                      onClick={() => removeRecent(r.at)}
+                    >
+                      ✕
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+      )}
 
       {showList && (
         <div className={styles.dropdown}>

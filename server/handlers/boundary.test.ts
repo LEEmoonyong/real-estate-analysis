@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { outerRings, simplifyRing } from './boundary';
+import { outerRings, simplifyRing, unionRings } from './boundary';
 import { regionLevel } from './geocode';
 
 describe('행정구역 경계 좌표 줄이기', () => {
@@ -38,6 +38,44 @@ describe('행정구역 경계 좌표 줄이기', () => {
     expect(outerRings({ type: 'Polygon', coordinates: [r, r] })).toHaveLength(1);
     expect(outerRings({ type: 'MultiPolygon', coordinates: [[r], [r, r]] })).toHaveLength(2);
     expect(outerRings({ type: 'Point', coordinates: [0, 0] })).toEqual([]);
+  });
+});
+
+describe('구 경계 합치기 (시 단계)', () => {
+  it('맞닿은 두 사각형 → 바깥 테두리 하나 (공유 변 제거)', () => {
+    const left: [number, number][] = [
+      [0, 0],
+      [1, 0],
+      [1, 1],
+      [0, 1],
+      [0, 0],
+    ];
+    const right: [number, number][] = [
+      [1, 0],
+      [2, 0],
+      [2, 1],
+      [1, 1],
+      [1, 0],
+    ];
+    const out = unionRings([left, right]);
+    expect(out).toHaveLength(1);
+    // 공유 변(1,0)-(1,1)이 빠져 꼭짓점 6개 + 닫는 점
+    expect(out[0]).toHaveLength(7);
+  });
+  it('떨어진 고리는 그대로', () => {
+    const a: [number, number][] = [
+      [0, 0],
+      [1, 0],
+      [1, 1],
+      [0, 0],
+    ];
+    const b: [number, number][] = [
+      [5, 5],
+      [6, 5],
+      [6, 6],
+      [5, 5],
+    ];
+    expect(unionRings([a, b])).toHaveLength(2);
   });
 });
 

@@ -16,10 +16,12 @@ interface ComplexShellProps {
   title: string;
   /** 본문 상태 표시용 data 속성 (점검·테스트용) */
   status?: string;
+  /** 본문 폭 제한을 넓힌다 (계산기처럼 두 단 화면) */
+  wide?: boolean;
   children: ReactNode;
 }
 
-export function ComplexShell({ target, tab, title, status, children }: ComplexShellProps) {
+export function ComplexShell({ target, tab, title, status, wide = false, children }: ComplexShellProps) {
   // 샘플 모드: 실데이터 대신 저장해 둔 샘플 자료를 보여 주는 중 (status가 바뀔 때 다시 읽는다)
   const snapshot = snapshotCapturedAt();
   const navigate = useNavigate();
@@ -42,7 +44,7 @@ export function ComplexShell({ target, tab, title, status, children }: ComplexSh
         />
       </header>
       <main className={styles.shellBody}>
-        <div className={styles.content} data-market-status={status}>
+        <div className={`${styles.content} ${wide ? styles.contentWide : ''}`} data-market-status={status}>
           {children}
         </div>
       </main>

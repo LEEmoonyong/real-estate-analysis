@@ -26,3 +26,19 @@ describe('테두리 안 클릭 판별', () => {
     expect(boundaryContains(b, 37.52, 126.58)).toBe(true);
   });
 });
+
+describe('확대 수준 → 지도 클릭 행정구역 단계', () => {
+  it('동 · 구 · 시 · 시·도', async () => {
+    const { levelForZoom } = await import('./boundaryClient');
+    expect([3, 5, 6, 7, 8, 9, 10, 13].map(levelForZoom)).toEqual([
+      'emd',
+      'emd',
+      'sigungu',
+      'sigungu',
+      'si',
+      'si',
+      'sido',
+      'sido',
+    ]);
+  });
+});

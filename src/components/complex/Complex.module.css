@@ -294,3 +294,8 @@
   font-size: 12px;
   white-space: nowrap;
 }
+
+/* 대출 계산 탭: 계산기(입력·결과 두 단)가 들어가도록 넓게 */
+.contentWide {
+  max-width: 1200px;
+}

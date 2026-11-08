@@ -163,3 +163,39 @@
   font-size: 12px;
   cursor: pointer;
 }
+
+/* 즐겨찾기 단지 목록 — 누르면 단지 분석 */
+.favList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.favItem {
+  width: 100%;
+  min-height: 34px;
+  overflow: hidden;
+  padding: 0 var(--space-2);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.favItem span {
+  color: #f5b301;
+}
+
+.favItem:hover,
+.favItem:focus-visible {
+  background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+}

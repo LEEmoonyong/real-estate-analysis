@@ -3,7 +3,7 @@
 // [요구사항: 이벤트 처리] 검색 결과 선택, 지역·조건 패널(시·도·시·군·구·체크·세부 조건), 시세 표시 클릭, 지도 이동(idle·dragstart) → 그 시군구 시세 불러오기, "단지 열기" 클릭
 // [요구사항: Hooks] useEffect(SDK 로드·지도 생성·표시 정리·조건이 바뀌면 다시 불러오기), useRef(지도 컨테이너·지도 객체·표시 목록)
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { MarketPanel } from '../components/map/MarketPanel';
 import { PlaceCard } from '../components/map/PlaceCard';
 import { SearchBar } from '../components/search/SearchBar';
@@ -23,7 +23,13 @@ import {
 } from '../data/map/kakaoMaps';
 import { getDealPlaces, getRegion, latestDealMonth } from '../data/realestate/realestateClient';
 import { findRegion, sigunguOf, type RegionEntry } from '../data/regions/regions';
-import { boundaryContains, getBoundary, type Boundary, type BoundaryQuery } from '../data/boundary/boundaryClient';
+import {
+  boundaryContains,
+  getBoundary,
+  levelForZoom,
+  type Boundary,
+  type BoundaryQuery,
+} from '../data/boundary/boundaryClient';
 import { findSummary, readSunSummaries, type SunSummary } from '../data/storage/sunSummary';
 import { classOf, quantileBreaks } from '../domain/realestate/format';
 import { DEFAULT_MAP_FILTER, isFilterActive, passesMapFilter, type MapFilter } from '../domain/realestate/mapFilter';
@@ -240,13 +246,21 @@ export function MapPage() {
     clearPopupRef.current?.setMap(null);
     clearPopupRef.current = null;
   }, []);
-  /** 지도 클릭: 테두리 안이면 그 자리에 "테두리 지우기" 버튼, 밖이면 말풍선을 닫는다 */
+  /**
+   * 지도 클릭: 누른 곳의 행정구역 테두리를 그린다 — 확대 수준에 따라 동 · 구 · 시 · 시·도.
+   * 이미 그려진 같은 단계 테두리 안을 다시 누르면 "테두리 지우기" 버튼을 띄운다.
+   */
   const handleMapClick = useCallback(
     (lat: number, lng: number) => {
       closeClearPopup();
       const m = mapRef.current;
+      if (!m) return;
+      const want = levelForZoom(m.map.getLevel());
       const b = boundaryRef.current;
-      if (!m || !b || !boundaryContains(b, lat, lng)) return;
+      if (!b || b.level !== want || !boundaryContains(b, lat, lng)) {
+        setBoundaryQuery({ level: want, lat, lng });
+        return;
+      }
       const popup = new m.api.CustomOverlay({
         position: new m.api.LatLng(lat, lng),
         content: clearBoundaryPopup(b.name, () => {
@@ -663,9 +677,6 @@ export function MapPage() {
             🔔 새 거래 {newDeals.total}
           </button>
         )}
-        <Link to="/calc" className={styles.headerLink}>
-          계산기
-        </Link>
       </header>
 
       <main className={styles.mapArea} aria-label="지도">
@@ -687,6 +698,7 @@ export function MapPage() {
               dongs={market.status === 'ready' ? dongNames(market.items) : []}
               dong={dong}
               onDong={selectDong}
+              onOpenFavorite={(fav) => navigate(complexPath(favoriteTarget(fav)))}
               onShowGuide={guideHidden ? () => setGuideHidden(false) : null}
             />
             <MarketBadge
@@ -772,9 +784,9 @@ const KEY_ERROR = /인증|서비스키|NO_KEY|키가/;
 function MarketBadge({ market, query, shown, filtered, dong }: BadgeProps) {
   const what = `${typeLabel(query.type)} ${kindLabel(query.kind)}`;
   let body: ReactNode;
-  if (market.status === 'zoom-in')
-    body = `지역·조건에서 시·군·구를 고르거나 지도를 확대하면 최근 3달 ${what} 시세가 건물마다 보입니다.`;
-  else if (market.status === 'loading')
+  // 확대 전에는 안내 문구 없이 비워 둔다 (지역·조건 패널과 지도만)
+  if (market.status === 'zoom-in') return null;
+  if (market.status === 'loading')
     body = `${market.region ? `${market.region.sigungu || market.region.sido} ` : ''}${what} 실거래가를 불러오는 중…`;
   else if (market.status === 'error')
     body = KEY_ERROR.test(market.message)

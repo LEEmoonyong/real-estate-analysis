@@ -14,10 +14,15 @@ interface TimeActions {
   setMinuteOfDay: (minute: number | ((prev: number) => number)) => void;
 }
 
-/** 기본 날짜: 올해 동지 근처(12월 22일) — 일조 참고 기준이 동지 기준이므로 */
+/** 기본 날짜: 프로그램을 실행한 오늘 (한국 시간) — 태양 정보·3D 태양 경로도 오늘 기준으로 시작한다 */
 export function defaultDate(now = new Date()): string {
-  const kstYear = new Date(now.getTime() + 9 * 3600_000).getUTCFullYear();
-  return `${kstYear}-12-22`;
+  return new Date(now.getTime() + 9 * 3600_000).toISOString().slice(0, 10);
+}
+
+/** 기본 시각: 지금 (한국 시간, 분) */
+export function defaultMinuteOfDay(now = new Date()): number {
+  const kst = new Date(now.getTime() + 9 * 3600_000);
+  return kst.getUTCHours() * 60 + kst.getUTCMinutes();
 }
 
 const TimeStateContext = createContext<TimeState | null>(null);
@@ -25,7 +30,7 @@ const TimeActionsContext = createContext<TimeActions | null>(null);
 
 export function TimeProvider({ children }: { children: ReactNode }) {
   const [date, setDate] = useState<string>(() => defaultDate());
-  const [minuteOfDay, setMinuteOfDay] = useState(12 * 60);
+  const [minuteOfDay, setMinuteOfDay] = useState<number>(() => defaultMinuteOfDay());
 
   const state = useMemo(() => ({ date, minuteOfDay }), [date, minuteOfDay]);
   // useState의 setter는 참조가 고정되므로 actions 객체도 한 번만 만든다

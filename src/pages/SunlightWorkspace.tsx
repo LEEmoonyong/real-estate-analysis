@@ -17,7 +17,6 @@ import { BuildingInfo } from '../components/detail/BuildingInfo';
 import { UnitDetailPanel } from '../components/detail/UnitDetailPanel';
 import { DongHoSearch } from '../components/dongHo/DongHoSearch';
 import { FavoritesPanel, type NavigateTarget } from '../components/favorites/FavoritesPanel';
-import { RecentSearches } from '../components/favorites/RecentSearches';
 import { OnboardingTour } from '../components/onboarding/OnboardingTour';
 import { useOnboarding } from '../components/onboarding/useOnboarding';
 import { SolarPotentialCard } from '../components/solar/SolarPotentialCard';
@@ -25,7 +24,6 @@ import { SeasonTimelapseControls } from '../components/season/SeasonTimelapseCon
 import { SunInfoCard } from '../components/sunPath/SunInfoCard';
 import { AppLayout } from '../components/layout/AppLayout';
 import { Panel } from '../components/layout/Panel';
-import { SampleChips } from '../components/search/SampleChips';
 import { SearchBar } from '../components/search/SearchBar';
 import { VirtualBuildingPanel } from '../components/virtual/VirtualBuildingPanel';
 import { DEFAULT_SAMPLE_ID } from '../config/constants';
@@ -252,9 +250,6 @@ export function SunlightWorkspace({ target, nav, tabs }: SunlightWorkspaceProps)
                 <DongHoSearch key={scene ? `${scene.place.lat},${scene.place.lng}` : 'none'} />
               </Panel>
             )}
-            <Panel title="샘플 지역" tourId="samples">
-              <SampleChips activeId={activeSampleId} onPick={handlePickSample} />
-            </Panel>
           </>
         }
         analysis={
@@ -281,9 +276,9 @@ export function SunlightWorkspace({ target, nav, tabs }: SunlightWorkspaceProps)
         }
         secondary={
           FEATURES.favorites && (
-            <Panel title="즐겨찾기·최근 검색" tourId="favorites">
+            // 최근 검색은 검색창을 누르면 목록으로 나온다 (지도 화면 검색창과 같은 기록)
+            <Panel title="즐겨찾기" tourId="favorites">
               <FavoritesPanel current={currentPlace} onNavigate={handleNavigate} />
-              <RecentSearches onNavigate={handleNavigate} />
             </Panel>
           )
         }

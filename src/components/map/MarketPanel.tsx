@@ -1,5 +1,5 @@
 // [요구사항: 컴포넌트] 지도 검색창 아래 접기/열기 패널 — 지역(시·도 → 시·군·구 → 동), 주택 유형(하나),
-//   거래 종류(매매·전세·월세 중 하나), 방 구조, 세부 조건(가격·보증금·면적·준공·일조)
+//   거래 종류(매매·전세·월세 중 하나), 방 구조, 세부 조건(가격·보증금·면적·준공·일조), 즐겨찾기한 단지 목록
 // [요구사항: 상태관리] useState — 패널 열림, 시·도만 고르고 시·군·구는 아직 안 고른 중간 상태
 // [요구사항: 이벤트 처리] onChange(select·체크·라디오) → 지역 이동·다시 불러오기·표시 거르기, onClick(접기/열기·초기화)
 import { useId, useState } from 'react';
@@ -26,6 +26,8 @@ import {
   typeLabel,
   type MarketQuery,
 } from '../../domain/realestate/property';
+import { useFavorites } from '../../contexts/FavoritesContext';
+import type { Favorite } from '../../domain/types';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import styles from './MarketPanel.module.css';
 
@@ -42,6 +44,8 @@ interface MarketPanelProps {
   dongs: readonly string[];
   dong: string;
   onDong: (dong: string) => void;
+  /** 즐겨찾기 단지를 고름 → 단지 분석으로 */
+  onOpenFavorite: (fav: Favorite) => void;
   /** 안내 카드를 닫아 두었으면 다시 여는 버튼을 패널 머리에 둔다 */
   onShowGuide: (() => void) | null;
 }
@@ -60,8 +64,10 @@ export function MarketPanel({
   dongs,
   dong,
   onDong,
+  onOpenFavorite,
   onShowGuide,
 }: MarketPanelProps) {
+  const { favorites } = useFavorites();
   const id = useId();
   const isMobile = useMediaQuery('(max-width: 767px)');
   // 휴대폰은 지도를 가리지 않게 접힌 채로 시작
@@ -355,6 +361,28 @@ export function MarketPanel({
               <button type="button" className={styles.reset} onClick={() => onFilter(DEFAULT_MAP_FILTER)}>
                 세부 조건 초기화
               </button>
+            )}
+          </fieldset>
+
+          <fieldset className={styles.group}>
+            <legend>즐겨찾기 ({favorites.length})</legend>
+            {favorites.length === 0 ? (
+              <p className={styles.note}>단지 분석 화면에서 ★ 현재 위치 추가로 즐겨찾기할 수 있습니다.</p>
+            ) : (
+              <ul className={styles.favList}>
+                {favorites.map((f) => (
+                  <li key={f.id}>
+                    <button
+                      type="button"
+                      className={styles.favItem}
+                      onClick={() => onOpenFavorite(f)}
+                      title={`${f.name} 단지 분석 열기`}
+                    >
+                      <span aria-hidden="true">★</span> {f.name}
+                    </button>
+                  </li>
+                ))}
+              </ul>
             )}
           </fieldset>
         </div>
