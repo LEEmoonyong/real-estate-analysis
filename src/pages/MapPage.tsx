@@ -16,13 +16,14 @@ import {
   KAKAO_JS_KEY,
   loadKakaoMaps,
   type KakaoCustomOverlay,
+  type KakaoLatLng,
   type KakaoMap,
   type KakaoMapsApi,
   type KakaoPolyline,
 } from '../data/map/kakaoMaps';
 import { getDealPlaces, getRegion, latestDealMonth } from '../data/realestate/realestateClient';
 import { findRegion, sigunguOf, type RegionEntry } from '../data/regions/regions';
-import { getBoundary, type BoundaryQuery } from '../data/boundary/boundaryClient';
+import { boundaryContains, getBoundary, type Boundary, type BoundaryQuery } from '../data/boundary/boundaryClient';
 import { findSummary, readSunSummaries, type SunSummary } from '../data/storage/sunSummary';
 import { classOf, quantileBreaks } from '../domain/realestate/format';
 import { DEFAULT_MAP_FILTER, isFilterActive, passesMapFilter, type MapFilter } from '../domain/realestate/mapFilter';
@@ -153,6 +154,24 @@ function boundaryLabel(name: string): HTMLElement {
   return el;
 }
 
+/** 테두리 안을 눌렀을 때 뜨는 말풍선 — "테두리 지우기" */
+function clearBoundaryPopup(name: string, onClear: () => void): HTMLElement {
+  const el = document.createElement('div');
+  el.className = styles.boundaryPopup ?? '';
+  const title = document.createElement('span');
+  title.textContent = name;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.textContent = '테두리 지우기';
+  btn.setAttribute('aria-label', `${name} 테두리 지우기`);
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    onClear();
+  });
+  el.append(title, btn);
+  return el;
+}
+
 /** 즐겨찾기 표시 — 누르면 바로 단지 분석으로 */
 function favoriteChip(fav: Favorite, onClick: () => void): HTMLElement {
   const el = document.createElement('button');
@@ -214,6 +233,37 @@ export function MapPage() {
   const [shownCount, setShownCount] = useState(0);
   // [요구사항: 상태관리] useState — 지도에 테두리를 그릴 행정구역 (지역 선택·지역 검색). fit = 테두리 전체가 보이게 맞춤
   const [boundaryQuery, setBoundaryQuery] = useState<(BoundaryQuery & { fit?: boolean }) | null>(null);
+  // 지금 그려진 테두리와, 테두리 안을 눌렀을 때 뜨는 "테두리 지우기" 말풍선
+  const boundaryRef = useRef<Boundary | null>(null);
+  const clearPopupRef = useRef<KakaoCustomOverlay | null>(null);
+  const closeClearPopup = useCallback(() => {
+    clearPopupRef.current?.setMap(null);
+    clearPopupRef.current = null;
+  }, []);
+  /** 지도 클릭: 테두리 안이면 그 자리에 "테두리 지우기" 버튼, 밖이면 말풍선을 닫는다 */
+  const handleMapClick = useCallback(
+    (lat: number, lng: number) => {
+      closeClearPopup();
+      const m = mapRef.current;
+      const b = boundaryRef.current;
+      if (!m || !b || !boundaryContains(b, lat, lng)) return;
+      const popup = new m.api.CustomOverlay({
+        position: new m.api.LatLng(lat, lng),
+        content: clearBoundaryPopup(b.name, () => {
+          closeClearPopup();
+          setBoundaryQuery(null);
+        }),
+        yAnchor: 1.15,
+        clickable: true,
+        zIndex: 7,
+      });
+      popup.setMap(m.map);
+      clearPopupRef.current = popup;
+    },
+    [closeClearPopup],
+  );
+  const mapClickRef = useRef(handleMapClick);
+  mapClickRef.current = handleMapClick;
   // [요구사항: 상태관리] useState — 고른 법정동 ('' = 시·군·구 전체). 불러온 시·군·구가 바뀌면 비운다
   const [dong, setDong] = useState('');
   const loadedLawd =
@@ -280,6 +330,10 @@ export function MapPage() {
         // 지도를 움직이고 멈출 때마다: 충분히 확대했으면 화면 중심의 시군구 시세를 불러온다
         let regionTimer = 0;
         // 지도를 직접 끌면 패널에서 고른 지역 고정을 풀고 화면 중심을 따라간다
+        api.event.addListener(map, 'click', (...args: unknown[]) => {
+          const at = (args[0] as { latLng?: KakaoLatLng } | undefined)?.latLng;
+          if (at) mapClickRef.current(at.getLat(), at.getLng());
+        });
         api.event.addListener(map, 'dragstart', () => {
           lockedRegionRef.current = null;
         });
@@ -380,6 +434,7 @@ export function MapPage() {
     getBoundary(boundaryQuery, controller.signal)
       .then((b) => {
         if (controller.signal.aborted) return;
+        boundaryRef.current = b;
         const bounds = new m.api.LatLngBounds();
         for (const ring of b.rings) {
           const path = ring.map(([lng, lat]) => new m.api.LatLng(lat, lng));
@@ -411,8 +466,10 @@ export function MapPage() {
       controller.abort();
       for (const l of lines) l.setMap(null);
       label?.setMap(null);
+      boundaryRef.current = null;
+      closeClearPopup();
     };
-  }, [boundaryQuery, status]);
+  }, [boundaryQuery, status, closeClearPopup]);
 
   // 선택한 장소로 지도 이동 + 표시
   useEffect(() => {

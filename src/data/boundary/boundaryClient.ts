@@ -1,4 +1,5 @@
 // [요구사항: 데이터 처리] 외부 API(V-World 행정구역 경계, 서버 프록시 /api/boundary) — 지도에 지역 테두리
+import { pointInPolygon } from '../../domain/geometry/polygon';
 import { getJson } from '../apiClient';
 
 export type BoundaryLevel = 'sido' | 'sigungu' | 'emd' | 'ri';
@@ -36,4 +37,9 @@ export function getBoundary(q: BoundaryQuery, signal?: AbortSignal): Promise<Bou
   cache.set(key, p);
   p.catch(() => cache.delete(key)); // 실패는 다시 시도할 수 있게
   return p;
+}
+
+/** 점(위도·경도)이 테두리 안(바깥 고리 중 하나)에 있는지 — 테두리 안을 눌렀는지 판별 */
+export function boundaryContains(b: Pick<Boundary, 'rings'>, lat: number, lng: number): boolean {
+  return b.rings.some((ring) => pointInPolygon(lng, lat, Float64Array.from(ring.flat())));
 }
