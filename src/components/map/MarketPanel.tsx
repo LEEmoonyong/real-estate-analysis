@@ -336,9 +336,7 @@ export function MarketPanel({
                 ))}
               </select>
             </div>
-            <p className={styles.note}>
-              면적·가격은 건물별 최근 3달 중앙값 기준입니다.
-            </p>
+            <p className={styles.note}>면적·가격은 건물별 최근 3달 중앙값 기준입니다.</p>
             {filterCount > 0 && (
               <button type="button" className={styles.reset} onClick={() => onFilter(DEFAULT_MAP_FILTER)}>
                 세부 조건 초기화
