@@ -3,6 +3,7 @@ import {
   DEFAULT_MAP_FILTER,
   activeFilterCount,
   isFilterActive,
+  filterChips,
   passesMapFilter,
   type FilterSubject,
 } from './mapFilter';
@@ -12,6 +13,7 @@ const s = (patch: Partial<FilterSubject> = {}): FilterSubject => ({
   deposit: 1_000,
   areaM2: 84,
   buildYear: 2010,
+  count: 4,
   ...patch,
 });
 
@@ -52,5 +54,28 @@ describe('지도 시세 세부 조건', () => {
 
   it('켜 둔 조건 개수 — 하한·상한은 한 조건', () => {
     expect(activeFilterCount({ ...DEFAULT_MAP_FILTER, minValue: 1, maxValue: 2, minBuildYear: 2000 })).toBe(2);
+  });
+});
+
+describe('거래 건수 조건·조건 칩', () => {
+  it('최근 3달 거래 건수 하한', () => {
+    const f = { ...DEFAULT_MAP_FILTER, minCount: 5 };
+    expect(activeFilterCount(f)).toBe(1);
+    expect(passesMapFilter(s({ count: 4 }), f)).toBe(false);
+    expect(passesMapFilter(s({ count: 5 }), f)).toBe(true);
+  });
+
+  it('켜 둔 조건만 칩으로, ×는 그 조건만 끔', () => {
+    const f = { ...DEFAULT_MAP_FILTER, minValue: 3_000, maxPyeong: 34, minBuildYear: 2015, maxDeposit: 1_000 };
+    const chips = filterChips(f, (v) => `평당 ${v}만`);
+    expect(chips.map((c) => c.label)).toEqual([
+      '평당 3000만 이상',
+      '보증금 1000만 이하',
+      '34평 이하',
+      '2015년 이후 준공',
+    ]);
+    expect({ ...f, ...chips[2]!.clear }).toEqual({ ...f, maxPyeong: null });
+    expect(filterChips(DEFAULT_MAP_FILTER, String)).toEqual([]);
+    expect(filterChips({ ...DEFAULT_MAP_FILTER, minPyeong: 20, maxPyeong: 30 }, String)[0]!.label).toBe('20평 ~ 30평');
   });
 });

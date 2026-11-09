@@ -2,7 +2,7 @@
 // [요구사항: 상태관리] useState — 지도 상태(불러오는 중·준비·실패), 선택한 장소 카드, 시세 조건(지역·유형 여러 개·거래·방 구조)·세부 조건
 // [요구사항: 이벤트 처리] 검색 결과 선택, 지역·조건 패널(시·도·시·군·구·체크·세부 조건), 시세 표시 클릭, 지도 이동(idle·dragstart) → 그 시군구 시세 불러오기, "단지 열기" 클릭
 // [요구사항: Hooks] useEffect(SDK 로드·지도 생성·표시 정리·조건이 바뀌면 다시 불러오기), useRef(지도 컨테이너·지도 객체·표시 목록)
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MarketPanel } from '../components/map/MarketPanel';
 import { PlaceCard } from '../components/map/PlaceCard';
@@ -75,6 +75,8 @@ interface Picked {
 const KOREA_CENTER = { lat: 36.35, lng: 127.8 };
 const KOREA_LEVEL = 13;
 const PLACE_LEVEL = 4;
+/** 시세를 아직 못 불러왔을 때 가격 분포 값 (매 렌더 새 배열이 되지 않게) */
+const EMPTY_VALUES: readonly number[] = [];
 /** 이 확대 수준 이하(더 가까이)에서만 시군구 시세를 불러온다 — 전국 단위로는 너무 많다 */
 const MARKET_LEVEL = 6;
 /** 5등급 색 (싼 → 비싼) — 밝기가 단조로워 색각 이상에도 구분된다 */
@@ -237,7 +239,6 @@ export function MapPage() {
   // [요구사항: 상태관리] useState — 지도 필터(값 범위·일조), 이 기기에 저장된 단지 일조 요약
   const [filter, setFilter] = useState<MapFilter>(DEFAULT_MAP_FILTER);
   const [summaries] = useState<SunSummary[]>(readSunSummaries);
-  const [shownCount, setShownCount] = useState(0);
   // [요구사항: 상태관리] useState — 지도에 테두리를 그릴 행정구역 (지역 선택·지역 검색). fit = 테두리 전체가 보이게 맞춤
   const [boundaryQuery, setBoundaryQuery] = useState<(BoundaryQuery & { fit?: boolean }) | null>(null);
   // 지금 그려진 테두리와, 테두리 안을 눌렀을 때 뜨는 "테두리 지우기" 말풍선
@@ -556,27 +557,42 @@ export function MapPage() {
     });
   }, []);
 
-  // 시세 표시 그리기 (목록·필터가 바뀔 때마다 지우고 다시)
-  useEffect(() => {
-    const m = mapRef.current;
-    for (const o of priceOverlaysRef.current) o.setMap(null);
-    priceOverlaysRef.current = [];
-    if (!m || market.status !== 'ready') return;
+  // 조건에 맞는 곳 — 지도 표시와 패널 결과 목록이 같이 쓴다.
+  // priceValues: 가격 외 조건만 통과한 곳의 값 (가격 분포 막대용 — 가격을 좁혀도 분포 전체가 보이게)
+  const results = useMemo(() => {
+    if (market.status !== 'ready') return null;
     const { kind } = market.query;
-    let shown = 0;
+    const withoutPrice: MapFilter = { ...filter, minValue: null, maxValue: null };
+    const visible: DealPlace[] = [];
+    const priceValues: number[] = [];
     for (const item of market.items) {
       if (item.lat === null || item.lng === null) continue;
       if (dong && item.umdName !== dong) continue;
-      // 일조 요약은 아파트 단지 분석에서만 나온다
-      const sun = item.type === 'apt' ? findSummary(summaries, { lat: item.lat, lng: item.lng }) : null;
       const subject = {
         value: filterValue(item, kind),
         deposit: item.depositMedian,
         areaM2: item.areaMedian,
         buildYear: item.buildYear,
+        count: item.count,
       };
-      if (!passesMapFilter(subject, filter)) continue;
-      shown++;
+      if (!passesMapFilter(subject, withoutPrice)) continue;
+      priceValues.push(subject.value);
+      if (passesMapFilter(subject, filter)) visible.push(item);
+    }
+    return { visible, priceValues };
+  }, [market, filter, dong]);
+
+  // 시세 표시 그리기 (목록·필터가 바뀔 때마다 지우고 다시)
+  useEffect(() => {
+    const m = mapRef.current;
+    for (const o of priceOverlaysRef.current) o.setMap(null);
+    priceOverlaysRef.current = [];
+    if (!m || market.status !== 'ready' || !results) return;
+    const { kind } = market.query;
+    for (const item of results.visible) {
+      if (item.lat === null || item.lng === null) continue;
+      // 일조 요약은 아파트 단지 분석에서만 나온다
+      const sun = item.type === 'apt' ? findSummary(summaries, { lat: item.lat, lng: item.lng }) : null;
       const overlay = new m.api.CustomOverlay({
         position: new m.api.LatLng(item.lat, item.lng),
         content: placeChip(item, classOf(item.value, market.breaks), kind, sun, () =>
@@ -589,8 +605,7 @@ export function MapPage() {
       overlay.setMap(m.map);
       priceOverlaysRef.current.push(overlay);
     }
-    setShownCount(shown);
-  }, [market, pickPlace, filter, summaries, dong]);
+  }, [market, pickPlace, results, summaries]);
 
   const pickSample = useCallback((s: SampleIndexEntry) => {
     setPicked({
@@ -705,11 +720,16 @@ export function MapPage() {
               onDong={selectDong}
               onOpenFavorite={(fav) => navigate(complexPath(favoriteTarget(fav)))}
               onShowGuide={guideHidden ? () => setGuideHidden(false) : null}
+              results={results?.visible ?? null}
+              priceValues={results?.priceValues ?? EMPTY_VALUES}
+              onPickResult={(p) => {
+                if (market.status === 'ready') pickPlace(p, market.region, market.query.kind);
+              }}
             />
             <MarketBadge
               market={market}
               query={query}
-              shown={shownCount}
+              shown={results?.visible.length ?? 0}
               filtered={isFilterActive(filter)}
               dong={dong}
             />
@@ -763,7 +783,7 @@ export function MapPage() {
             <WatchlistCard deals={newDeals} />
             <p className={`${styles.cardTitle} ${styles.guideTitle}`}>아파트·오피스텔·빌라 시세를 찾아보세요</p>
             <p className={styles.muted}>
-              검색창 아래 <strong>지역·조건</strong>에서 시·도와 시·군·구를 고르고, 유형(여러 개)과 매매·전세·월세, 세부
+              검색창 아래 <strong>지역·조건</strong>에서 시·도와 시·군·구를 고르고, 유형과 매매·전세·월세, 세부
               조건(가격·면적·준공 연도 등)을 정하면 그 지역의 최근 3달 실거래가 건물마다 표시됩니다. 지도를 직접 옮기고
               확대해도 됩니다. 단지명·주소를 검색하면 일조 분석을 열 수 있습니다.
             </p>

@@ -1,31 +1,41 @@
 // [요구사항: 컴포넌트] 지도 검색창 아래 접기/열기 패널 — 지역(시·도 → 시·군·구 → 동), 주택 유형(하나),
-//   거래 종류(매매·전세·월세 중 하나), 방 구조, 세부 조건(가격·보증금·면적·준공), 즐겨찾기한 단지 목록
-// [요구사항: 상태관리] useState — 패널 열림, 시·도만 고르고 시·군·구는 아직 안 고른 중간 상태
-// [요구사항: 이벤트 처리] onChange(select·체크·라디오) → 지역 이동·다시 불러오기·표시 거르기, onClick(접기/열기·초기화)
-import { useId, useState } from 'react';
+//   거래 종류(매매·전세·월세 중 하나), 방 구조, 세부 조건(가격 분포 슬라이더·보증금·면적·준공·거래 건수),
+//   켜 둔 조건 칩(×로 하나씩 해제), 조건에 맞는 곳 목록(정렬·더 보기), 즐겨찾기한 단지 목록
+// [요구사항: 상태관리] useState — 패널 열림, 시·도만 고르고 시·군·구는 아직 안 고른 중간 상태, 결과 정렬·표시 개수
+// [요구사항: Hooks] useMemo — 결과 정렬 (결과·정렬 기준이 바뀔 때만)
+// [요구사항: 이벤트 처리] onChange(select·체크·라디오·슬라이더) → 지역 이동·다시 불러오기·표시 거르기,
+//   onClick(접기/열기·조건 칩 ×·초기화·결과 항목 → 지도에서 그곳)
+import { useId, useMemo, useState } from 'react';
 import { SIDO_LIST, findRegion, regionLabel, sigunguOf, type RegionEntry } from '../../data/regions/regions';
 import {
   BUILD_YEAR_STEPS,
+  COUNT_STEPS,
   DEFAULT_MAP_FILTER,
   DEPOSIT_CAP_STEPS,
   PYEONG_STEPS,
   activeFilterCount,
+  filterChips,
   type MapFilter,
 } from '../../domain/realestate/mapFilter';
+import { RESULT_SORT_OPTIONS, sortResults, type ResultSort } from '../../domain/realestate/mapResults';
 import { formatManwonShort } from '../../domain/realestate/format';
+import { M2_PER_PYEONG } from '../../domain/realestate/types';
 import {
   DEAL_KIND_OPTIONS,
-  FILTER_STEPS,
   PROPERTY_TYPE_OPTIONS,
   ROOM_OPTIONS,
+  filterValue,
   kindLabel,
   kindsFor,
+  markerText,
   normalizeQuery,
   roomApplies,
   stepLabel,
   typeLabel,
+  type DealPlace,
   type MarketQuery,
 } from '../../domain/realestate/property';
+import { PriceRange } from './PriceRange';
 import { useFavorites, useFavoritesActions } from '../../contexts/FavoritesContext';
 import type { Favorite } from '../../domain/types';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
@@ -48,9 +58,17 @@ interface MarketPanelProps {
   onOpenFavorite: (fav: Favorite) => void;
   /** 안내 카드를 닫아 두었으면 다시 여는 버튼을 패널 머리에 둔다 */
   onShowGuide: (() => void) | null;
+  /** 조건에 맞는 곳 (null = 아직 불러온 시세 없음) */
+  results: readonly DealPlace[] | null;
+  /** 가격 외 조건을 통과한 곳의 값 [만원] — 가격 분포 막대 */
+  priceValues: readonly number[];
+  /** 결과 목록에서 한 곳을 고름 → 지도에서 그곳 카드 */
+  onPickResult: (place: DealPlace) => void;
 }
 
 const num = (v: string) => (v === '' ? null : Number(v));
+/** 결과 목록을 한 번에 보여 줄 개수 */
+const RESULT_PAGE = 20;
 
 export function MarketPanel({
   query,
@@ -65,6 +83,9 @@ export function MarketPanel({
   onDong,
   onOpenFavorite,
   onShowGuide,
+  results,
+  priceValues,
+  onPickResult,
 }: MarketPanelProps) {
   const { favorites } = useFavorites();
   // 삭제하면 5초 동안 "실행 취소" 알림이 뜬다 (FavoritesContext)
@@ -85,9 +106,20 @@ export function MarketPanel({
   const set = (patch: Partial<MarketQuery>) => onQuery(normalizeQuery({ ...query, ...patch }));
   const setF = (patch: Partial<MapFilter>) => onFilter({ ...filter, ...patch });
   const kind = query.kind;
-  const steps = FILTER_STEPS[kind];
+  const valueText = (v: number) => stepLabel(kind, v);
   const filterCount = activeFilterCount(filter);
+  const chips = filterChips(filter, valueText);
   const kinds = kindsFor(query.type);
+
+  // 결과 목록 정렬과 몇 개까지 보일지 (결과가 바뀌면 처음 개수로)
+  const [sort, setSort] = useState<ResultSort>('count');
+  const sorted = useMemo(
+    () => (results ? sortResults(results, sort, (p) => filterValue(p, kind)) : []),
+    [results, sort, kind],
+  );
+  const [page, setPage] = useState<{ of: readonly DealPlace[] | null; n: number }>({ of: null, n: RESULT_PAGE });
+  const limit = page.of === results ? page.n : RESULT_PAGE;
+  const setLimit = (n: number) => setPage({ of: results, n });
 
   const pickSido = (next: string) => {
     if (!next) return;
@@ -113,7 +145,7 @@ export function MarketPanel({
     current ? `${regionLabel(current)}${dong ? ` ${dong}` : ''}` : sido || '지역 미선택',
     typeLabel(query.type),
     kindLabel(kind),
-    filterCount > 0 ? `세부 ${filterCount}` : '',
+    results ? `${results.length.toLocaleString()}곳` : '',
   ]
     .filter(Boolean)
     .join(' · ');
@@ -137,6 +169,38 @@ export function MarketPanel({
           </button>
         )}
       </div>
+
+      {(chips.length > 0 || (lawd && dong)) && (
+        // 켜 둔 조건 — 패널을 접어도 보이고, ×로 그 조건만 끈다
+        <ul className={styles.chips} aria-label="적용한 조건">
+          {lawd && dong && (
+            <li>
+              <button type="button" className={styles.chip} onClick={() => onDong('')} aria-label={`${dong} 선택 해제`}>
+                {dong} <span aria-hidden="true">×</span>
+              </button>
+            </li>
+          )}
+          {chips.map((c) => (
+            <li key={c.id}>
+              <button
+                type="button"
+                className={styles.chip}
+                onClick={() => setF(c.clear)}
+                aria-label={`${c.label} 조건 해제`}
+              >
+                {c.label} <span aria-hidden="true">×</span>
+              </button>
+            </li>
+          ))}
+          {chips.length > 1 && (
+            <li>
+              <button type="button" className={styles.chipClear} onClick={() => onFilter(DEFAULT_MAP_FILTER)}>
+                모두 해제
+              </button>
+            </li>
+          )}
+        </ul>
+      )}
 
       {isOpen && (
         <div id={`${id}-body`} className={styles.body}>
@@ -246,35 +310,18 @@ export function MarketPanel({
           <fieldset className={styles.group}>
             <legend>세부 조건</legend>
             <div className={styles.grid}>
-              <span className={styles.label}>
+              <span className={`${styles.label} ${styles.labelTop}`}>
                 {kind === 'trade' ? '평당가' : kind === 'jeonse' ? '전세 보증금' : '월세'}
               </span>
-              <div className={styles.row}>
-                <select
-                  value={filter.minValue ?? ''}
-                  onChange={(e) => setF({ minValue: num(e.target.value) })}
-                  aria-label="가격 하한"
-                >
-                  <option value="">하한 없음</option>
-                  {steps.map((v) => (
-                    <option key={v} value={v}>
-                      {stepLabel(kind, v)} 이상
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={filter.maxValue ?? ''}
-                  onChange={(e) => setF({ maxValue: num(e.target.value) })}
-                  aria-label="가격 상한"
-                >
-                  <option value="">상한 없음</option>
-                  {steps.map((v) => (
-                    <option key={v} value={v}>
-                      {stepLabel(kind, v)} 이하
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <PriceRange
+                key={kind}
+                kind={kind}
+                values={priceValues}
+                min={filter.minValue}
+                max={filter.maxValue}
+                onChange={(minValue, maxValue) => setF({ minValue, maxValue })}
+                format={valueText}
+              />
 
               {kind === 'wolse' && (
                 <>
@@ -335,12 +382,81 @@ export function MarketPanel({
                   </option>
                 ))}
               </select>
+
+              <span className={styles.label}>거래 건수</span>
+              <select
+                value={filter.minCount ?? ''}
+                onChange={(e) => setF({ minCount: num(e.target.value) })}
+                aria-label="최근 3달 거래 건수 하한"
+                title="거래가 1~2건뿐인 곳은 중앙값이 한 건 값이라 흔들립니다"
+              >
+                <option value="">전체</option>
+                {COUNT_STEPS.map((v) => (
+                  <option key={v} value={v}>
+                    최근 3달 {v}건 이상
+                  </option>
+                ))}
+              </select>
             </div>
             <p className={styles.note}>면적·가격은 건물별 최근 3달 중앙값 기준입니다.</p>
             {filterCount > 0 && (
               <button type="button" className={styles.reset} onClick={() => onFilter(DEFAULT_MAP_FILTER)}>
                 세부 조건 초기화
               </button>
+            )}
+          </fieldset>
+
+          <fieldset className={styles.group}>
+            <legend>조건에 맞는 곳{results && ` (${results.length.toLocaleString()})`}</legend>
+            {results === null ? (
+              <p className={styles.note}>시·군·구를 고르거나 지도를 확대하면 조건에 맞는 곳이 여기 나옵니다.</p>
+            ) : results.length === 0 ? (
+              <p className={styles.note}>
+                조건에 맞는 곳이 없습니다.{filterCount > 0 && ' 위 조건 칩의 ×로 조건을 하나씩 풀어 보세요.'}
+              </p>
+            ) : (
+              <>
+                <select value={sort} onChange={(e) => setSort(e.target.value as ResultSort)} aria-label="결과 정렬">
+                  {RESULT_SORT_OPTIONS.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+                <ul className={styles.resultList}>
+                  {sorted.slice(0, limit).map((p) => {
+                    const text = markerText(p, kind);
+                    return (
+                      <li key={p.key}>
+                        <button
+                          type="button"
+                          className={styles.resultItem}
+                          onClick={() => onPickResult(p)}
+                          title={`${p.name} 지도에서 보기`}
+                        >
+                          <span className={styles.resultName}>
+                            {p.name}
+                            <small>{p.level === 'dong' ? '동 단위' : p.umdName}</small>
+                          </span>
+                          <span className={styles.resultValue}>
+                            {text.main}
+                            {text.sub && <small> · {text.sub}</small>}
+                          </span>
+                          <span className={styles.resultMeta}>
+                            {Math.round(p.areaMedian / M2_PER_PYEONG)}평{p.buildYear !== null && ` · ${p.buildYear}년`}{' '}
+                            · {p.count}건
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+                {sorted.length > limit && (
+                  <button type="button" className={styles.reset} onClick={() => setLimit(limit + RESULT_PAGE)}>
+                    더 보기 ({(sorted.length - limit).toLocaleString()}곳 남음)
+                  </button>
+                )}
+              </>
             )}
           </fieldset>
 
