@@ -1,6 +1,6 @@
 // [요구사항: 컴포넌트] 최상위 조립 — Context 계층 + 화면 이동(주소 기반)
 //   /                         지도 홈 (단지 찾기)
-//   /complex/:key/:tab        단지 상세 (일조·조망 / 시세·실거래 / 단지 정보 탭)
+//   /complex/:key/:tab        단지 상세 (일조·조망 / 시세·실거래 / 단지 정보 / 학군·교통 / 대출 계산 탭)
 //   /calc                     대출·세금 계산기
 // 상태 관리는 여전히 useState·useReducer·Context만 쓴다. React Router는 화면 이동(주소)만 담당한다.
 import { lazy, Suspense, useEffect } from 'react';
