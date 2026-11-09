@@ -1,5 +1,5 @@
 // [요구사항: 컴포넌트] 지도 검색창 아래 접기/열기 패널 — 지역(시·도 → 시·군·구 → 동), 주택 유형(하나),
-//   거래 종류(매매·전세·월세 중 하나), 방 구조, 세부 조건(가격·보증금·면적·준공·일조), 즐겨찾기한 단지 목록
+//   거래 종류(매매·전세·월세 중 하나), 방 구조, 세부 조건(가격·보증금·면적·준공), 즐겨찾기한 단지 목록
 // [요구사항: 상태관리] useState — 패널 열림, 시·도만 고르고 시·군·구는 아직 안 고른 중간 상태
 // [요구사항: 이벤트 처리] onChange(select·체크·라디오) → 지역 이동·다시 불러오기·표시 거르기, onClick(접기/열기·초기화)
 import { useId, useState } from 'react';
@@ -50,7 +50,6 @@ interface MarketPanelProps {
   onShowGuide: (() => void) | null;
 }
 
-const SUN_STEPS = [50, 70, 90] as const;
 const num = (v: string) => (v === '' ? null : Number(v));
 
 export function MarketPanel({
@@ -336,28 +335,9 @@ export function MarketPanel({
                   </option>
                 ))}
               </select>
-
-              {query.type === 'apt' && (
-                <>
-                  <span className={styles.label}>일조</span>
-                  <select
-                    value={filter.minSunPct}
-                    onChange={(e) => setF({ minSunPct: Number(e.target.value) })}
-                    aria-label="일조 기준 충족 세대 비율 하한"
-                  >
-                    <option value={0}>조건 없음</option>
-                    {SUN_STEPS.map((v) => (
-                      <option key={v} value={v}>
-                        기준 충족 {v}% 이상
-                      </option>
-                    ))}
-                  </select>
-                </>
-              )}
             </div>
             <p className={styles.note}>
               면적·가격은 건물별 최근 3달 중앙값 기준입니다.
-              {filter.minSunPct > 0 && ' 일조는 이 기기에서 분석한 단지 주변만 알 수 있습니다.'}
             </p>
             {filterCount > 0 && (
               <button type="button" className={styles.reset} onClick={() => onFilter(DEFAULT_MAP_FILTER)}>

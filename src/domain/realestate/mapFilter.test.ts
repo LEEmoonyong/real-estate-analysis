@@ -12,7 +12,6 @@ const s = (patch: Partial<FilterSubject> = {}): FilterSubject => ({
   deposit: 1_000,
   areaM2: 84,
   buildYear: 2010,
-  sunPct: null,
   ...patch,
 });
 
@@ -49,13 +48,6 @@ describe('지도 시세 세부 조건', () => {
     expect(passesMapFilter(s({ buildYear: 2014 }), f)).toBe(false);
     expect(passesMapFilter(s({ buildYear: 2015 }), f)).toBe(true);
     expect(passesMapFilter(s({ buildYear: null }), f)).toBe(false);
-  });
-
-  it('일조 조건을 켜면 계산 안 한 단지는 숨김', () => {
-    const f = { ...DEFAULT_MAP_FILTER, minSunPct: 70 };
-    expect(passesMapFilter(s(), f)).toBe(false);
-    expect(passesMapFilter(s({ sunPct: 69 }), f)).toBe(false);
-    expect(passesMapFilter(s({ sunPct: 70 }), f)).toBe(true);
   });
 
   it('켜 둔 조건 개수 — 하한·상한은 한 조건', () => {

@@ -388,7 +388,6 @@ export function MapPage() {
       setFilter((f) => ({
         ...f,
         ...(next.kind !== prev.kind ? { minValue: null, maxValue: null, maxDeposit: null } : {}),
-        ...(next.type === 'apt' ? {} : { minSunPct: 0 }),
       }));
       setPicked((p) => (p?.place ? null : p));
       marketKeyRef.current = null;
@@ -575,7 +574,6 @@ export function MapPage() {
         deposit: item.depositMedian,
         areaM2: item.areaMedian,
         buildYear: item.buildYear,
-        sunPct: sun?.meetsPct ?? null,
       };
       if (!passesMapFilter(subject, filter)) continue;
       shown++;
