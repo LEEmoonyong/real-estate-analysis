@@ -36,6 +36,8 @@ import {
   type MarketQuery,
 } from '../../domain/realestate/property';
 import { PriceRange } from './PriceRange';
+import { Link } from 'react-router-dom';
+import { useCompare } from '../../contexts/CompareContext';
 import { useFavorites, useFavoritesActions } from '../../contexts/FavoritesContext';
 import type { Favorite } from '../../domain/types';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
@@ -64,6 +66,8 @@ interface MarketPanelProps {
   priceValues: readonly number[];
   /** 결과 목록에서 한 곳을 고름 → 지도에서 그곳 카드 */
   onPickResult: (place: DealPlace) => void;
+  /** 매매일 때 건물 key → 전세가율 */
+  jeonseRatios?: ReadonlyMap<string, number> | undefined;
 }
 
 const num = (v: string) => (v === '' ? null : Number(v));
@@ -86,10 +90,12 @@ export function MarketPanel({
   results,
   priceValues,
   onPickResult,
+  jeonseRatios,
 }: MarketPanelProps) {
   const { favorites } = useFavorites();
   // 삭제하면 5초 동안 "실행 취소" 알림이 뜬다 (FavoritesContext)
   const { removeFavorite } = useFavoritesActions();
+  const { list: compareList } = useCompare();
   const id = useId();
   const isMobile = useMediaQuery('(max-width: 767px)');
   // 휴대폰은 지도를 가리지 않게 접힌 채로 시작
@@ -163,6 +169,16 @@ export function MarketPanel({
           <span className={styles.toggleTitle}>지역·조건 {isOpen ? '▲' : '▼'}</span>
           <span className={styles.summary}>{summary}</span>
         </button>
+        {compareList.length > 0 && (
+          <Link
+            to="/compare"
+            className={styles.compareLink}
+            title={compareList.map((e) => e.name).join(', ')}
+            aria-label={`단지 비교 열기 (${compareList.length}곳)`}
+          >
+            비교 {compareList.length}
+          </Link>
+        )}
         {onShowGuide && (
           <button type="button" className={styles.help} onClick={onShowGuide} aria-label="지도 사용 안내 열기">
             ?
@@ -445,6 +461,9 @@ export function MarketPanel({
                           <span className={styles.resultMeta}>
                             {Math.round(p.areaMedian / M2_PER_PYEONG)}평{p.buildYear !== null && ` · ${p.buildYear}년`}{' '}
                             · {p.count}건
+                            {kind === 'trade' && jeonseRatios?.has(p.key) && (
+                              <> · 전세가율 {Math.round(jeonseRatios.get(p.key)! * 100)}%</>
+                            )}
                           </span>
                         </button>
                       </li>

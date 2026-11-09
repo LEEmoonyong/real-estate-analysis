@@ -1,22 +1,12 @@
 // [요구사항: 컴포넌트] 단지 정보 탭 — 실거래 단지를 공동주택 단지 목록과 연결해 기본정보(세대수·준공·난방 등)를 보여 준다
-// [요구사항: Hooks] useEffect(AbortController) + useState — 단지 목록 → 매칭 → 기본정보 한 곳만 호출
-// (공공데이터포털 개발 계정은 기본정보 API 하루 한도가 작아, 여기서 한 단지씩만 부른다)
-import { useEffect, useState } from 'react';
-import { getComplexes, getComplexInfo } from '../../data/realestate/realestateClient';
+// [요구사항: Hooks] useComplexInfo — 단지 목록 → 매칭 → 기본정보 한 곳만 호출
 import { formatArea } from '../../domain/realestate/format';
-import { matchComplex, type MatchResult } from '../../domain/realestate/match';
-import type { AptComplexInfo } from '../../domain/realestate/types';
 import type { ComplexTarget } from '../../routes/complexKey';
 import type { ComplexMarket } from './useComplexMarket';
+import { useComplexInfo } from './useComplexInfo';
 import styles from './Complex.module.css';
 
 type Ready = Extract<ComplexMarket, { status: 'ready' }>;
-
-type InfoState =
-  | { status: 'loading' }
-  | { status: 'not-found'; searched: string }
-  | { status: 'error'; message: string }
-  | { status: 'ready'; info: AptComplexInfo; match: MatchResult };
 
 const AREA_LABELS = ['전용 60㎡ 이하', '60~85㎡', '85~135㎡', '135㎡ 초과'];
 
@@ -25,35 +15,7 @@ export function InfoPanel({ market, target }: { market: Ready; target: ComplexTa
   const name = complex?.aptName ?? (target.kind === 'geo' ? target.name : '');
   const umdName = complex?.umdName ?? region.dong;
   const jibun = complex?.jibun ?? '';
-  const [state, setState] = useState<InfoState>({ status: 'loading' });
-
-  useEffect(() => {
-    const controller = new AbortController();
-    setState({ status: 'loading' });
-    void (async () => {
-      try {
-        const list = await getComplexes(region.lawdCode, controller.signal);
-        const refs = list.map((c) => ({
-          kaptCode: c.kaptCode,
-          name: c.name,
-          dong: c.dong,
-          jibun: '',
-          sigungu: c.sigungu,
-        }));
-        const match = name ? matchComplex({ aptName: name, umdName, jibun }, refs) : null;
-        if (!match) {
-          setState({ status: 'not-found', searched: name });
-          return;
-        }
-        const info = await getComplexInfo(match.kaptCode, controller.signal);
-        setState({ status: 'ready', info, match });
-      } catch (e) {
-        if (controller.signal.aborted) return;
-        setState({ status: 'error', message: e instanceof Error ? e.message : String(e) });
-      }
-    })();
-    return () => controller.abort();
-  }, [region.lawdCode, name, umdName, jibun]);
+  const state = useComplexInfo(region.lawdCode, name, umdName, jibun);
 
   if (state.status === 'loading') return <p className={styles.loading}>단지 정보를 불러오는 중…</p>;
   if (state.status === 'error')

@@ -32,7 +32,7 @@ import {
 } from '../data/boundary/boundaryClient';
 import { readMapView, saveMapView } from '../data/storage/mapView';
 import { findSummary, readSunSummaries, type SunSummary } from '../data/storage/sunSummary';
-import { classOf, quantileBreaks } from '../domain/realestate/format';
+import { classOf, formatManwonShort, quantileBreaks } from '../domain/realestate/format';
 import { DEFAULT_MAP_FILTER, isFilterActive, passesMapFilter, type MapFilter } from '../domain/realestate/mapFilter';
 import {
   DEFAULT_MARKET_QUERY,
@@ -40,6 +40,7 @@ import {
   dongNames,
   filterValue,
   kindLabel,
+  kindsFor,
   markerText,
   typeLabel,
   valueDescription,
@@ -47,6 +48,7 @@ import {
   type DealPlace,
   type MarketQuery,
 } from '../domain/realestate/property';
+import { clusterByScreen, placeJeonseRatios, toScreen } from '../domain/realestate/insight';
 import type { Region } from '../domain/realestate/types';
 import type { SampleIndexEntry } from '../data/samples/sampleSchema';
 import { useApiHealth } from '../hooks/useApiHealth';
@@ -93,6 +95,8 @@ type MarketState =
       total: number;
       truncated: boolean;
       breaks: number[];
+      /** 매매일 때 건물 key → 전세가율 (같은 건물 전세 표시를 따로 불러와 맞춘다, 다 받기 전에는 없음) */
+      jeonseRatios?: ReadonlyMap<string, number>;
     }
   | { status: 'error'; message: string; query: MarketQuery };
 
@@ -148,6 +152,42 @@ function placeChip(
     el.title += ` · 일조 기준 충족 ${sun.meetsPct}% (${sun.date} 분석)`;
     el.setAttribute('aria-label', el.title);
   }
+  el.addEventListener('click', onClick);
+  return el;
+}
+
+/** 이 확대 수준 이상(멀리 볼 때)부터 겹치는 가격 표시를 묶는다 (1~2는 충분히 가까워 묶지 않음) */
+const CLUSTER_LEVEL = 3;
+
+/** 겹친 가격 표시 묶음 — "12곳" + 가격 범위, 색은 중앙값 구간 */
+function clusterChip(
+  members: readonly DealPlace[],
+  kind: DealKind,
+  breaks: number[],
+  onClick: () => void,
+): HTMLElement {
+  const values = members.map((p) => filterValue(p, kind)).sort((a, b) => a - b);
+  const lo = values[0] ?? 0;
+  const hi = values[values.length - 1] ?? 0;
+  const raw = members.map((p) => p.value).sort((a, b) => a - b);
+  const cls = classOf(raw[raw.length >> 1] ?? 0, breaks);
+  const range =
+    kind === 'wolse'
+      ? `월 ${Math.round(lo)}~${Math.round(hi)}만`
+      : `${kind === 'trade' ? '평당' : '전세'} ${formatManwonShort(lo)}~${formatManwonShort(hi)}`;
+  const el = document.createElement('button');
+  el.type = 'button';
+  el.className = `${styles.priceMarker ?? ''} ${styles.clusterMarker ?? ''}`;
+  el.style.background = PRICE_COLORS[cls] ?? PRICE_COLORS[0];
+  el.style.color = cls >= 3 ? '#fff' : '#1b1f24';
+  const main = document.createElement('strong');
+  main.textContent = `${members.length}곳`;
+  const sub = document.createElement('span');
+  sub.className = styles.priceSub ?? '';
+  sub.textContent = range;
+  el.append(main, sub);
+  el.title = `겹친 ${members.length}곳 (${range}) — 누르면 확대`;
+  el.setAttribute('aria-label', el.title);
   el.addEventListener('click', onClick);
   return el;
 }
@@ -239,6 +279,8 @@ export function MapPage() {
   // [요구사항: 상태관리] useState — 지도 필터(값 범위·일조), 이 기기에 저장된 단지 일조 요약
   const [filter, setFilter] = useState<MapFilter>(DEFAULT_MAP_FILTER);
   const [summaries] = useState<SunSummary[]>(readSunSummaries);
+  // [요구사항: 상태관리] useState — 지도 확대 수준 (바뀌면 겹치는 가격 표시를 다시 묶는다)
+  const [mapLevel, setMapLevel] = useState<number | null>(null);
   // [요구사항: 상태관리] useState — 지도에 테두리를 그릴 행정구역 (지역 선택·지역 검색). fit = 테두리 전체가 보이게 맞춤
   const [boundaryQuery, setBoundaryQuery] = useState<(BoundaryQuery & { fit?: boolean }) | null>(null);
   // 지금 그려진 테두리와, 테두리 안을 눌렀을 때 뜨는 "테두리 지우기" 말풍선
@@ -309,6 +351,16 @@ export function MapPage() {
         PRICE_COLORS.length,
       );
       setMarket({ status: 'ready', region, query: q, items: r.items, total: r.total, truncated: r.truncated, breaks });
+      // 매매를 볼 때는 같은 건물 전세 표시도 받아 전세가율을 붙인다 (표시를 먼저 그리고, 실패해도 그냥 둔다)
+      if (q.kind === 'trade' && kindsFor(q.type).includes('jeonse')) {
+        getDealPlaces(region, q.type, { kind: 'jeonse', room: q.room }, latestDealMonth())
+          .then((j) => {
+            if (marketKeyRef.current !== key) return;
+            const jeonseRatios = placeJeonseRatios(r.items, j.items);
+            setMarket((prev) => (prev.status === 'ready' ? { ...prev, jeonseRatios } : prev));
+          })
+          .catch(() => undefined);
+      }
     } catch (e) {
       marketKeyRef.current = null;
       setMarket({ status: 'error', message: e instanceof Error ? e.message : String(e), query: q });
@@ -345,6 +397,7 @@ export function MapPage() {
         });
         mapRef.current = { api, map };
         setStatus('ready');
+        setMapLevel(start.level);
         // 돌아온 위치가 이미 확대돼 있으면 첫 idle을 기다리지 않고 바로 그 시군구 시세를 불러온다
         if (start.level <= MARKET_LEVEL) reloadAtCenter();
         // 지도를 움직이고 멈출 때마다: 충분히 확대했으면 화면 중심의 시군구 시세를 불러온다
@@ -360,6 +413,8 @@ export function MapPage() {
         api.event.addListener(map, 'idle', () => {
           const c = map.getCenter();
           saveMapView({ lat: c.getLat(), lng: c.getLng(), level: map.getLevel() });
+          // 확대 수준이 바뀌면 겹치는 표시를 다시 묶는다
+          setMapLevel(map.getLevel());
           window.clearTimeout(regionTimer);
           regionTimer = window.setTimeout(reloadAtCenter, 250);
         });
@@ -589,23 +644,50 @@ export function MapPage() {
     priceOverlaysRef.current = [];
     if (!m || market.status !== 'ready' || !results) return;
     const { kind } = market.query;
-    for (const item of results.visible) {
-      if (item.lat === null || item.lng === null) continue;
-      // 일조 요약은 아파트 단지 분석에서만 나온다
-      const sun = item.type === 'apt' ? findSummary(summaries, { lat: item.lat, lng: item.lng }) : null;
+    const items = results.visible.filter((i) => i.lat !== null && i.lng !== null);
+    // 화면에서 겹치는 표시는 한 묶음으로 ("12곳 · 평당 9천만~1.3억") — 거래 많은 곳이 묶음의 기준
+    const order = items.map((_, i) => i).sort((a, b) => items[b]!.count - items[a]!.count);
+    let groups = order.map((i) => [i]);
+    const el = containerRef.current;
+    if ((mapLevel ?? m.map.getLevel()) >= CLUSTER_LEVEL && el && el.clientWidth > 0) {
+      const b = m.map.getBounds();
+      const sw = b.getSouthWest();
+      const ne = b.getNorthEast();
+      const bounds = { south: sw.getLat(), west: sw.getLng(), north: ne.getLat(), east: ne.getLng() };
+      const size = { width: el.clientWidth, height: el.clientHeight };
+      const pts = order.map((i) => toScreen({ lat: items[i]!.lat!, lng: items[i]!.lng! }, bounds, size));
+      groups = clusterByScreen(pts).map((g) => g.map((k) => order[k]!));
+    }
+    for (const g of groups) {
+      const lead = items[g[0]!]!;
+      const position = new m.api.LatLng(lead.lat!, lead.lng!);
+      let content: HTMLElement;
+      if (g.length === 1) {
+        // 일조 요약은 아파트 단지 분석에서만 나온다
+        const sun = lead.type === 'apt' ? findSummary(summaries, { lat: lead.lat!, lng: lead.lng! }) : null;
+        content = placeChip(lead, classOf(lead.value, market.breaks), kind, sun, () =>
+          pickPlace(lead, market.region, kind),
+        );
+      } else {
+        const members = g.map((i) => items[i]!);
+        content = clusterChip(members, kind, market.breaks, () => {
+          // 누르면 묶음 전체가 보이게 확대
+          const bounds = new m.api.LatLngBounds();
+          for (const p of members) bounds.extend(new m.api.LatLng(p.lat!, p.lng!));
+          m.map.setBounds(bounds, 80, 60, 80, 60);
+        });
+      }
       const overlay = new m.api.CustomOverlay({
-        position: new m.api.LatLng(item.lat, item.lng),
-        content: placeChip(item, classOf(item.value, market.breaks), kind, sun, () =>
-          pickPlace(item, market.region, kind),
-        ),
+        position,
+        content,
         yAnchor: 1.1,
         clickable: true,
-        zIndex: item.level === 'dong' ? 1 : 2,
+        zIndex: g.length > 1 ? 3 : lead.level === 'dong' ? 1 : 2,
       });
       overlay.setMap(m.map);
       priceOverlaysRef.current.push(overlay);
     }
-  }, [market, pickPlace, results, summaries]);
+  }, [market, pickPlace, results, summaries, mapLevel]);
 
   const pickSample = useCallback((s: SampleIndexEntry) => {
     setPicked({
@@ -722,6 +804,7 @@ export function MapPage() {
               onShowGuide={guideHidden ? () => setGuideHidden(false) : null}
               results={results?.visible ?? null}
               priceValues={results?.priceValues ?? EMPTY_VALUES}
+              jeonseRatios={market.status === 'ready' ? market.jeonseRatios : undefined}
               onPickResult={(p) => {
                 if (market.status === 'ready') pickPlace(p, market.region, market.query.kind);
               }}
@@ -749,6 +832,11 @@ export function MapPage() {
             place={picked.place.place}
             kind={picked.place.kind}
             area={picked.place.area}
+            jeonseRatio={
+              market.status === 'ready' && picked.place.kind === 'trade'
+                ? (market.jeonseRatios?.get(picked.place.place.key) ?? null)
+                : null
+            }
             open={openPicked(picked)}
             onClose={() => setPicked(null)}
           />

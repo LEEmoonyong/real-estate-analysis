@@ -36,7 +36,7 @@ export function MarketTabs({ target, tab }: { target: ComplexTarget; tab: Extrac
       {market.status === 'ready' &&
         (tab === 'price' ? (
           <Suspense fallback={<p className={styles.loading}>그래프를 불러오는 중…</p>}>
-            <PricePanel market={market} />
+            <PricePanel market={market} target={target} />
           </Suspense>
         ) : (
           <InfoPanel market={market} target={target} />

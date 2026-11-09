@@ -92,3 +92,32 @@
   background: var(--color-accent);
   color: #1b1f24;
 }
+
+/* 전세가율 위험 단계 (글자 + 색) */
+.risk {
+  display: inline-block;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.risk[data-level='low'] {
+  background: #d8f0dc;
+  color: #1d5e2a;
+}
+
+.risk[data-level='mid'] {
+  background: #fdf0c8;
+  color: #6b5100;
+}
+
+.risk[data-level='high'] {
+  background: #fde0c8;
+  color: #8a3b00;
+}
+
+.risk[data-level='danger'] {
+  background: var(--color-danger);
+  color: #fff;
+}

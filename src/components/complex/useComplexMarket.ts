@@ -11,6 +11,13 @@ import {
 } from '../../data/realestate/realestateClient';
 import { loadSampleIndex } from '../../data/samples/sampleClient';
 import { nearbyTradeComplexes, recentMonths } from '../../domain/realestate/aggregate';
+import {
+  areaMedians,
+  compareWithArea,
+  similarComplexes,
+  type AreaComparison,
+  type SimilarComplex,
+} from '../../domain/realestate/insight';
 import { bestNamedNearby } from '../../domain/realestate/match';
 import type { AptRent, AptTrade, Region, TradeComplex } from '../../domain/realestate/types';
 import type { ComplexTarget } from '../../routes/complexKey';
@@ -33,7 +40,20 @@ export type ComplexMarket =
       nearby: (TradeComplex & { distanceM: number })[];
       trades: AptTrade[];
       rents: AptRent[];
+      /** 같은 동·시군구 평균과 비교 (이 단지를 못 찾으면 null) */
+      comparison: AreaComparison | null;
+      /** 1km 안 평당가·평수·연식이 비슷한 단지 (최대 3곳) */
+      similar: SimilarComplex[];
     };
+
+/** 시군구 전체 거래와 단지 목록 (이 단지 거래·평균 비교·비슷한 단지 계산에 쓴다) */
+interface AllDeals {
+  trades: AptTrade[];
+  rents: AptRent[];
+  list: TradeComplex[];
+  /** 대상 위치 */
+  at: { lat: number; lng: number };
+}
 
 async function targetPoint(target: ComplexTarget): Promise<{ lat: number; lng: number }> {
   if (target.kind === 'geo') return { lat: target.lat, lng: target.lng };
@@ -47,13 +67,13 @@ export function useComplexMarket(target: ComplexTarget, targetKey: string): Comp
   const [state, setState] = useState<{
     key: string;
     value: ComplexMarket;
-    all?: { trades: AptTrade[]; rents: AptRent[] };
+    all?: AllDeals;
   }>({ key: '', value: { status: 'loading', step: '위치 확인 중' } });
 
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;
-    const set = (value: ComplexMarket, all?: { trades: AptTrade[]; rents: AptRent[] }) =>
+    const set = (value: ComplexMarket, all?: AllDeals) =>
       !signal.aborted && setState({ key: targetKey, value, ...(all ? { all } : {}) });
     set({ status: 'loading', step: '위치 확인 중' });
 
@@ -89,7 +109,7 @@ export function useComplexMarket(target: ComplexTarget, targetKey: string): Comp
           Promise.all(months.map((m) => getTrades(lawd, m, signal))),
           Promise.all(months.map((m) => getRents(lawd, m, signal))),
         ]);
-        const all = { trades: tradesByMonth.flat(), rents: rentsByMonth.flat() };
+        const all = { trades: tradesByMonth.flat(), rents: rentsByMonth.flat(), list, at };
         set(
           {
             status: 'ready',
@@ -99,6 +119,8 @@ export function useComplexMarket(target: ComplexTarget, targetKey: string): Comp
             nearby: near.filter((c) => c.aptSeq !== complex?.aptSeq),
             trades: [],
             rents: [],
+            comparison: null,
+            similar: [],
           },
           all,
         );
@@ -116,12 +138,35 @@ export function useComplexMarket(target: ComplexTarget, targetKey: string): Comp
   return useMemo(() => {
     const v = state.key === targetKey ? state.value : ({ status: 'loading', step: '위치 확인 중' } as const);
     if (v.status !== 'ready' || !state.all) return v;
-    const seq = v.complex?.aptSeq;
+    const { complex } = v;
+    const all = state.all;
+    const seq = complex?.aptSeq;
     const byDate = <T extends { date: string }>(a: T, b: T) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0);
+    // 동·시군구 평균 비교와 비슷한 단지 — 이미 받은 시군구 전체 거래로 계산 (서버를 더 부르지 않는다)
+    const areas = areaMedians(all.trades);
+    const comparison = complex
+      ? compareWithArea(all.trades, v.months, complex.aptSeq, complex.umdName, v.region.sigungu, all.rents)
+      : null;
+    const similar = complex
+      ? similarComplexes(
+          {
+            aptSeq: complex.aptSeq,
+            lat: complex.lat ?? all.at.lat,
+            lng: complex.lng ?? all.at.lng,
+            perM2: complex.medianPricePerM2,
+            area: areas.get(complex.aptSeq) ?? null,
+            buildYear: complex.buildYear,
+          },
+          all.list,
+          areas,
+        )
+      : [];
     return {
       ...v,
-      trades: seq ? state.all.trades.filter((t) => t.aptSeq === seq).sort(byDate) : [],
-      rents: seq ? state.all.rents.filter((r) => r.aptSeq === seq).sort(byDate) : [],
+      trades: seq ? all.trades.filter((t) => t.aptSeq === seq).sort(byDate) : [],
+      rents: seq ? all.rents.filter((r) => r.aptSeq === seq).sort(byDate) : [],
+      comparison,
+      similar,
     };
   }, [state, targetKey]);
 }

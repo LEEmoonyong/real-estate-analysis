@@ -436,3 +436,13 @@
   background: #e4572e;
   color: #fff;
 }
+
+/* 겹친 가격 표시 묶음 — 카드가 겹친 모양(그림자 두 겹)으로 일반 표시와 구분 */
+.clusterMarker {
+  min-width: 64px;
+  border: 2px solid #fff;
+  box-shadow:
+    3px 3px 0 -1px rgb(255 255 255 / 0.9),
+    3px 3px 0 0 rgb(0 0 0 / 0.25),
+    0 2px 8px rgb(0 0 0 / 0.3);
+}

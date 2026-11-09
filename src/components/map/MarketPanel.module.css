@@ -348,3 +348,20 @@
   color: var(--color-text-muted);
   font-size: 12px;
 }
+
+/* 비교에 담은 단지가 있으면 패널 머리에 "비교 n" */
+.compareLink {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  margin: var(--space-1, 4px) 0;
+  padding: 0 10px;
+  border: 1px solid var(--color-accent-strong);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-accent) 25%, transparent);
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}

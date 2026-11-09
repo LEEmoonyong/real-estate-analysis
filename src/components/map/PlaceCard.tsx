@@ -1,6 +1,7 @@
 // [요구사항: 컴포넌트] 지도에서 고른 건물(또는 동)의 요약과 최근 거래 목록 (확장 X8)
 // [요구사항: 이벤트 처리] onClick(단지 분석 열기·일조 분석·닫기)
 import { formatArea, formatManwon } from '../../domain/realestate/format';
+import { jeonseRisk } from '../../domain/realestate/insight';
 import {
   areaLabel,
   dealAmountText,
@@ -17,11 +18,14 @@ interface PlaceCardProps {
   /** 예: 서울특별시 송파구 */
   area: string;
   /** 열 화면이 있으면 버튼 이름과 동작 (동 단위 표시는 없음) */
+  /** 매매일 때 같은 건물 전세가율 (모르면 null) */
+  jeonseRatio?: number | null;
   open: { label: string; onOpen: () => void } | null;
   onClose: () => void;
 }
 
-export function PlaceCard({ place, kind, area, open, onClose }: PlaceCardProps) {
+export function PlaceCard({ place, kind, area, jeonseRatio = null, open, onClose }: PlaceCardProps) {
+  const risk = jeonseRatio === null ? null : jeonseRisk(jeonseRatio);
   const summary =
     kind === 'trade'
       ? `㎡당 중앙값 ${formatManwon(place.value)}`
@@ -47,6 +51,14 @@ export function PlaceCard({ place, kind, area, open, onClose }: PlaceCardProps) 
         최근 3달 {kindLabel(kind)} {place.count}건 · {summary} · {areaLabel(place.type)} 중앙값{' '}
         {formatArea(place.areaMedian)}
       </p>
+      {jeonseRatio !== null && risk && (
+        <p className={styles.summary}>
+          전세가율 약 {Math.round(jeonseRatio * 100)}%{' '}
+          <span className={styles.risk} data-level={risk.level} title={risk.note}>
+            {risk.label}
+          </span>
+        </p>
+      )}
       <table className={styles.table}>
         <caption className={styles.caption}>최근 거래 (최신순)</caption>
         <thead>

@@ -1,0 +1,201 @@
+.page {
+  min-height: 100dvh;
+  background: var(--color-bg);
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.back,
+.button,
+.clear {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.clear {
+  margin-left: auto;
+  font-weight: 400;
+  font-size: var(--font-size-sm);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-4);
+}
+
+.muted {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.empty p {
+  margin: 0;
+}
+
+/* 항목 이름 한 열 + 단지 열(최대 3) — 행 높이를 열끼리 맞추려고 subgrid */
+.grid {
+  display: grid;
+  grid-template-columns: 150px repeat(var(--cols), minmax(0, 1fr));
+  grid-template-rows: repeat(10, auto);
+  column-gap: var(--space-2);
+}
+
+.column {
+  display: grid;
+  grid-row: span 10;
+  grid-template-rows: subgrid;
+  margin: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.column dt,
+.column dd {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-top: 1px solid var(--color-border);
+  font-size: var(--font-size-sm);
+}
+
+.column .head {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-right: 40px;
+  border-top: none;
+}
+
+.labels {
+  border-color: transparent;
+  background: transparent;
+}
+
+.labels dd {
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.rowLabel {
+  display: none;
+}
+
+.name {
+  color: var(--color-text);
+  font-size: var(--font-size-md, 1rem);
+  font-weight: 700;
+}
+
+.remove {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.remove:hover,
+.remove:focus-visible {
+  background: var(--color-border);
+  color: var(--color-text);
+}
+
+.link {
+  color: var(--color-accent-strong);
+}
+
+.error {
+  color: var(--color-danger);
+}
+
+.diff[data-sign='up'] {
+  color: #c2410c;
+}
+
+.diff[data-sign='down'] {
+  color: #1d6fd1;
+}
+
+/* 휴대폰: 단지마다 카드로 쌓고 항목 이름을 줄마다 붙인다 */
+@media (max-width: 719px) {
+  .main {
+    padding: var(--space-3);
+  }
+
+  .grid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .column {
+    display: block;
+  }
+
+  .column.labels {
+    display: none;
+  }
+
+  .column dd {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+
+  .rowLabel {
+    display: inline;
+    color: var(--color-text-muted);
+  }
+
+  .column dd > span:last-child {
+    text-align: right;
+  }
+}
