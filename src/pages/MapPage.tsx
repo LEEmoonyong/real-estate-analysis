@@ -664,7 +664,7 @@ export function MapPage() {
     <div className={styles.root} data-map-status={status}>
       <header className={styles.header}>
         <h1 className={styles.title}>
-          <span aria-hidden="true">🏠</span> <span className={styles.titleText}>단지 탐색</span>
+          <span className={styles.titleText}>단지 탐색</span>
         </h1>
         <div className={styles.search}>
           <SearchBar mode={health.mode} onPickPlace={handlePickPlace} onPickSample={handlePickSample} />

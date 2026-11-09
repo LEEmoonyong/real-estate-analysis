@@ -276,7 +276,7 @@ export function UnitReport({ onClose }: { onClose: () => void }) {
         </section>
 
         <footer className={styles.foot}>
-          일조 시뮬레이터 · 일조는 직접 구현한 태양 위치·광선 계산, 시세는 국토교통부 실거래가, 주변 시설은 카카오 로컬
+          전국 부동산 분석 · 일조는 직접 구현한 태양 위치·광선 계산, 시세는 국토교통부 실거래가, 주변 시설은 카카오 로컬
           기준입니다. 세대 위치·호수는 추정값이며, 대출·세금은 참고용 추정입니다.
         </footer>
       </article>
