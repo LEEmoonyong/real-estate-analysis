@@ -365,3 +365,49 @@
   text-decoration: none;
   white-space: nowrap;
 }
+
+/* 예산으로 찾기 */
+.unitInput {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.unitInput input {
+  flex: 1;
+  min-width: 0;
+  min-height: 34px;
+  padding: 0 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.budgetResult {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  font-size: 13px;
+}
+
+.budgetResult strong {
+  font-size: 15px;
+}
+
+.budgetResult small {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+a.favItem {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}

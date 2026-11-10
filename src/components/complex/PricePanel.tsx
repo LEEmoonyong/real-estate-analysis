@@ -1,10 +1,22 @@
 // [요구사항: 컴포넌트] 시세·실거래 탭 — 최근 12달 매매·전세 중앙값 추이(평형대별), 요약(전세가율 위험 단계),
-//   같은 동·시군구 평균과 비교, 거래 목록, 비슷한 단지, 주변 단지, 관심 단지·비교에 담기 버튼
+//   가격 변화 요약(1년 전·최고가·거래량), 달별 거래 건수 막대, 내 메모, 같은 동·시군구 평균과 비교, 층별 가격,
+//   거래 목록, 비슷한 단지, 주변 단지, 관심 단지·비교에 담기 버튼
 // [요구사항: 상태관리] useState — 평형대·매매/전월세 목록 선택
 // [요구사항: 이벤트 처리] onClick(평형대·목록 전환: 매매·전세·월세), 주변 단지 링크(주소 이동)
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import {
   bandsWithTrades,
   jeonseRatio,
@@ -24,6 +36,8 @@ import {
 import { complexPath, type ComplexTarget } from '../../routes/complexKey';
 import { CompareButton } from './CompareButton';
 import { AreaCompareCard, JeonseRatio, SimilarCard } from './InsightCards';
+import { floorAnalysis, priceChange } from '../../domain/realestate/trend';
+import { ChangeSummary, FloorCard, MemoBox } from './TrendCards';
 import type { ComplexMarket } from './useComplexMarket';
 import { WatchButton } from './WatchButton';
 import styles from './Complex.module.css';
@@ -67,6 +81,10 @@ export function PricePanel({ market, target }: { market: Ready; target: ComplexT
     const wd = median(ws.map((r) => r.deposit));
     return { count: tr.length, tm, jm, ratio: jeonseRatio(tm, jm), perM2, wm, wd, wCount: ws.length };
   }, [trades, rents, months, b]);
+
+  // 가격 변화 요약·층별 가격 (같은 평형대)
+  const change = useMemo(() => priceChange(trades, months, (t) => !b || areaBandOf(t.area) === b), [trades, months, b]);
+  const floors = useMemo(() => floorAnalysis(trades, (t) => !b || areaBandOf(t.area) === b), [trades, b]);
 
   const jeonseList = useMemo(() => rents.filter((r) => r.monthlyRent === 0), [rents]);
   const wolseList = useMemo(() => rents.filter((r) => r.monthlyRent > 0), [rents]);
@@ -148,6 +166,7 @@ export function PricePanel({ market, target }: { market: Ready; target: ComplexT
             </dd>
           </div>
         </dl>
+        <ChangeSummary change={change} />
         {summary.tm && (
           <Link
             className={styles.chip}
@@ -200,13 +219,26 @@ export function PricePanel({ market, target }: { market: Ready; target: ComplexT
             </LineChart>
           </ResponsiveContainer>
         </div>
+        <div role="img" aria-label={`최근 ${months.length}달 달별 매매 거래 건수 막대그래프`}>
+          <ResponsiveContainer width="100%" height={96}>
+            <BarChart data={series} margin={{ top: 4, right: 12, bottom: 0, left: 4 }}>
+              <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} width={48} allowDecimals={false} tickFormatter={(v: number) => `${v}건`} />
+              <Tooltip formatter={(v) => [`${String(v)}건`, '매매 거래']} cursor={{ fillOpacity: 0.15 }} />
+              <Bar dataKey="count" fill="#8a94a3" radius={[3, 3, 0, 0]} maxBarSize={28} isAnimationActive={false} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
         <p className={styles.muted}>
           국토교통부 실거래가 (계약일 기준, 신고 30일 지연으로 최근 달은 적을 수 있음). 해제된 거래는 그래프에서
           뺐습니다.
         </p>
+        <MemoBox id={complex.aptSeq} name={complex.aptName} />
       </section>
 
       {comparison && <AreaCompareCard comparison={comparison} name={complex.aptName} />}
+
+      {floors && <FloorCard floors={floors} />}
 
       <section className={styles.card} aria-label="거래 목록">
         <div className={styles.chips} role="group" aria-label="목록 종류">

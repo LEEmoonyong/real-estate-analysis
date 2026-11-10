@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom';
 import { useComplexInfo } from '../components/complex/useComplexInfo';
 import { useComplexMarket } from '../components/complex/useComplexMarket';
 import { JeonseRatio } from '../components/complex/InsightCards';
+import { useComplexMemo } from '../hooks/useComplexMemo';
 import { useCompare } from '../contexts/CompareContext';
 import type { CompareEntry } from '../data/storage/compare';
 import { getNearby } from '../data/realestate/realestateClient';
@@ -29,6 +30,7 @@ const ROWS = [
   '가까운 지하철역',
   '가까운 초등학교',
   '일조 기준 충족',
+  '내 메모',
 ] as const;
 
 /** 저장해 둔 단지 주소 → 대상 */
@@ -146,6 +148,7 @@ function LoadedColumn({
     return r.tm !== null ? r : pick(ready.months.length);
   }, [ready]);
 
+  const memo = useComplexMemo(complex?.aptSeq ?? entry.id);
   const sun = useMemo(() => {
     const at = complex?.lat != null && complex.lng != null ? { lat: complex.lat, lng: complex.lng } : point;
     return at ? findSummary(readSunSummaries(), at) : null;
@@ -206,6 +209,7 @@ function LoadedColumn({
         분석하기
       </Link>
     ),
+    '내 메모': memo ? <span className={styles.memo}>{memo}</span> : none,
   };
 
   return (

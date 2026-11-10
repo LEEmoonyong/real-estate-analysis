@@ -55,6 +55,9 @@ import { useApiHealth } from '../hooks/useApiHealth';
 import { useNewDeals } from '../hooks/useNewDeals';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { STORAGE_KEYS } from '../data/storage/schema';
+import { DEFAULT_BUDGET, isBudgetSetting } from '../data/storage/complexNotes';
+import { affordablePrice, budgetCap, placeTotal, type BudgetInfo } from '../domain/finance/budget';
+import { classifyArea } from '../domain/finance/loan';
 import { complexPath, type ComplexTarget } from '../routes/complexKey';
 import styles from './MapPage.module.css';
 
@@ -612,17 +615,43 @@ export function MapPage() {
     });
   }, []);
 
+  // [요구사항: 상태관리] useLocalStorage — 예산으로 찾기 입력(자기 자금·연소득·켜짐). 새로 고침해도 남는다
+  const [budget, setBudget] = useLocalStorage(STORAGE_KEYS.budget, DEFAULT_BUDGET, {
+    version: 1,
+    validate: isBudgetSetting,
+  });
+  // 지금 보는 지역의 대출 규제(규제지역·수도권·지방)로 살 수 있는 최대 가격을 구한다
+  const budgetRegion = market.status === 'ready' || market.status === 'loading' ? market.region : null;
+  const budgetKind = query.kind;
+  const budgetInfo = useMemo<BudgetInfo | null>(() => {
+    if (!budgetRegion) return null;
+    const result = affordablePrice({
+      ownFunds: budget.ownFunds,
+      annualIncome: budget.annualIncome,
+      areaClass: classifyArea(budgetRegion.sido, budgetRegion.sigungu),
+    });
+    return {
+      ...result,
+      cap: budgetCap(result, budget.ownFunds, budgetKind),
+      kind: budgetKind,
+      area: budgetRegion.sigungu || budgetRegion.sido,
+    };
+  }, [budget.ownFunds, budget.annualIncome, budgetRegion, budgetKind]);
+
   // 조건에 맞는 곳 — 지도 표시와 패널 결과 목록이 같이 쓴다.
   // priceValues: 가격 외 조건만 통과한 곳의 값 (가격 분포 막대용 — 가격을 좁혀도 분포 전체가 보이게)
   const results = useMemo(() => {
     if (market.status !== 'ready') return null;
     const { kind } = market.query;
     const withoutPrice: MapFilter = { ...filter, minValue: null, maxValue: null };
+    const cap = budget.on && budgetInfo ? budgetInfo.cap : null;
     const visible: DealPlace[] = [];
     const priceValues: number[] = [];
     for (const item of market.items) {
       if (item.lat === null || item.lng === null) continue;
       if (dong && item.umdName !== dong) continue;
+      // 예산으로 찾기: 매매는 총액, 전세·월세는 보증금이 예산을 넘으면 뺀다
+      if (cap !== null && placeTotal(item, kind) > cap) continue;
       const subject = {
         value: filterValue(item, kind),
         deposit: item.depositMedian,
@@ -635,7 +664,7 @@ export function MapPage() {
       if (passesMapFilter(subject, filter)) visible.push(item);
     }
     return { visible, priceValues };
-  }, [market, filter, dong]);
+  }, [market, filter, dong, budget.on, budgetInfo]);
 
   // 시세 표시 그리기 (목록·필터가 바뀔 때마다 지우고 다시)
   useEffect(() => {
@@ -805,6 +834,9 @@ export function MapPage() {
               results={results?.visible ?? null}
               priceValues={results?.priceValues ?? EMPTY_VALUES}
               jeonseRatios={market.status === 'ready' ? market.jeonseRatios : undefined}
+              budget={budget}
+              onBudget={setBudget}
+              budgetInfo={budgetInfo}
               onPickResult={(p) => {
                 if (market.status === 'ready') pickPlace(p, market.region, market.query.kind);
               }}
@@ -813,7 +845,7 @@ export function MapPage() {
               market={market}
               query={query}
               shown={results?.visible.length ?? 0}
-              filtered={isFilterActive(filter)}
+              filtered={isFilterActive(filter) || budget.on}
               dong={dong}
             />
           </div>

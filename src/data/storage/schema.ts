@@ -16,6 +16,9 @@ export const STORAGE_KEYS = {
   watchlist: `${STORAGE_PREFIX}watchlist`,
   mapGuideHidden: `${STORAGE_PREFIX}mapGuideHidden`,
   compare: `${STORAGE_PREFIX}compare`,
+  recentComplexes: `${STORAGE_PREFIX}recentComplexes`,
+  memos: `${STORAGE_PREFIX}memos`,
+  budget: `${STORAGE_PREFIX}budget`,
 } as const;
 
 export type Migration = (oldData: unknown, fromVersion: number) => unknown;

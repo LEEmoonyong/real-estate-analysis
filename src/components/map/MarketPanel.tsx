@@ -35,6 +35,9 @@ import {
   type DealPlace,
   type MarketQuery,
 } from '../../domain/realestate/property';
+import type { BudgetSetting } from '../../data/storage/complexNotes';
+import { budgetLabel, type BudgetInfo } from '../../domain/finance/budget';
+import { BudgetFinder, RecentComplexes } from './PanelExtras';
 import { PriceRange } from './PriceRange';
 import { Link } from 'react-router-dom';
 import { useCompare } from '../../contexts/CompareContext';
@@ -68,6 +71,10 @@ interface MarketPanelProps {
   onPickResult: (place: DealPlace) => void;
   /** 매매일 때 건물 key → 전세가율 */
   jeonseRatios?: ReadonlyMap<string, number> | undefined;
+  /** 예산으로 찾기 입력과, 지금 지역 기준 계산 결과 (지역을 모르면 null) */
+  budget: BudgetSetting;
+  onBudget: (next: BudgetSetting) => void;
+  budgetInfo: BudgetInfo | null;
 }
 
 const num = (v: string) => (v === '' ? null : Number(v));
@@ -91,6 +98,9 @@ export function MarketPanel({
   priceValues,
   onPickResult,
   jeonseRatios,
+  budget,
+  onBudget,
+  budgetInfo,
 }: MarketPanelProps) {
   const { favorites } = useFavorites();
   // 삭제하면 5초 동안 "실행 취소" 알림이 뜬다 (FavoritesContext)
@@ -112,6 +122,7 @@ export function MarketPanel({
   const set = (patch: Partial<MarketQuery>) => onQuery(normalizeQuery({ ...query, ...patch }));
   const setF = (patch: Partial<MapFilter>) => onFilter({ ...filter, ...patch });
   const kind = query.kind;
+  const budgetChip = budget.on && budgetInfo ? budgetLabel(budgetInfo) : null;
   const valueText = (v: number) => stepLabel(kind, v);
   const filterCount = activeFilterCount(filter);
   const chips = filterChips(filter, valueText);
@@ -186,9 +197,21 @@ export function MarketPanel({
         )}
       </div>
 
-      {(chips.length > 0 || (lawd && dong)) && (
+      {(chips.length > 0 || (lawd && dong) || budgetChip) && (
         // 켜 둔 조건 — 패널을 접어도 보이고, ×로 그 조건만 끈다
         <ul className={styles.chips} aria-label="적용한 조건">
+          {budgetChip && (
+            <li>
+              <button
+                type="button"
+                className={styles.chip}
+                onClick={() => onBudget({ ...budget, on: false })}
+                aria-label={`${budgetChip} 조건 해제`}
+              >
+                {budgetChip} <span aria-hidden="true">×</span>
+              </button>
+            </li>
+          )}
           {lawd && dong && (
             <li>
               <button type="button" className={styles.chip} onClick={() => onDong('')} aria-label={`${dong} 선택 해제`}>
@@ -422,6 +445,8 @@ export function MarketPanel({
             )}
           </fieldset>
 
+          <BudgetFinder budget={budget} onBudget={onBudget} info={budgetInfo} />
+
           <fieldset className={styles.group}>
             <legend>조건에 맞는 곳{results && ` (${results.length.toLocaleString()})`}</legend>
             {results === null ? (
@@ -509,6 +534,8 @@ export function MarketPanel({
               </ul>
             )}
           </fieldset>
+
+          <RecentComplexes />
         </div>
       )}
     </section>
