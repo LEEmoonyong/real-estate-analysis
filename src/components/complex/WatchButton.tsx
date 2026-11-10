@@ -50,7 +50,7 @@ export function WatchButton({ complex, region, trades }: WatchButtonProps) {
     showToast({
       message: on
         ? `${complex.aptName}을(를) 관심 단지에서 뺐습니다.`
-        : `${complex.aptName}을(를) 관심 단지에 넣었습니다. 새 거래가 올라오면 지도 홈에 표시됩니다.`,
+        : `${complex.aptName}을(를) 관심 단지에 넣었습니다. 지도 화면의 ★ 즐겨찾기에 모이고, 새 거래가 올라오면 알려 드립니다.`,
     });
   };
 

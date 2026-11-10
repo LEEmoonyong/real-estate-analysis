@@ -35,15 +35,8 @@ export function LoanTab({ target }: { target: ComplexTarget }) {
     };
   }, [market]);
 
-  const title =
-    market.status === 'ready' && market.complex
-      ? market.complex.aptName
-      : target.kind === 'geo'
-        ? target.name
-        : '샘플 지역';
-
   return (
-    <ComplexShell target={target} tab="loan" title={title} status={market.status} wide>
+    <ComplexShell target={target} tab="loan" status={market.status} wide>
       {market.status === 'loading' && (
         <p className={styles.loading} role="status">
           {market.step}…

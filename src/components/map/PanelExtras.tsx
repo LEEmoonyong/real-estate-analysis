@@ -27,68 +27,77 @@ export function BudgetFinder({ budget, onBudget, info }: BudgetFinderProps) {
   return (
     <fieldset className={styles.group}>
       <legend>예산으로 찾기</legend>
-      <div className={styles.grid}>
-        <label className={styles.label} htmlFor="budget-own">
-          자기 자금
-        </label>
-        <span className={styles.unitInput}>
-          <input
-            id="budget-own"
-            type="number"
-            inputMode="decimal"
-            min={0}
-            step={0.1}
-            value={budget.ownFunds / 10_000}
-            onChange={(e) => set({ ownFunds: toNumber(e.target.value, 10_000) })}
-          />
-          억원
-        </span>
-        <label className={styles.label} htmlFor="budget-income">
-          연소득
-        </label>
-        <span className={styles.unitInput}>
-          <input
-            id="budget-income"
-            type="number"
-            inputMode="numeric"
-            min={0}
-            step={100}
-            value={budget.annualIncome}
-            onChange={(e) => set({ annualIncome: toNumber(e.target.value, 1) })}
-          />
-          만원
-        </span>
-      </div>
-      {info === null ? (
-        <p className={styles.note}>시·군·구를 고르면 그 지역 대출 규제로 살 수 있는 가격을 계산합니다.</p>
-      ) : (
+      {/* 켜면 입력 칸이 열리고 지도에 예산 이하만 남는다. 끄면 접히고 조건도 풀린다 (기본은 꺼짐) */}
+      <label className={styles.switchRow}>
+        <input
+          type="checkbox"
+          role="switch"
+          className={styles.switch}
+          checked={budget.on}
+          onChange={(e) => set({ on: e.target.checked })}
+        />
+        <span>{budget.on ? '켜짐 — 예산 이하만 지도에 표시' : '꺼짐'}</span>
+      </label>
+      {budget.on && (
         <>
-          <p className={styles.budgetResult} data-budget-cap={info.cap}>
-            {info.kind === 'trade' ? (
-              <>
-                {info.area}에서 살 수 있는 최대 <strong>약 {formatManwon(info.maxPrice)}</strong>
-                <small>
-                  대출 {formatManwon(info.loan)} · 월 상환 약 {Math.round(info.monthlyPayment).toLocaleString()}만 ·
-                  한도를 정한 요인 {BINDING_LABEL[info.binding]}
-                </small>
-              </>
-            ) : (
-              <>
-                보증금 <strong>{formatManwon(info.cap)}</strong> 이하
-                <small>전세·월세는 자기 자금만으로 계산합니다 (전세대출 제외).</small>
-              </>
-            )}
+          <div className={styles.grid}>
+            <label className={styles.label} htmlFor="budget-own">
+              자기 자금
+            </label>
+            <span className={styles.unitInput}>
+              <input
+                id="budget-own"
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step={0.1}
+                value={budget.ownFunds / 10_000}
+                onChange={(e) => set({ ownFunds: toNumber(e.target.value, 10_000) })}
+              />
+              억원
+            </span>
+            <label className={styles.label} htmlFor="budget-income">
+              연소득
+            </label>
+            <span className={styles.unitInput}>
+              <input
+                id="budget-income"
+                type="number"
+                inputMode="numeric"
+                min={0}
+                step={100}
+                value={budget.annualIncome}
+                onChange={(e) => set({ annualIncome: toNumber(e.target.value, 1) })}
+              />
+              만원
+            </span>
+          </div>
+          {info === null ? (
+            <p className={styles.note}>시·군·구를 고르면 그 지역 대출 규제로 살 수 있는 가격을 계산합니다.</p>
+          ) : (
+            <p className={styles.budgetResult} data-budget-cap={info.cap}>
+              {info.kind === 'trade' ? (
+                <>
+                  {info.area}에서 살 수 있는 최대 <strong>약 {formatManwon(info.maxPrice)}</strong>
+                  <small>
+                    대출 {formatManwon(info.loan)} · 월 상환 약 {Math.round(info.monthlyPayment).toLocaleString()}만 ·
+                    한도를 정한 요인 {BINDING_LABEL[info.binding]}
+                  </small>
+                </>
+              ) : (
+                <>
+                  보증금 <strong>{formatManwon(info.cap)}</strong> 이하
+                  <small>전세·월세는 자기 자금만으로 계산합니다 (전세대출 제외).</small>
+                </>
+              )}
+            </p>
+          )}
+          <p className={styles.note}>
+            무주택 · 금리 4.5% · 30년 원리금 균등 가정이고 취득세 등 부대비용은 뺐습니다. 매매는 건물별 중앙값(㎡당 가격
+            × 면적)으로 견줍니다. 조건을 바꿔 보려면 단지의 대출 계산 탭을 쓰세요.
           </p>
-          <label className={styles.check}>
-            <input type="checkbox" checked={budget.on} onChange={(e) => set({ on: e.target.checked })} />이 예산 이하만
-            지도에 표시
-          </label>
         </>
       )}
-      <p className={styles.note}>
-        무주택 · 금리 4.5% · 30년 원리금 균등 가정이고 취득세 등 부대비용은 뺐습니다. 매매는 건물별 중앙값(㎡당 가격 ×
-        면적)으로 견줍니다. 조건을 바꿔 보려면 단지의 대출 계산 탭을 쓰세요.
-      </p>
     </fieldset>
   );
 }

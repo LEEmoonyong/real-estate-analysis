@@ -7,7 +7,6 @@
 // [요구사항: Hooks] useEffect + useLocalStorage — 연 단지를 "최근 본 단지"에 남긴다 (지도 패널에서 다시 열기)
 import { useEffect, useMemo } from 'react';
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom';
-import { BackToMap, ComplexTabs } from '../components/complex/ComplexTabs';
 import { AreaTab } from '../components/complex/AreaTab';
 import { LoanTab } from '../components/complex/LoanTab';
 import { MarketTabs } from '../components/complex/MarketTabs';
@@ -58,5 +57,5 @@ export function ComplexPage() {
   if (tab === 'loan') return <LoanTab target={target} />;
   if (tab !== 'sun') return <MarketTabs target={target} tab={tab} />;
 
-  return <SunlightWorkspace target={target} nav={<BackToMap />} tabs={<ComplexTabs target={target} active="sun" />} />;
+  return <SunlightWorkspace target={target} />;
 }

@@ -1,9 +1,10 @@
 // [요구사항: 컴포넌트] 단지 상세 › 일조·조망 탭 — 기존 일조 시뮬레이터 전체 (반응형 레이아웃 + 검색·3D 장면)
 // 보고 있는 장소는 주소(URL)가 정한다: 검색·샘플·즐겨찾기 선택은 주소를 바꾸고, 주소가 바뀌면 데이터를 다시 불러온다.
-import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { complexPath, type ComplexTarget } from '../routes/complexKey';
-import { AppHeader } from '../components/common/AppHeader';
+import { ApiModeBadge } from '../components/common/AppHeader';
+import { ComplexHeader } from '../components/complex/ComplexHeader';
 import { CalculationStatus } from '../components/common/CalculationStatus';
 import { DataSourceBadge } from '../components/common/DataSourceBadge';
 import { ErrorBoundary } from '../components/common/ErrorBoundary';
@@ -16,7 +17,6 @@ import { TimeControls } from '../components/controls/TimeControls';
 import { BuildingInfo } from '../components/detail/BuildingInfo';
 import { UnitDetailPanel } from '../components/detail/UnitDetailPanel';
 import { DongHoSearch } from '../components/dongHo/DongHoSearch';
-import { FavoritesPanel, type NavigateTarget } from '../components/favorites/FavoritesPanel';
 import { OnboardingTour } from '../components/onboarding/OnboardingTour';
 import { useOnboarding } from '../components/onboarding/useOnboarding';
 import { SolarPotentialCard } from '../components/solar/SolarPotentialCard';
@@ -61,12 +61,9 @@ function SceneFallback({ error, reset }: { error: Error; reset: () => void }) {
 
 interface SunlightWorkspaceProps {
   target: ComplexTarget;
-  /** 머리글 앞 이동 요소(← 지도)와 제목 뒤 탭 — 다른 단지 탭과 같은 머리글 */
-  nav?: ReactNode;
-  tabs?: ReactNode;
 }
 
-export function SunlightWorkspace({ target, nav, tabs }: SunlightWorkspaceProps) {
+export function SunlightWorkspace({ target }: SunlightWorkspaceProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const health = useApiHealth();
@@ -94,9 +91,6 @@ export function SunlightWorkspace({ target, nav, tabs }: SunlightWorkspaceProps)
     restartTour();
     navigate(`${location.pathname}${location.search}`, { replace: true, state: null });
   }, [wantsTour, scene, restartTour, navigate, location.pathname, location.search]);
-
-  // 머리글 제목: 불러온 장소 이름 → 주소의 이름 → 샘플
-  const title = scene?.place.name ?? (target.kind === 'geo' ? target.name : '샘플 지역');
 
   // 주소(URL)의 대상이 바뀌면 데이터를 불러온다. 연결 확인(키 유무·배포 서버 경유)이 끝난 뒤에 요청해야
   // 실데이터 요청이 올바른 서버로 간다.
@@ -164,24 +158,6 @@ export function SunlightWorkspace({ target, nav, tabs }: SunlightWorkspaceProps)
     [addRecent, navigate],
   );
 
-  // 즐겨찾기·최근 검색 클릭 → 샘플이면 샘플 주소, 아니면 좌표 주소로 이동
-  const handleNavigate = useCallback(
-    (t: NavigateTarget) => {
-      if (t.sampleId) navigate(complexPath({ kind: 'sample', sampleId: t.sampleId }));
-      else
-        navigate(
-          complexPath({
-            kind: 'geo',
-            name: t.name,
-            lat: t.lat,
-            lng: t.lng,
-            ...(t.address ? { address: t.address } : {}),
-          }),
-        );
-    },
-    [navigate],
-  );
-
   const handleRetry = useCallback(() => {
     setRequest((r) => (r ? { ...r, requestId: nextId() } : r));
   }, []);
@@ -194,22 +170,16 @@ export function SunlightWorkspace({ target, nav, tabs }: SunlightWorkspaceProps)
     });
   }, [scene, navigate]);
 
-  const activeSampleId = request?.type === 'sample' && scene?.source === 'sample' ? request.sample.id : null;
-  const currentPlace: NavigateTarget | null = scene
-    ? { ...scene.place, ...(activeSampleId ? { sampleId: activeSampleId } : {}) }
-    : null;
-
   return (
     <>
       <AppLayout
         detailFocusKey={selectedUnitId ?? selectedBuildingId}
         forcedMobileTab={tour.active ? (tour.step.mobileTab ?? null) : null}
         header={
-          <AppHeader
-            health={health}
-            nav={nav}
-            title={title}
-            tabs={tabs}
+          <ComplexHeader
+            target={target}
+            tab="sun"
+            badges={<ApiModeBadge health={health} />}
             {...(FEATURES.onboarding ? { onShowTour: tour.restart } : {})}
             onShowShortcuts={openShortcuts}
             onShowLimitations={() => setDialog('limitations')}
@@ -274,14 +244,7 @@ export function SunlightWorkspace({ target, nav, tabs }: SunlightWorkspaceProps)
             )}
           </>
         }
-        secondary={
-          FEATURES.favorites && (
-            // 최근 검색은 검색창을 누르면 목록으로 나온다 (지도 화면 검색창과 같은 기록)
-            <Panel title="즐겨찾기" tourId="favorites">
-              <FavoritesPanel current={currentPlace} onNavigate={handleNavigate} />
-            </Panel>
-          )
-        }
+        secondary={null}
         detail={
           <Panel
             title="세대·건물 정보"

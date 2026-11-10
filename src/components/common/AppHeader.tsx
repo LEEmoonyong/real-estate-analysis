@@ -1,7 +1,6 @@
-// [요구사항: 컴포넌트] 단지 상세 머리글 — ← 지도 · 단지 이름 · 데이터 모드 배지 · 탭 · 도움말 버튼
-//   일조·조망 탭(SunlightWorkspace)과 다른 탭(ComplexShell)이 같은 모양을 쓰도록 도움말 버튼을 따로 내보낸다.
+// [요구사항: 컴포넌트] 단지 상세 머리글 부품 — 도움말 버튼(?, ⌨, ⓘ)과 데이터 모드 배지.
+//   머리글 전체는 components/complex/ComplexHeader가 모든 탭에 같은 모양으로 그린다.
 // [요구사항: 이벤트 처리] onClick(도움말 버튼 — 가이드 다시 보기, 단축키, 시뮬레이션 한계)
-import type { ReactNode } from 'react';
 import type { ApiHealth } from '../../hooks/useApiHealth';
 import styles from './AppHeader.module.css';
 
@@ -42,21 +41,10 @@ export function HelpButtons({ onShowTour, onShowShortcuts, onShowLimitations }: 
   );
 }
 
-interface AppHeaderProps extends HelpActions {
-  health: ApiHealth;
-  /** 제목 앞 이동 요소 (예: 지도로 돌아가기) */
-  nav?: ReactNode;
-  /** 단지(장소) 이름 */
-  title: string;
-  /** 제목 뒤 탭 */
-  tabs?: ReactNode;
-}
-
-export function AppHeader({ health, nav, title, tabs, ...help }: AppHeaderProps) {
+/** 데이터 모드 배지 — 샘플 모드 · 배포 서버 경유 · 연결 확인 중 (일조·조망 탭 머리글) */
+export function ApiModeBadge({ health }: { health: ApiHealth }) {
   return (
-    <div className={styles.header}>
-      {nav}
-      <h1 className={styles.title}>{title}</h1>
+    <>
       {health.mode === 'sample' && (
         <span className={styles.badge} title={health.reason ?? undefined} role="status">
           샘플 모드
@@ -77,8 +65,6 @@ export function AppHeader({ health, nav, title, tabs, ...help }: AppHeaderProps)
           연결 확인 중…
         </span>
       )}
-      {tabs}
-      <HelpButtons {...help} />
-    </div>
+    </>
   );
 }

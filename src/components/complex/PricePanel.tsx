@@ -1,6 +1,6 @@
 // [요구사항: 컴포넌트] 시세·실거래 탭 — 최근 12달 매매·전세 중앙값 추이(평형대별), 요약(전세가율 위험 단계),
 //   가격 변화 요약(1년 전·최고가·거래량), 달별 거래 건수 막대, 내 메모, 같은 동·시군구 평균과 비교, 층별 가격,
-//   거래 목록, 비슷한 단지, 주변 단지, 관심 단지·비교에 담기 버튼
+//   거래 목록, 비슷한 단지, 주변 단지, (관심 단지·비교에 담기 버튼은 머리글 ComplexActions)
 // [요구사항: 상태관리] useState — 평형대·매매/전월세 목록 선택
 // [요구사항: 이벤트 처리] onClick(평형대·목록 전환: 매매·전세·월세), 주변 단지 링크(주소 이동)
 import { useMemo, useState } from 'react';
@@ -33,20 +33,18 @@ import {
   perPyeong,
   type AreaBandId,
 } from '../../domain/realestate/format';
-import { complexPath, type ComplexTarget } from '../../routes/complexKey';
-import { CompareButton } from './CompareButton';
+import { complexPath } from '../../routes/complexKey';
 import { AreaCompareCard, JeonseRatio, SimilarCard } from './InsightCards';
 import { floorAnalysis, priceChange } from '../../domain/realestate/trend';
 import { ChangeSummary, FloorCard, MemoBox } from './TrendCards';
 import type { ComplexMarket } from './useComplexMarket';
-import { WatchButton } from './WatchButton';
 import styles from './Complex.module.css';
 
 type Ready = Extract<ComplexMarket, { status: 'ready' }>;
 
 const LIST_LIMIT = 30;
 
-export function PricePanel({ market, target }: { market: Ready; target: ComplexTarget }) {
+export function PricePanel({ market }: { market: Ready }) {
   const { trades, rents, months, complex, nearby, region, comparison, similar } = market;
   const bands = useMemo(() => bandsWithTrades(trades), [trades]);
   // [요구사항: 상태관리] useState — 기본 평형대는 거래가 가장 많은 구간
@@ -110,13 +108,7 @@ export function PricePanel({ market, target }: { market: Ready; target: ComplexT
       <section className={styles.card} aria-label="시세 요약">
         <h2 className={styles.cardTitle}>
           {complex.aptName}{' '}
-          <small className={styles.muted}>{complex.buildYear ? `${complex.buildYear}년 준공` : ''}</small>{' '}
-          <WatchButton complex={complex} region={region} trades={trades} />
-          <CompareButton
-            target={target.kind === 'geo' ? { ...target, aptSeq: complex.aptSeq, lawd: region.lawdCode } : target}
-            name={complex.aptName}
-            id={complex.aptSeq}
-          />
+          <small className={styles.muted}>{complex.buildYear ? `${complex.buildYear}년 준공` : ''}</small>
         </h2>
         <div className={styles.chips} role="group" aria-label="평형대">
           <button type="button" className={styles.chip} aria-pressed={band === 'all'} onClick={() => setBand('all')}>

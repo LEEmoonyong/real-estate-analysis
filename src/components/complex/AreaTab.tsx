@@ -27,7 +27,7 @@ export function AreaTab({ target }: { target: ComplexTarget }) {
   }, [target]);
 
   return (
-    <ComplexShell target={target} tab="area" title={point?.name ?? '단지'}>
+    <ComplexShell target={target} tab="area">
       {point ? <NearbyPanel lat={point.lat} lng={point.lng} /> : <p className={styles.loading}>위치 확인 중…</p>}
     </ComplexShell>
   );

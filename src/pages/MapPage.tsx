@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { MarketPanel } from '../components/map/MarketPanel';
 import { PlaceCard } from '../components/map/PlaceCard';
 import { SearchBar } from '../components/search/SearchBar';
-import { WatchlistCard } from '../components/watchlist/WatchlistCard';
+import { HeaderMenus } from '../components/map/HeaderMenus';
 import { useFavorites, useFavoritesActions } from '../contexts/FavoritesContext';
 import type { Favorite } from '../domain/types';
 import { useWatchlist } from '../contexts/WatchlistContext';
@@ -225,12 +225,12 @@ function clearBoundaryPopup(name: string, onClear: () => void): HTMLElement {
 }
 
 /** 즐겨찾기 표시 — 누르면 바로 단지 분석으로 */
-function favoriteChip(fav: Favorite, onClick: () => void): HTMLElement {
+function favoriteChip(name: string, onClick: () => void): HTMLElement {
   const el = document.createElement('button');
   el.type = 'button';
   el.className = styles.favMarker ?? '';
-  el.textContent = `★ ${fav.name}`;
-  el.title = `즐겨찾기: ${fav.name} — 눌러서 단지 분석 열기`;
+  el.textContent = `★ ${name}`;
+  el.title = `즐겨찾기: ${name} — 눌러서 단지 열기`;
   el.setAttribute('aria-label', el.title);
   el.addEventListener('click', onClick);
   return el;
@@ -259,6 +259,8 @@ export function MapPage() {
   // 관심 단지의 새 거래 (확장 X6)
   const { watched } = useWatchlist();
   const newDeals = useNewDeals(watched);
+  // [요구사항: 상태관리] useState — 머리글 즐겨찾기 목록 열림
+  const [favoritesOpen, setFavoritesOpen] = useState(false);
   // 안내 카드 닫힘 여부 — 한 번 닫으면 다음 방문에도 접힌 채로(작은 "? 안내" 버튼으로 다시 열기)
   const [guideHidden, setGuideHidden] = useLocalStorage(STORAGE_KEYS.mapGuideHidden, false, {
     version: 1,
@@ -574,10 +576,23 @@ export function MapPage() {
   useEffect(() => {
     const m = mapRef.current;
     if (!m || status !== 'ready') return;
-    const overlays = favorites.map((fav) => {
+    // 관심 단지(☆ 관심 단지로 담은 곳)와 예전에 저장한 위치를 함께 ★로
+    const marks = [
+      ...watched.map((w) => ({
+        name: w.name,
+        lat: w.lat,
+        lng: w.lng,
+        path: complexPath(
+          { kind: 'geo', lat: w.lat, lng: w.lng, name: w.name, address: w.area, aptSeq: w.aptSeq, lawd: w.lawd },
+          'price',
+        ),
+      })),
+      ...favorites.map((f) => ({ name: f.name, lat: f.lat, lng: f.lng, path: complexPath(favoriteTarget(f)) })),
+    ];
+    const overlays = marks.map((fav) => {
       const overlay = new m.api.CustomOverlay({
         position: new m.api.LatLng(fav.lat, fav.lng),
-        content: favoriteChip(fav, () => navigate(complexPath(favoriteTarget(fav)))),
+        content: favoriteChip(fav.name, () => navigate(fav.path)),
         yAnchor: 1.3,
         clickable: true,
         zIndex: 6, // 시세 표시보다 위
@@ -588,7 +603,7 @@ export function MapPage() {
     return () => {
       for (const o of overlays) o.setMap(null);
     };
-  }, [favorites, status, navigate]);
+  }, [favorites, watched, status, navigate]);
 
   /** 시세 표시를 눌렀을 때: 아파트는 단지 상세, 그 밖의 건물은 그 자리 일조 분석, 동 단위는 목록만 */
   const pickPlace = useCallback((place: DealPlace, region: Region, kind: DealKind) => {
@@ -793,20 +808,17 @@ export function MapPage() {
         <div className={styles.search}>
           <SearchBar mode={health.mode} onPickPlace={handlePickPlace} onPickSample={handlePickSample} />
         </div>
+        {/* 검색 옆: 단지 비교 화면으로 / 즐겨찾기(관심 단지·저장한 위치) 목록 — 새 거래가 있으면 버튼에 표시 */}
+        <HeaderMenus
+          favoritesOpen={favoritesOpen}
+          onFavoritesOpen={setFavoritesOpen}
+          deals={newDeals}
+          onOpenFavorite={(fav) => navigate(complexPath(favoriteTarget(fav)))}
+        />
         {health.route === 'remote' && (
           <span className={styles.badge} title="이 컴퓨터에 API 키가 없어 배포 서버를 거쳐 검색합니다.">
             배포 서버 경유
           </span>
-        )}
-        {newDeals.status === 'ready' && newDeals.total > 0 && (
-          <button
-            type="button"
-            className={styles.alertButton}
-            onClick={() => setPicked(null)}
-            title="관심 단지 새 거래 보기"
-          >
-            🔔 새 거래 {newDeals.total}
-          </button>
         )}
       </header>
 
@@ -829,7 +841,6 @@ export function MapPage() {
               dongs={market.status === 'ready' ? dongNames(market.items) : []}
               dong={dong}
               onDong={selectDong}
-              onOpenFavorite={(fav) => navigate(complexPath(favoriteTarget(fav)))}
               onShowGuide={guideHidden ? () => setGuideHidden(false) : null}
               results={results?.visible ?? null}
               priceValues={results?.priceValues ?? EMPTY_VALUES}
@@ -887,9 +898,7 @@ export function MapPage() {
               </button>
             </div>
           </div>
-        ) : guideHidden && status === 'ready' ? (
-          <WatchlistCard deals={newDeals} />
-        ) : (
+        ) : guideHidden && status === 'ready' ? null : (
           <div className={styles.card}>
             <button
               type="button"
@@ -900,7 +909,6 @@ export function MapPage() {
             >
               ×
             </button>
-            <WatchlistCard deals={newDeals} />
             <p className={`${styles.cardTitle} ${styles.guideTitle}`}>아파트·오피스텔·빌라 시세를 찾아보세요</p>
             <p className={styles.muted}>
               검색창 아래 <strong>지역·조건</strong>에서 시·도와 시·군·구를 고르고, 유형과 매매·전세·월세, 세부

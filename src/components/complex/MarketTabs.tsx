@@ -11,15 +11,8 @@ const PricePanel = lazy(() => import('./PricePanel').then((m) => ({ default: m.P
 
 export function MarketTabs({ target, tab }: { target: ComplexTarget; tab: Extract<ComplexTab, 'price' | 'info'> }) {
   const market = useComplexMarket(target, complexPath(target, 'sun'));
-  const title =
-    market.status === 'ready' && market.complex
-      ? market.complex.aptName
-      : target.kind === 'geo'
-        ? target.name
-        : '샘플 지역';
-
   return (
-    <ComplexShell target={target} tab={tab} title={title} status={market.status}>
+    <ComplexShell target={target} tab={tab} status={market.status}>
       {market.status === 'loading' && (
         <p className={styles.loading} role="status">
           {market.step}…
@@ -36,7 +29,7 @@ export function MarketTabs({ target, tab }: { target: ComplexTarget; tab: Extrac
       {market.status === 'ready' &&
         (tab === 'price' ? (
           <Suspense fallback={<p className={styles.loading}>그래프를 불러오는 중…</p>}>
-            <PricePanel market={market} target={target} />
+            <PricePanel market={market} />
           </Suspense>
         ) : (
           <InfoPanel market={market} target={target} />
