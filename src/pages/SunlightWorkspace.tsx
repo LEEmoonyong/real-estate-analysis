@@ -166,7 +166,8 @@ export function SunlightWorkspace({ target }: SunlightWorkspaceProps) {
     void loadSampleIndex().then((index) => {
       const near = scene ? nearestSample(index, scene.place) : undefined;
       const entry = near ?? index.find((e) => e.id === DEFAULT_SAMPLE_ID);
-      if (entry) navigate(complexPath({ kind: 'sample', sampleId: entry.id }));
+      // 건물을 못 불러와 가까운 샘플 장면을 보여 주는 것이므로 일조·조망 탭 그대로
+      if (entry) navigate(complexPath({ kind: 'sample', sampleId: entry.id }, 'sun'));
     });
   }, [scene, navigate]);
 

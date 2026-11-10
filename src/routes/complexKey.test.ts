@@ -8,9 +8,9 @@ const parse = (path: string) => {
 };
 
 describe('단지 주소', () => {
-  it('샘플 왕복', () => {
+  it('샘플 왕복 — 탭을 안 주면 기본 탭(시세·실거래)', () => {
     const t: ComplexTarget = { kind: 'sample', sampleId: 'seoul-jamsil' };
-    expect(complexPath(t)).toBe('/complex/sample-seoul-jamsil/sun');
+    expect(complexPath(t)).toBe('/complex/sample-seoul-jamsil/price');
     expect(parse(complexPath(t))).toEqual(t);
   });
 
@@ -23,7 +23,7 @@ describe('단지 주소', () => {
       address: '서울 송파구 올림픽로 99',
     };
     const path = complexPath(t);
-    expect(path).toMatch(/^\/complex\/geo-37\.512931,127\.081461\/sun\?/);
+    expect(path).toMatch(/^\/complex\/geo-37\.512931,127\.081461\/price\?/);
     expect(parse(path)).toEqual({ ...t, lat: 37.512931, lng: 127.081461 });
   });
 

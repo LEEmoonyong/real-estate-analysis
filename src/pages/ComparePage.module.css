@@ -200,7 +200,18 @@
   }
 }
 
-.memo {
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
+/* 칸 내용이 칸 폭을 다 쓰게 (메모 입력 칸) */
+.column dd > span:last-child {
+  min-width: 0;
+}
+
+@media (max-width: 719px) {
+  .column dd:last-child {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .column dd:last-child > span:last-child {
+    text-align: left;
+  }
 }

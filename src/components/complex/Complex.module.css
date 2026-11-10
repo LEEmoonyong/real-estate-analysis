@@ -547,3 +547,12 @@ a.watchButton {
   opacity: 0.5;
   cursor: default;
 }
+
+/* 단지 비교 표 칸 안의 메모 (제목 줄 없이) */
+.memoCompact {
+  margin-top: 0;
+}
+
+.memoCompact .memoInput {
+  min-height: 64px;
+}

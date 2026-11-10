@@ -3,11 +3,13 @@
 // [요구사항: 상태관리] Context(CompareContext) — 담은 목록 / 각 열은 단지마다 따로 불러온다(useComplexMarket·useComplexInfo)
 // [요구사항: 이벤트 처리] onClick(한 곳 빼기·모두 비우기), 링크(단지 상세·지도)
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useComplexInfo } from '../components/complex/useComplexInfo';
 import { useComplexMarket } from '../components/complex/useComplexMarket';
 import { JeonseRatio } from '../components/complex/InsightCards';
-import { useComplexMemo } from '../hooks/useComplexMemo';
+import { MemoEditor } from '../components/complex/TrendCards';
+import { setMemo, type ComplexMemo } from '../data/storage/complexNotes';
+import { useMemos } from '../hooks/useComplexMemo';
 import { useCompare } from '../contexts/CompareContext';
 import type { CompareEntry } from '../data/storage/compare';
 import { getNearby } from '../data/realestate/realestateClient';
@@ -41,12 +43,19 @@ function targetOf(path: string): ComplexTarget | null {
 
 export function ComparePage() {
   const { list, remove, clear } = useCompare();
+  const navigate = useNavigate();
+  const location = useLocation();
+  // 메모 저장소는 화면에 하나 — 열마다 따로 쥐면 한 열에서 저장할 때 다른 열 메모를 덮어쓴다
+  const [memos, setMemos] = useMemos();
+  const saveMemo = (id: string, text: string) => setMemos((prev) => setMemo(prev, id, text, Date.now()));
+  // 뒤로: 앱 안에서 들어왔으면 직전 화면(단지 상세 등)으로, 주소로 바로 열었으면 지도로
+  const goBack = () => (location.key === 'default' ? navigate('/') : navigate(-1));
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <Link to="/" className={styles.back}>
-          ← 지도
-        </Link>
+        <button type="button" className={styles.back} onClick={goBack} aria-label="이전 화면으로 돌아가기">
+          ← 뒤로
+        </button>
         <h1 className={styles.title}>단지 비교</h1>
         {list.length > 0 && (
           <button type="button" className={styles.clear} onClick={clear}>
@@ -75,7 +84,7 @@ export function ComparePage() {
               ))}
             </dl>
             {list.map((e) => (
-              <CompareColumn key={e.id} entry={e} onRemove={() => remove(e.id)} />
+              <CompareColumn key={e.id} entry={e} onRemove={() => remove(e.id)} memos={memos} onMemo={saveMemo} />
             ))}
           </div>
         )}
@@ -88,7 +97,13 @@ export function ComparePage() {
   );
 }
 
-function CompareColumn({ entry, onRemove }: { entry: CompareEntry; onRemove: () => void }) {
+/** 메모 저장소 (화면 전체가 하나를 같이 쓴다) */
+interface MemoProps {
+  memos: Readonly<Record<string, ComplexMemo>>;
+  onMemo: (id: string, text: string) => void;
+}
+
+function CompareColumn({ entry, onRemove, memos, onMemo }: { entry: CompareEntry; onRemove: () => void } & MemoProps) {
   const target = useMemo(() => targetOf(entry.path), [entry.path]);
   if (!target) {
     return (
@@ -101,18 +116,20 @@ function CompareColumn({ entry, onRemove }: { entry: CompareEntry; onRemove: () 
       </section>
     );
   }
-  return <LoadedColumn entry={entry} target={target} onRemove={onRemove} />;
+  return <LoadedColumn entry={entry} target={target} onRemove={onRemove} memos={memos} onMemo={onMemo} />;
 }
 
 function LoadedColumn({
   entry,
   target,
   onRemove,
+  memos,
+  onMemo,
 }: {
   entry: CompareEntry;
   target: ComplexTarget;
   onRemove: () => void;
-}) {
+} & MemoProps) {
   const market = useComplexMarket(target, entry.path);
   const ready = market.status === 'ready' ? market : null;
   const complex = ready?.complex ?? null;
@@ -148,7 +165,8 @@ function LoadedColumn({
     return r.tm !== null ? r : pick(ready.months.length);
   }, [ready]);
 
-  const memo = useComplexMemo(complex?.aptSeq ?? entry.id);
+  // 시세 탭 메모와 같은 키(실거래 단지 번호)
+  const memoId = complex?.aptSeq ?? entry.id;
   const sun = useMemo(() => {
     const at = complex?.lat != null && complex.lng != null ? { lat: complex.lat, lng: complex.lng } : point;
     return at ? findSummary(readSunSummaries(), at) : null;
@@ -209,7 +227,15 @@ function LoadedColumn({
         분석하기
       </Link>
     ),
-    '내 메모': memo ? <span className={styles.memo}>{memo}</span> : none,
+    '내 메모': (
+      <MemoEditor
+        id={`compare-`}
+        name={complex?.aptName ?? entry.name}
+        saved={memos[memoId]?.text ?? ''}
+        onSave={(text) => onMemo(memoId, text)}
+        compact
+      />
+    ),
   };
 
   return (

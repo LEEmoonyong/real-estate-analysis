@@ -794,9 +794,8 @@ export function MapPage() {
     const target = p.target;
     if (p.place && p.place.place.type !== 'apt')
       return { label: '이 건물 일조 분석 →', onOpen: () => navigate(complexPath(target, 'sun')) };
-    // 아파트 전월세 표시에서 열면 시세 탭으로
-    const tab = p.place && p.place.kind !== 'trade' ? 'price' : 'sun';
-    return { label: '단지 분석 열기 →', onOpen: () => navigate(complexPath(target, tab)) };
+    // 아파트 단지는 시세·실거래 탭부터
+    return { label: '단지 분석 열기 →', onOpen: () => navigate(complexPath(target, 'price')) };
   };
 
   return (

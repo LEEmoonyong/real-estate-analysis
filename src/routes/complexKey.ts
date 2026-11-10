@@ -2,7 +2,7 @@
 //   /complex/sample-seoul-jamsil          샘플 지역
 //   /complex/geo-37.51293,127.08146?name=…&addr=…   좌표로 찾은 장소 (검색 결과·지도 클릭)
 //   좌표 장소에는 실거래 단지 식별자(seq=11710-6346)와 시군구 코드(lawd=11710)가 붙을 수 있다(지도의 시세 표시에서 연 경우)
-// 탭은 /complex/:key/:tab (sun = 일조·조망 기본, price = 시세·실거래, info = 단지 정보)
+// 탭은 /complex/:key/:tab (price = 시세·실거래 기본, sun = 일조·조망, info = 단지 정보, area = 학군·교통, loan = 대출 계산)
 
 export type ComplexTarget =
   | { kind: 'sample'; sampleId: string }
@@ -18,13 +18,14 @@ export type ComplexTarget =
       lawd?: string;
     };
 
-export const COMPLEX_TABS = ['sun', 'price', 'info', 'area', 'loan'] as const;
+// 순서 = 화면의 탭 순서. 기본 탭은 시세·실거래 (주소에 탭이 없거나 모르는 탭이면 여기로)
+export const COMPLEX_TABS = ['price', 'sun', 'info', 'area', 'loan'] as const;
 export type ComplexTab = (typeof COMPLEX_TABS)[number];
 
 const round = (v: number) => Math.round(v * 1e6) / 1e6;
 
 /** 대상 → 경로 (+ 쿼리) */
-export function complexPath(target: ComplexTarget, tab: ComplexTab = 'sun'): string {
+export function complexPath(target: ComplexTarget, tab: ComplexTab = 'price'): string {
   if (target.kind === 'sample') return `/complex/sample-${encodeURIComponent(target.sampleId)}/${tab}`;
   const q = new URLSearchParams({ name: target.name });
   if (target.address) q.set('addr', target.address);

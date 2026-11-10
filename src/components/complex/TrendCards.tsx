@@ -92,29 +92,61 @@ export function FloorCard({ floors }: { floors: FloorAnalysis }) {
   );
 }
 
-/** 내 메모 — 입력 칸을 벗어나면 저장 */
+/** 내 메모 (시세 탭) — 입력 칸을 벗어나면 저장 */
 export function MemoBox({ id, name }: { id: string; name: string }) {
   const [memos, setMemos] = useMemos();
-  const saved = memos[id]?.text ?? '';
+  return (
+    <MemoEditor
+      id={id}
+      name={name}
+      saved={memos[id]?.text ?? ''}
+      onSave={(text) => setMemos((prev) => setMemo(prev, id, text, Date.now()))}
+    />
+  );
+}
+
+interface MemoEditorProps {
+  id: string;
+  name: string;
+  /** 저장된 글 */
+  saved: string;
+  /** 고친 글 저장 ('' = 지우기) */
+  onSave: (text: string) => void;
+  /** 단지 비교 표 칸처럼 좁은 곳: 제목 줄 없이 입력 칸만 */
+  compact?: boolean;
+}
+
+/**
+ * 메모 입력 칸. 저장소는 부르는 쪽이 쥔다 — 단지 비교 화면은 열 여러 개가 한 저장소를 같이 써야
+ * 한 열에서 저장할 때 다른 열의 메모를 덮어쓰지 않는다.
+ */
+export function MemoEditor({ id, name, saved, onSave, compact = false }: MemoEditorProps) {
   // 입력 중인 글 (null = 저장된 글 그대로)
   const [draft, setDraft] = useState<string | null>(null);
   const value = draft ?? saved;
   const save = () => {
     if (draft === null) return;
-    if (draft.trim() !== saved) setMemos((prev) => setMemo(prev, id, draft, Date.now()));
+    if (draft.trim() !== saved) onSave(draft);
     setDraft(null);
   };
   return (
-    <div className={styles.memo}>
-      <label className={styles.memoLabel} htmlFor={`memo-${id}`}>
-        내 메모 {saved && draft === null && <small className={styles.muted}>저장됨</small>}
-      </label>
+    <div className={`${styles.memo} ${compact ? styles.memoCompact : ''}`}>
+      {!compact && (
+        <label className={styles.memoLabel} htmlFor={`memo-${id}`}>
+          내 메모 {saved && draft === null && <small className={styles.muted}>저장됨</small>}
+        </label>
+      )}
       <textarea
         id={`memo-${id}`}
         className={styles.memoInput}
-        rows={2}
+        rows={compact ? 3 : 2}
         maxLength={MEMO_MAX_LENGTH}
-        placeholder={`${name}에 대해 적어 두세요 (예: 임장 다녀옴, 주차 좁음). 이 기기에만 저장됩니다.`}
+        aria-label={compact ? `${name} 메모` : undefined}
+        placeholder={
+          compact
+            ? '메모를 적어 두세요 (이 기기에만 저장)'
+            : `${name}에 대해 적어 두세요 (예: 임장 다녀옴, 주차 좁음). 이 기기에만 저장됩니다.`
+        }
         value={value}
         onChange={(e) => setDraft(e.target.value)}
         onBlur={save}
@@ -124,11 +156,12 @@ export function MemoBox({ id, name }: { id: string; name: string }) {
           type="button"
           className={styles.memoClear}
           onClick={() => {
-            setMemos((prev) => setMemo(prev, id, '', Date.now()));
+            onSave('');
             setDraft(null);
           }}
         >
-          메모 지우기
+          {compact ? '지우기' : '메모 지우기'}
+          {compact && draft === null && <span className={styles.muted}> · 저장됨</span>}
         </button>
       )}
     </div>
