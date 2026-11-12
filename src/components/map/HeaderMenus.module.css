@@ -175,3 +175,23 @@
     width: auto;
   }
 }
+
+/* 휴대폰: 글자를 빼고 "★ 2", "비교 3"처럼 좁게 (화면 이름표는 aria-label·title로) */
+@media (max-width: 767px) {
+  .label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .root {
+    gap: 4px;
+  }
+
+  .button {
+    gap: 4px;
+  }
+}

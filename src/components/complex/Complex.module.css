@@ -50,6 +50,8 @@
 /* ── 시세·단지 정보 탭 공통 화면 ── */
 .shell {
   display: grid;
+  /* 열 너비를 화면 폭으로 묶는다 — 없으면 탭 줄(가로 스크롤) 폭이 화면을 넓혀 휴대폰에서 오른쪽이 잘린다 */
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr);
   height: 100vh;
   height: 100dvh;
@@ -555,4 +557,46 @@ a.watchButton {
 
 .memoCompact .memoInput {
   min-height: 64px;
+}
+
+/* 휴대폰 머리글: 1줄 = ← · 이름 · 도움말, 2줄 = 관심 단지·비교 버튼(작게), 3줄 = 탭 */
+@media (max-width: 767px) {
+  .head {
+    gap: 6px;
+  }
+
+  .headTop {
+    gap: 6px var(--space-2);
+  }
+
+  .headTop .shellTitle {
+    flex: 1 1 0;
+    font-size: var(--font-size-md);
+  }
+
+  .headHelp {
+    order: 2;
+  }
+
+  .headActions {
+    order: 3;
+    flex: 1 1 100%;
+    gap: 6px;
+  }
+
+  .headActions .watchButton {
+    min-height: 30px;
+    padding: 0 8px;
+    font-size: 12px;
+  }
+
+  .tab {
+    min-height: 34px;
+    padding: 0 var(--space-2);
+  }
+}
+
+.headHelp {
+  display: flex;
+  margin-left: auto;
 }

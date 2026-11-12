@@ -63,11 +63,18 @@ export function HeaderMenus({ favoritesOpen, onFavoritesOpen, deals, onOpenFavor
           className={styles.button}
           aria-expanded={favoritesOpen}
           aria-haspopup="dialog"
+          title={`즐겨찾기 ${total}곳${newCount > 0 ? ` · 관심 단지 새 거래 ${newCount}건` : ''}`}
           onClick={() => onFavoritesOpen(!favoritesOpen)}
         >
-          <span aria-hidden="true">★</span> 즐겨찾기
+          <span aria-hidden="true">★</span>
+          <span className={styles.label}>즐겨찾기</span>
           {total > 0 && <span className={styles.count}>{total}</span>}
-          {newCount > 0 && <span className={styles.newBadge}>새 거래 {newCount}</span>}
+          {newCount > 0 && (
+            <span className={styles.newBadge}>
+              <span className={styles.label}>새 거래 </span>
+              {newCount}
+            </span>
+          )}
         </button>
         {favoritesOpen && (
           <div className={styles.menu} role="dialog" aria-label="즐겨찾기 목록">

@@ -1,6 +1,8 @@
 .root {
   position: relative;
   display: grid;
+  /* 열 너비를 화면 폭으로 묶는다 — 없으면 검색창 기본 폭이 머리글을 넓혀 휴대폰에서 오른쪽 버튼이 잘린다 */
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr);
   height: 100vh;
   height: 100dvh;
@@ -179,6 +181,12 @@
 @media (max-width: 767px) {
   .header {
     padding: var(--space-2);
+    gap: 6px;
+  }
+
+  /* 숨긴 제목이 머리글 간격을 차지하지 않게 (화면 읽기 프로그램용 h1은 남긴다) */
+  .title {
+    position: absolute;
   }
 
   .titleText {

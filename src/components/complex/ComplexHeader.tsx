@@ -26,7 +26,9 @@ export function ComplexHeader({ target, tab, badges, ...help }: ComplexHeaderPro
         <h1 className={styles.shellTitle}>{title}</h1>
         {badges}
         <ComplexActions target={target} />
-        <HelpButtons {...help} />
+        <div className={styles.headHelp}>
+          <HelpButtons {...help} />
+        </div>
       </div>
       <ComplexTabs target={target} active={tab} />
     </div>
