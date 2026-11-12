@@ -19,7 +19,8 @@ export type RoomFilter = (typeof ROOM_FILTERS)[number];
 export const RTMS_SERVICES: Record<PropertyType, { trade: string; rent: string | null }> = {
   apt: { trade: 'RTMSDataSvcAptTradeDev', rent: 'RTMSDataSvcAptRent' },
   offi: { trade: 'RTMSDataSvcOffiTrade', rent: 'RTMSDataSvcOffiRent' },
-  rh: { trade: 'RTMSDataSvcRHTrade', rent: 'RTMSDataSvcRHRent' },
+  // 빌라 매매는 2026-10 개편으로 서비스 이름이 RTMSDataSvcRHTrade2로 바뀜 (예전 이름은 새로 받은 키를 거절한다)
+  rh: { trade: 'RTMSDataSvcRHTrade2', rent: 'RTMSDataSvcRHRent' },
   sh: { trade: 'RTMSDataSvcSHTrade', rent: 'RTMSDataSvcSHRent' },
   nrg: { trade: 'RTMSDataSvcNrgTrade', rent: null },
 };
