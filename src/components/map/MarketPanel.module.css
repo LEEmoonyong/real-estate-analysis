@@ -461,3 +461,26 @@ a.favItem {
   outline: 2px solid var(--color-accent-strong);
   outline-offset: 2px;
 }
+
+/* 패널 머리의 "조건 초기화" — 바꾼 조건이 있을 때만 보인다 */
+.resetAll {
+  flex: none;
+  align-self: center;
+  min-height: 32px;
+  margin-right: var(--space-1, 4px);
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.resetAll:hover,
+.resetAll:focus-visible {
+  border-color: var(--color-accent-strong);
+}

@@ -21,6 +21,7 @@ import { RESULT_SORT_OPTIONS, sortResults, type ResultSort } from '../../domain/
 import { formatManwonShort } from '../../domain/realestate/format';
 import { M2_PER_PYEONG } from '../../domain/realestate/types';
 import {
+  DEFAULT_MARKET_QUERY,
   DEAL_KIND_OPTIONS,
   PROPERTY_TYPE_OPTIONS,
   ROOM_OPTIONS,
@@ -127,6 +128,29 @@ export function MarketPanel({
   const limit = page.of === results ? page.n : RESULT_PAGE;
   const setLimit = (n: number) => setPage({ of: results, n });
 
+  // 조건 초기화 — 유형·거래·방 구조(아파트·매매·전체), 세부 조건, 예산 스위치, 동 선택, 결과 정렬.
+  // 지역(시·도·시·군·구)은 "어디를 보는지"라 그대로 둔다.
+  const isDefault =
+    query.type === DEFAULT_MARKET_QUERY.type &&
+    query.kind === DEFAULT_MARKET_QUERY.kind &&
+    query.room === DEFAULT_MARKET_QUERY.room &&
+    filterCount === 0 &&
+    !budget.on &&
+    !(lawd && dong) &&
+    sort === 'count';
+  const resetAll = () => {
+    if (
+      query.type !== DEFAULT_MARKET_QUERY.type ||
+      query.kind !== DEFAULT_MARKET_QUERY.kind ||
+      query.room !== DEFAULT_MARKET_QUERY.room
+    )
+      onQuery(DEFAULT_MARKET_QUERY);
+    onFilter(DEFAULT_MAP_FILTER);
+    if (budget.on) onBudget({ ...budget, on: false });
+    if (dong) onDong('');
+    setSort('count');
+  };
+
   const pickSido = (next: string) => {
     if (!next) return;
     const list = sigunguOf(next);
@@ -169,6 +193,16 @@ export function MarketPanel({
           <span className={styles.toggleTitle}>지역·조건 {isOpen ? '▲' : '▼'}</span>
           <span className={styles.summary}>{summary}</span>
         </button>
+        {!isDefault && (
+          <button
+            type="button"
+            className={styles.resetAll}
+            onClick={resetAll}
+            title="유형·거래·방 구조·세부 조건·예산·동 선택을 처음 상태로 (시·도·시·군·구는 그대로)"
+          >
+            조건 초기화
+          </button>
+        )}
         {onShowGuide && (
           <button type="button" className={styles.help} onClick={onShowGuide} aria-label="지도 사용 안내 열기">
             ?
